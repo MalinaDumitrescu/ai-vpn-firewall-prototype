@@ -1,0 +1,192 @@
+# ============================================================================
+# .gitignore — ai-vpn-firewall-prototype
+# Python (FastAPI) backend + React/Vite frontend + PyCharm on Windows
+# ============================================================================
+
+# ─── Python ─────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+.eggs/
+build/
+dist/
+develop-eggs/
+downloads/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.manifest
+*.spec
+pip-log.txt
+pip-delete-this-directory.txt
+MANIFEST
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+.python-version
+
+# Testing / coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pyre/
+.pytype/
+.ruff_cache/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# ─── Node / Vite / React ────────────────────────────────────────────────────
+frontend/node_modules/
+node_modules/
+frontend/dist/
+dist/
+frontend/.vite/
+.vite/
+.cache/
+.parcel-cache/
+
+# npm / yarn / pnpm
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.npm/
+.pnpm-store/
+.yarn/
+
+# Vite env files (keep example, ignore real ones)
+.env
+.env.*
+!.env.example
+
+# ─── IDE / Editors ──────────────────────────────────────────────────────────
+# PyCharm / JetBrains
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# Sublime, Vim, Emacs
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo
+*~
+.netrwhist
+
+# ─── OS ─────────────────────────────────────────────────────────────────────
+# Windows
+Thumbs.db
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+*.stackdump
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Linux
+*~
+.fuse_hidden*
+.Trash-*
+
+# ─── Logs / runtime artefacts ───────────────────────────────────────────────
+*.log
+logs/
+*.pid
+*.seed
+*.pid.lock
+
+# ─── Project-specific: PCAP / capture data ──────────────────────────────────
+# PCAP files copied from the VM can be huge — never commit them.
+captures/*.pcap
+captures/*.pcapng
+captures/*.cap
+captures/*_features.csv
+# Keep the captures/ directory itself in the repo (via .gitkeep)
+!captures/.gitkeep
+
+# ─── Project-specific: live ingest / replay state dumps ─────────────────────
+backend/.live_ingest_state.json
+backend/.live_replay_state.json
+
+# ─── Project-specific: user uploads / temp ──────────────────────────────────
+uploads/
+tmp/
+temp/
+
+# ─── Large model artefacts (optional — uncomment if model files balloon) ────
+# Currently the runtime_bundle/ is intentionally committed because it ships
+# the trained robust9_firewall ensemble required at runtime.
+# Uncomment the lines below ONLY if you decide to host models elsewhere
+# (e.g., Git LFS, S3) and want git to stop tracking the .pkl files.
+# *.pkl
+# *.joblib
+# *.cbm
+# *.onnx
+# *.h5
+# *.pt
+# *.pth
+# backend/runtime_bundle/runtime_models/
+
+# ─── Project-specific: scratch / junk files ─────────────────────────────────
+# Empty scratch CSV at repo root — never meaningful to commit
+bad.csv
+
+# Jupyter notebook raw execution dumps (huge text files with cell outputs)
+# These are NOT source code — they are auto-generated analysis artifacts.
+**/scripts/_nb_dump.txt
+**/scripts/_nb_full_dump.txt
+_nb_dump.txt
+_nb_full_dump.txt
+
+# Generic notebook artefacts
+*.ipynb
+
+# ─── Misc ───────────────────────────────────────────────────────────────────
+*.bak
+*.tmp
+*.orig
+*.rej
+.DS_Store?
+
+# Secrets — never commit credentials, keys, or tokens
+*.pem
+*.key
+*.crt
+secrets/
+.secrets/
+
