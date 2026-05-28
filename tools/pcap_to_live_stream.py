@@ -195,6 +195,81 @@ def _compute_robust9(
     }
 
 
+# ─── packet-size mode ────────────────────────────────────────────────────────
+#
+# The robust9 training pipeline computed sz_* features from the IP-layer
+# *declared* total length (the ``len`` field of the IP header). Matching that
+# convention here is critical so the live-extracted features land in the same
+# distribution the model was trained on. Empirical parity check vs. the
+# training distributions:
+#
+#   usbvpn  sz_all_mean min=28   p25=330.5  median=480.2  mean=604.9  p75=763.3
+#   iscx    sz_all_mean min=30   p25= 80.1  median=150.0  mean=248.3  p75=256.7
+#
+# The 28/30-byte minima rule out frame-size (>= 60 due to Ethernet padding) and
+# payload-only (often 0 for ACK-only packets). They are characteristic of the
+# IP total-length field. See tools/debug_robust9_parity.py for the comparator.
+
+PKT_SIZE_MODES = ("ip_field", "ip_layer", "frame", "payload")
+DEFAULT_PKT_SIZE_MODE = "ip_field"
+
+
+def get_packet_size(pkt, pkt_size_mode: str = DEFAULT_PKT_SIZE_MODE) -> Optional[float]:
+    """Return the per-packet size used by the robust9 sz_* features.
+
+    Modes
+    -----
+    ip_field (default)
+        IP header's declared total-length field. Matches the original training
+        feature extractor.
+    ip_layer
+        Bytes of the IP layer as serialized by scapy (header + payload).
+        Useful for raw IP captures with no Ethernet.
+    frame
+        Full L2 frame including Ethernet. Off by ~14 bytes vs. training on
+        Ethernet captures.
+    payload
+        L4 payload bytes only. Wrong for the training distribution because
+        ACK-only packets collapse to 0. Debug-only.
+
+    Returns ``None`` if the packet should be skipped (e.g. a non-IP frame in
+    ``ip_field`` / ``ip_layer`` / ``payload`` modes).
+    """
+    if pkt_size_mode == "ip":
+        pkt_size_mode = "ip_field"
+
+    if pkt_size_mode == "frame":
+        return float(len(pkt))
+
+    if not pkt.haslayer(IP):
+        return None
+
+    ip = pkt[IP]
+
+    if pkt_size_mode == "ip_field":
+        val = getattr(ip, "len", None)
+        if val is None or val == 0:
+            # Scapy sometimes leaves ip.len unset on synthesized / truncated
+            # packets; fall back to the serialized IP-layer length.
+            return float(len(ip))
+        return float(val)
+
+    if pkt_size_mode == "ip_layer":
+        return float(len(ip))
+
+    if pkt_size_mode == "payload":
+        if pkt.haslayer(TCP):
+            return float(len(pkt[TCP].payload))
+        if pkt.haslayer(UDP):
+            return float(len(pkt[UDP].payload))
+        return 0.0
+
+    raise ValueError(
+        f"Unsupported pkt_size_mode: {pkt_size_mode!r}. "
+        f"Expected one of {PKT_SIZE_MODES} (or alias 'ip')."
+    )
+
+
 # ─── PCAP parsing ─────────────────────────────────────────────────────────────
 
 
@@ -203,14 +278,19 @@ def parse_pcap(
     scenario: str,
     min_packets_per_flow: int,
     max_packets: Optional[int],
+    pkt_size_mode: str = DEFAULT_PKT_SIZE_MODE,
 ) -> Tuple[List[Dict[str, Any]], Dict[str, int]]:
     """
     Parse a PCAP file and return (flow_rows, stats_dict).
 
     Each flow must have ≥ min_packets_per_flow packets to be included.
     Uses 5-second time windows for session_id assignment.
+
+    ``pkt_size_mode`` controls how per-packet byte sizes are measured for the
+    sz_* features; default ``ip_field`` matches the robust9 training pipeline.
     """
     print(f"[*] Reading PCAP: {pcap_path}")
+    print(f"[*] packet_size_mode={pkt_size_mode}")
     try:
         packets = rdpcap(pcap_path)
     except Exception as exc:
@@ -223,6 +303,7 @@ def parse_pcap(
     usable_ip       = 0
     usable_tcp_udp  = 0
     skipped_non_ip  = 0
+    skipped_no_size = 0
     pkt_count       = 0
     capture_start_time: Optional[float] = None
 
@@ -243,7 +324,10 @@ def parse_pcap(
         src_ip    = str(ip_layer.src)
         dst_ip    = str(ip_layer.dst)
         proto_num = int(ip_layer.proto)
-        pkt_len   = float(len(pkt))
+        pkt_len   = get_packet_size(pkt, pkt_size_mode)
+        if pkt_len is None:
+            skipped_no_size += 1
+            continue
         ts        = float(pkt.time)
 
         if capture_start_time is None:
@@ -330,6 +414,7 @@ def parse_pcap(
         "usable_ip":           usable_ip,
         "usable_tcp_udp":      usable_tcp_udp,
         "skipped_non_ip":      skipped_non_ip,
+        "skipped_no_size":     skipped_no_size,
         "flows_extracted":     len(flow_rows),
         "flows_skipped_short": flows_skipped_short,
     }
@@ -558,6 +643,18 @@ def _build_parser() -> argparse.ArgumentParser:
         metavar="PATH",
         help="Optional path to save extracted robust9 feature rows as CSV (parent dirs created automatically).",
     )
+    p.add_argument(
+        "--pkt-size-mode",
+        default=DEFAULT_PKT_SIZE_MODE,
+        choices=list(PKT_SIZE_MODES) + ["ip"],
+        metavar="MODE",
+        help=(
+            "How to measure each packet's byte size for the sz_* features. "
+            "Choices: ip_field (default; matches training, alias 'ip'), "
+            "ip_layer (scapy IP-layer length), frame (full L2 frame), "
+            "payload (L4 payload only; debug only)."
+        ),
+    )
     return p
 
 
@@ -583,6 +680,7 @@ def main() -> None:
         scenario=args.scenario,
         min_packets_per_flow=args.min_packets_per_flow,
         max_packets=args.max_packets,
+        pkt_size_mode=args.pkt_size_mode,
     )
 
     # ── extraction summary ─────────────────────────────────────────────────
