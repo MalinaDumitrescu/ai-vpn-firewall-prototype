@@ -43,7 +43,9 @@ param(
     [switch] $AllowWarpUnverified,
     [switch] $KeepBackendState,
     [switch] $DryRun,
-    [switch] $SkipVmStart
+    [switch] $SkipVmStart,
+
+    [string] $VBoxManagePath = "C:\Program Files\Oracle\VirtualBox\VBoxManage.exe"
 )
 
 # ---------------------------------------------------------------------------
@@ -153,8 +155,9 @@ function Invoke-Ssh {
 
 function Test-VmRunning {
     param([string] $Name)
+    if (-not $ResolvedVBoxManage) { return $false }
     try {
-        $running = & VBoxManage list runningvms 2>$null
+        $running = & $ResolvedVBoxManage list runningvms 2>$null
         return ($running -match [regex]::Escape($Name))
     } catch { return $false }
 }
@@ -162,17 +165,36 @@ function Test-VmRunning {
 function Start-VmIfNeeded {
     param([string] $Name)
     if ($SkipVmStart) { Write-Info "SkipVmStart set, not touching VM '$Name'."; return }
+    if (-not $ResolvedVBoxManage) {
+        Write-Warn2 "VBoxManage unavailable. Skipping VM start for '$Name'."
+        return
+    }
     if (Test-VmRunning -Name $Name) {
         Write-Info "VM '$Name' already running."
         return
     }
     Write-Info "Starting VM '$Name' headless..."
     try {
-        & VBoxManage startvm $Name --type headless | Out-Null
+        & $ResolvedVBoxManage startvm $Name --type headless | Out-Null
         if ($LASTEXITCODE -ne 0) { Write-Warn2 "VBoxManage returned $LASTEXITCODE for '$Name'. Continuing." }
     } catch {
         Write-Warn2 "Failed to start VM '$Name': $($_.Exception.Message). Continuing."
     }
+}
+
+function Resolve-VBoxManage {
+    param([string] $PreferredPath)
+    if ($PreferredPath -and (Test-Path $PreferredPath)) { return $PreferredPath }
+    $cmd = Get-Command VBoxManage -ErrorAction SilentlyContinue
+    if ($cmd) { return $cmd.Source }
+    return $null
+}
+
+$ResolvedVBoxManage = Resolve-VBoxManage -PreferredPath $VBoxManagePath
+if ($ResolvedVBoxManage) {
+    Write-Info "Using VBoxManage: $ResolvedVBoxManage"
+} else {
+    Write-Warn2 "VBoxManage not found. VM auto-start will be skipped. Start the VM manually or pass -VBoxManagePath."
 }
 
 function Wait-Ssh {
