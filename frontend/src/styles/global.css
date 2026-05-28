@@ -215,6 +215,10 @@ button.secondary:hover { background: var(--bg-2); }
   gap: 6px;
   min-height: 80px;
   box-shadow: var(--shadow);
+  /* Keep long values inside the tile when used in a grid (avoid overlap
+     between adjacent tiles). */
+  min-width: 0;
+  overflow: hidden;
 }
 .summary-tile .label {
   color: var(--text-dim);
@@ -222,17 +226,27 @@ button.secondary:hover { background: var(--bg-2); }
   text-transform: uppercase;
   letter-spacing: 0.8px;
   font-weight: 600;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 .summary-tile .value {
   font-size: 22px;
   font-weight: 600;
   color: var(--text);
   font-variant-numeric: tabular-nums;
+  max-width: 100%;
+  min-width: 0;
+  overflow-wrap: anywhere;
   word-break: break-word;
+  white-space: normal;
+  line-height: 1.15;
 }
 .summary-tile .sub {
   color: var(--text-mute);
   font-size: 11px;
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
 .summary-tile.accent-ok    { border-left: 3px solid var(--ok); }
 .summary-tile.accent-warn  { border-left: 3px solid var(--warn); }
@@ -285,6 +299,77 @@ button.secondary:hover { background: var(--bg-2); }
 .warning-box.bad  { background: rgba(239,68,68,0.08);  border-color: rgba(239,68,68,0.4);   color: #fecaca; }
 .warning-box.info { background: rgba(56,189,248,0.07); border-color: rgba(56,189,248,0.3);  color: #bae6fd; }
 .warning-box.ok   { background: rgba(46,204,113,0.07); border-color: rgba(46,204,113,0.35); color: #bbf7d0; }
+
+/* ---------- compact simulation notice (informational pages) ---------- */
+
+.sim-notice-compact {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px;
+  margin: 4px 0 14px 0;
+  border-radius: 999px;
+  border: 1px solid rgba(148,163,184,0.25);
+  background: rgba(15,23,42,0.4);
+  font-size: 12px;
+  color: #cbd5e1;
+}
+.sim-notice-compact .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #94a3b8;
+}
+.sim-notice-compact.warn .dot { background: #f5b400; }
+.sim-notice-compact.bad  .dot { background: #ef4444; }
+.sim-notice-compact.info .dot { background: #38bdf8; }
+.sim-notice-compact.ok   .dot { background: #2ecc71; }
+
+/* ---------- TabSwitcher (segmented buttons) ---------- */
+
+.tab-switcher {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  margin: 4px 0 14px 0;
+  background: rgba(15,23,42,0.55);
+  border: 1px solid rgba(148,163,184,0.18);
+  border-radius: 10px;
+}
+.tab-switcher-btn {
+  appearance: none;
+  background: transparent;
+  border: 1px solid transparent;
+  color: #cbd5e1;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.tab-switcher-btn:hover {
+  background: rgba(56,189,248,0.08);
+  color: #e2e8f0;
+}
+.tab-switcher-btn.active {
+  background: rgba(56,189,248,0.15);
+  color: #f1f5f9;
+  border-color: rgba(56,189,248,0.35);
+}
+.tab-switcher-badge {
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(148,163,184,0.18);
+  color: #cbd5e1;
+}
+.tab-panel {
+  margin-top: 4px;
+}
 
 /* ---------- key-value list ---------- */
 
@@ -526,8 +611,9 @@ ul.clean li { margin-bottom: 4px; }
 /* stat tiles */
 .lr-stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 8px;
+  align-items: stretch;
 }
 .lr-stat-tile {
   padding: 10px 12px;
@@ -535,6 +621,10 @@ ul.clean li { margin-bottom: 4px; }
   background: var(--bg-2);
   border: 1px solid var(--border);
   text-align: center;
+  /* Prevent long values (e.g. "robust9_firewall") from overflowing the
+     grid cell and overlapping the adjacent tile. */
+  min-width: 0;
+  overflow: hidden;
 }
 .lr-stat-tile.ok   { background: rgba(46,204,113,0.07);  border-color: rgba(46,204,113,0.22); }
 .lr-stat-tile.warn { background: rgba(245,180,0,0.07);   border-color: rgba(245,180,0,0.22); }
@@ -546,6 +636,20 @@ ul.clean li { margin-bottom: 4px; }
   color: var(--text);
   line-height: 1.2;
   margin-bottom: 4px;
+  /* Wrap long identifiers cleanly so they stay inside the tile. */
+  max-width: 100%;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  white-space: normal;
+}
+/* The value text often wraps a <span class="mono"> child; force the
+   inline span to honor the tile width too. */
+.lr-stat-val .mono {
+  display: inline-block;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-all;
 }
 .lr-stat-tile.ok   .lr-stat-val { color: #4ade80; }
 .lr-stat-tile.warn .lr-stat-val { color: #fbbf24; }
@@ -556,6 +660,21 @@ ul.clean li { margin-bottom: 4px; }
   color: var(--text-dim);
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+@media (max-width: 900px) {
+  .lr-stats-grid {
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  }
+}
+@media (max-width: 600px) {
+  .lr-stats-grid {
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  }
+  .lr-stat-val { font-size: 16px; }
 }
 
 /* progress bar */
@@ -583,7 +702,7 @@ ul.clean li { margin-bottom: 4px; }
   color: var(--text);
   pointer-events: none;
 }
-   ───────────────────────────────────────────────────────────────────────────── */
+  /* ───────────────────────────────────────────────────────────────────────────── */
 
 /* small inline badge variant */
 .small-badge {

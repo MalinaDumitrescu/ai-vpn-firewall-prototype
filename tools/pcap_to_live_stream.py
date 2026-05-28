@@ -40,6 +40,32 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
+# ---------------------------------------------------------------------------
+# Windows-safe console output.
+#
+# Some Windows consoles (cmd.exe, older PowerShell) default to cp1252 / cp850
+# and cannot encode characters like Unicode box-drawing glyphs, which causes
+# UnicodeEncodeError mid-stream and aborts the script. We do two things:
+#   1. Try to reconfigure stdout/stderr to UTF-8 (best-effort, Python 3.7+).
+#   2. Provide a safe_print() fallback that swaps unencodable characters for
+#      a safe ASCII replacement instead of crashing.
+# ---------------------------------------------------------------------------
+try:
+    # Python 3.7+: io.TextIOWrapper.reconfigure
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")  # type: ignore[union-attr]
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")  # type: ignore[union-attr]
+except Exception:  # noqa: BLE001
+    pass
+
+
+def safe_print(text: str = "") -> None:
+    """print() that never raises UnicodeEncodeError on Windows consoles."""
+    try:
+        print(text)
+    except UnicodeEncodeError:
+        enc = getattr(sys.stdout, "encoding", None) or "ascii"
+        print(text.encode(enc, errors="replace").decode(enc, errors="replace"))
+
 # ─── dependency guard: scapy ─────────────────────────────────────────────────
 try:
     from scapy.all import rdpcap, IP, TCP, UDP  # type: ignore[import]
@@ -427,7 +453,7 @@ def _print_final_summary(
     out_csv: Optional[str],
     dry_run: bool,
 ) -> None:
-    print("\n── Final Summary ────────────────────────────────────────")
+    safe_print("\n-- Final Summary ----------------------------------------")
     print(f"  packets read          : {stats['packets_read']}")
     print(f"  usable IP packets     : {stats['usable_ip']}")
     print(f"  usable TCP/UDP pkts   : {stats['usable_tcp_udp']}")
@@ -441,7 +467,7 @@ def _print_final_summary(
         print(f"  batches sent          : {batches_sent}")
     if out_csv:
         print(f"  output CSV            : {Path(out_csv).resolve()}")
-    print("─────────────────────────────────────────────────────────\n")
+    safe_print("---------------------------------------------------------\n")
 
 
 # ─── CLI argument parser ──────────────────────────────────────────────────────
@@ -560,7 +586,7 @@ def main() -> None:
     )
 
     # ── extraction summary ─────────────────────────────────────────────────
-    print("\n── Extraction Summary ───────────────────────────────────")
+    safe_print("\n-- Extraction Summary -----------------------------------")
     print(f"  packets read          : {stats['packets_read']}")
     print(f"  usable IP packets     : {stats['usable_ip']}")
     print(f"  usable TCP/UDP pkts   : {stats['usable_tcp_udp']}")

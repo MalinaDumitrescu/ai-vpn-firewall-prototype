@@ -482,10 +482,11 @@ export default function MultiModelCsvEvaluation() {
       {/* ── page header ── */}
       <div className="page-header">
         <div>
-          <h1>Multi-model CSV evaluation</h1>
+          <h1>Multi-model evaluation</h1>
           <div className="subtitle">
-            Run all selected runtime models on the same CSV and compare results
-            side-by-side. <strong>Simulation only</strong> — no packets are blocked.
+            Compare selected runtime models on the same uploaded CSV.
+            Benchmarking only &mdash; firewall decisions remain{' '}
+            <strong>simulated</strong>.
           </div>
         </div>
       </div>
@@ -541,7 +542,7 @@ export default function MultiModelCsvEvaluation() {
 
           {/* ── demo button ── */}
           <div className="section card">
-            <h2 style={{ marginTop: 0 }}>Run bundled multi-model demo</h2>
+            <h2 style={{ marginTop: 0 }}>Bundled benchmark</h2>
             <p className="dim" style={{ marginTop: 0, marginBottom: 12 }}>
               Uses <span className="mono">demo_multimodel_flows.csv</span> (50 flows, 4 sessions)
               and runs <strong>all 5 runtime allowlist models</strong> regardless of
@@ -554,7 +555,7 @@ export default function MultiModelCsvEvaluation() {
 
           {/* ── CSV upload ── */}
           <div className="section card">
-            <h2 style={{ marginTop: 0 }}>Analyze uploaded CSV</h2>
+            <h2 style={{ marginTop: 0 }}>Uploaded CSV benchmark</h2>
             <p className="dim" style={{ marginTop: 0, marginBottom: 12 }}>
               Models whose required features are absent in your CSV will be gracefully
               skipped — other selected models still run.

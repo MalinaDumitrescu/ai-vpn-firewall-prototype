@@ -31,6 +31,7 @@ from app.schemas import (
     ModelMetricsResponse,
     ModelPolicyResponse,
 )
+from demo_runner import build_router as build_demo_router
 
 logger = logging.getLogger("ai_vpn_firewall")
 logging.basicConfig(level=logging.INFO)
@@ -57,6 +58,12 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Local demo runner endpoints (POST /demo/run/*, GET /demo/jobs/*).
+# SAFETY: this router only launches a fixed allowlist of local PowerShell
+# scripts and is intended for local thesis demos only. Do not expose it on
+# a public network.
+app.include_router(build_demo_router())
 
 
 # --------------------------------------------------------------------------- meta

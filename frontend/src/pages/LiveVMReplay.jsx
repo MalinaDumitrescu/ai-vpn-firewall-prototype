@@ -330,7 +330,7 @@ export default function LiveVMReplay() {
       {/* ── header ── */}
       <div className="page-header">
         <div>
-          <h1>Live VM replay</h1>
+          <h1>CSV replay</h1>
           <div className="subtitle">
             Replay a VM-exported feature CSV as near-real-time traffic. The app
             labels sessions but does <strong>not</strong> block packets.

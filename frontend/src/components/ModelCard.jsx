@@ -10,7 +10,7 @@ function fmt(v, digits = 4) {
   return String(v);
 }
 
-export default function ModelCard({ modelId, entry }) {
+export default function ModelCard({ modelId, entry, variant = 'full' }) {
   const status = entry?.status || 'unknown';
   const isDefault    = status === 'default_firewall';
   const isNegative   = status === 'negative_control';
@@ -18,13 +18,26 @@ export default function ModelCard({ modelId, entry }) {
   const isAlias      = status === 'alias';
   const isPolicyOnly = status === 'policy_computed';
 
+  // metadata variant: Registry view focuses on identity / artifact / policy /
+  // approval / notes and hides the benchmark metrics that already appear on
+  // the Model Comparison page.
+  const isMetadata = variant === 'metadata';
+
+  const approvalLabel =
+    isDefault     ? 'Approved (simulation only)' :
+    isNegative    ? 'Negative control - not deployable' :
+    isPolicyOnly  ? 'Benchmark only - not deployable' :
+    isUnsupp      ? 'Unsupported - not deployable' :
+    isAlias       ? 'Alias - not deployable' :
+                    'Not deployment-approved';
+
   return (
     <div className="card model-card">
       <div className="header">
         <div>
           <div className="title">{modelId}</div>
           <div className="dim" style={{ fontSize: 12, marginTop: 2 }}>
-            {entry?.source_artifact || '—'}
+            {entry?.source_artifact || '\u2014'}
           </div>
         </div>
         <div className="badges">
@@ -41,25 +54,36 @@ export default function ModelCard({ modelId, entry }) {
 
       <div className="metrics">
         <div className="k">prob col</div>
-        <div className="v mono">{entry?.selected_probability_column ?? '—'}</div>
+        <div className="v mono">{entry?.selected_probability_column ?? '\u2014'}</div>
 
         <div className="k">aggregation</div>
-        <div className="v mono">{entry?.selected_aggregation ?? '—'}</div>
+        <div className="v mono">{entry?.selected_aggregation ?? '\u2014'}</div>
 
-        <div className="k">strict recall</div>
-        <div className="v">{fmt(entry?.strict_test_recall)}</div>
+        {isMetadata && (
+          <>
+            <div className="k">approval</div>
+            <div className="v">{approvalLabel}</div>
+          </>
+        )}
 
-        <div className="k">strict FPR</div>
-        <div className="v">{fmt(entry?.strict_test_fpr)}</div>
+        {!isMetadata && (
+          <>
+            <div className="k">strict recall</div>
+            <div className="v">{fmt(entry?.strict_test_recall)}</div>
 
-        <div className="k">balanced recall</div>
-        <div className="v">{fmt(entry?.balanced_test_recall)}</div>
+            <div className="k">strict FPR</div>
+            <div className="v">{fmt(entry?.strict_test_fpr)}</div>
 
-        <div className="k">balanced FPR</div>
-        <div className="v">{fmt(entry?.balanced_test_fpr)}</div>
+            <div className="k">balanced recall</div>
+            <div className="v">{fmt(entry?.balanced_test_recall)}</div>
 
-        <div className="k">session AUC</div>
-        <div className="v">{fmt(entry?.session_auc_test)}</div>
+            <div className="k">balanced FPR</div>
+            <div className="v">{fmt(entry?.balanced_test_fpr)}</div>
+
+            <div className="k">session AUC</div>
+            <div className="v">{fmt(entry?.session_auc_test)}</div>
+          </>
+        )}
 
         {entry?.held_out_dataset && (
           <>

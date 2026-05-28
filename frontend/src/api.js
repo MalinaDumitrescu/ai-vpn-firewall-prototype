@@ -67,6 +67,17 @@ export const api = {
   liveIngestState: () => request('/firewall/live-ingest/state'),
   liveIngestReset: () =>
     request('/firewall/live-ingest/reset', { method: 'POST' }),
+
+  // ---- demo runner (local thesis demo only) ----
+  demoAllowed: () => request('/demo/allowed'),
+  demoJobs:    () => request('/demo/jobs'),
+  demoJob:     (jobId) => request(`/demo/jobs/${encodeURIComponent(jobId)}`),
+  demoCancel:  (jobId) =>
+    request(`/demo/jobs/${encodeURIComponent(jobId)}/cancel`, { method: 'POST' }),
+  demoRun: (name, { allowConcurrent = false } = {}) =>
+    request(`/demo/run/${encodeURIComponent(name)}?allow_concurrent=${allowConcurrent}`, {
+      method: 'POST',
+    }),
 };
 
 

@@ -85,10 +85,11 @@ export default function ModelRegistry() {
         <div>
           <h1>Model registry (admin view)</h1>
           <div className="subtitle">
-            All packaged models from the runtime bundle, visually grouped by{' '}
-            <span className="mono">ui_group</span>. Only the{' '}
-            <strong>default_firewall</strong> model is approved for simulated
-            firewall actions.
+            Packaged model <strong>metadata</strong> from the runtime bundle:
+            identity, artifact path, role, probability column, aggregation,
+            deployment approval, and notes. For benchmark metrics
+            (session AUC, strict/balanced recall &amp; FPR), see the{' '}
+            <strong>Comparison</strong> tab.
           </div>
         </div>
       </div>
@@ -119,7 +120,7 @@ export default function ModelRegistry() {
             </div>
             <div className="grid cols-2">
               {entries.map(([modelId, entry]) => (
-                <ModelCard key={modelId} modelId={modelId} entry={entry} />
+                <ModelCard key={modelId} modelId={modelId} entry={entry} variant="metadata" />
               ))}
             </div>
           </div>

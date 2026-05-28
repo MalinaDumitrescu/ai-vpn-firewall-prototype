@@ -3,12 +3,20 @@ import Navbar from './components/Navbar.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import FirewallDemo from './pages/FirewallDemo.jsx';
 import MultiModelCsvEvaluation from './pages/MultiModelCsvEvaluation.jsx';
-import LiveVMReplay from './pages/LiveVMReplay.jsx';
-import LiveVMMonitor from './pages/LiveVMMonitor.jsx';
-import ModelRegistry from './pages/ModelRegistry.jsx';
-import ModelComparison from './pages/ModelComparison.jsx';
+import LiveVM from './pages/LiveVM.jsx';
+import Models from './pages/Models.jsx';
 import Robustness from './pages/Robustness.jsx';
+import DemoRunner from './pages/DemoRunner.jsx';
 import { api, API_BASE } from './api.js';
+
+// Legacy page ids are kept working as aliases so old bookmarks / links do not
+// break after the navigation refactor.
+const LEGACY_ALIASES = {
+  livereplay:  'livevm',
+  livemonitor: 'livevm',
+  registry:    'models',
+  comparison:  'models',
+};
 
 export default function App() {
   const [page, setPage] = useState('dashboard');
@@ -29,27 +37,28 @@ export default function App() {
     return () => { mounted = false; clearInterval(t); };
   }, []);
 
+  const resolvedPage = LEGACY_ALIASES[page] || page;
+
   let body = null;
-  switch (page) {
+  switch (resolvedPage) {
     case 'firewall':    body = <FirewallDemo />; break;
     case 'multimodel':  body = <MultiModelCsvEvaluation />; break;
-    case 'livereplay':  body = <LiveVMReplay />; break;
-    case 'livemonitor': body = <LiveVMMonitor />; break;
-    case 'registry':    body = <ModelRegistry />; break;
-    case 'comparison':  body = <ModelComparison />; break;
+    case 'livevm':      body = <LiveVM />; break;
+    case 'models':      body = <Models />; break;
     case 'robustness':  body = <Robustness />; break;
+    case 'demorunner':  body = <DemoRunner onNavigate={setPage} />; break;
     case 'dashboard':
     default:            body = <Dashboard />; break;
   }
 
   return (
     <div className="app-shell">
-      <Navbar current={page} onNavigate={setPage} apiStatus={apiStatus} />
+      <Navbar current={resolvedPage} onNavigate={setPage} apiStatus={apiStatus} />
       <main className="app-main">
         {body}
         <div className="footer-note">
-          API: <span className="mono">{API_BASE}</span> · Simulation mode ·
-          Prototype build — not for production deployment.
+          API: <span className="mono">{API_BASE}</span> &middot; Simulation mode &middot;
+          Prototype build &mdash; not for production deployment.
         </div>
       </main>
     </div>

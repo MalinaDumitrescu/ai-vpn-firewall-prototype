@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from '../api.js';
 import WarningBox from '../components/WarningBox.jsx';
+import DemoRunnerPanel from '../components/DemoRunnerPanel.jsx';
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -202,7 +203,7 @@ export default function LiveVMMonitor() {
       {/* ── header ── */}
       <div className="page-header">
         <div>
-          <h1>Live VM Monitor</h1>
+          <h1>PCAP monitor</h1>
           <div className="subtitle">
             Near-real-time view of PCAP-derived flow features streamed by
             <code className="mono" style={{ margin: '0 4px' }}>tools/pcap_to_live_stream.py</code>
@@ -224,6 +225,16 @@ export default function LiveVMMonitor() {
         sniff live traffic and <strong>no packets are blocked</strong>. All labels are
         from <span className="mono">robust9_firewall</span> and are simulated.
       </WarningBox>
+
+      {/* ── local demo runner (frontend-triggered scripts) ── */}
+      <div className="section card">
+        <h2 style={{ marginTop: 0 }}>Local Demo Runner</h2>
+        <DemoRunnerPanel
+          compact={true}
+          showJobs={false}
+          onJobFinished={() => { fetchState(); }}
+        />
+      </div>
 
       {/* ── controls ── */}
       <div className="section card">

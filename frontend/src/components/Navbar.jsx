@@ -1,14 +1,13 @@
 import React from 'react';
 
 const LINKS = [
-  { id: 'dashboard',   label: 'Dashboard' },
-  { id: 'firewall',    label: 'Firewall Demo' },
-  { id: 'multimodel',  label: 'Multi-model CSV' },
-  { id: 'livereplay',  label: 'Live VM Replay' },
-  { id: 'livemonitor', label: 'Live VM Monitor' },
-  { id: 'registry',    label: 'Model Registry' },
-  { id: 'comparison',  label: 'Model Comparison' },
-  { id: 'robustness',  label: 'Robustness' },
+  { id: 'dashboard',   label: 'Dashboard'             },
+  { id: 'demorunner',  label: 'Demo Runner'           },
+  { id: 'firewall',    label: 'Single-model Demo'     },
+  { id: 'multimodel',  label: 'Multi-model Evaluation'},
+  { id: 'livevm',      label: 'Live VM'               },
+  { id: 'models',      label: 'Models'                },
+  { id: 'robustness',  label: 'Robustness'            },
 ];
 
 export default function Navbar({ current, onNavigate, apiStatus }) {

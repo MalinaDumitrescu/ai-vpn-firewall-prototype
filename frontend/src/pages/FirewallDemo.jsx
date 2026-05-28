@@ -53,10 +53,11 @@ export default function FirewallDemo() {
     <div>
       <div className="page-header">
         <div>
-          <h1>Firewall demo</h1>
+          <h1>Single-model demo</h1>
           <div className="subtitle">
-            Run real ensemble inference on the bundled flows or your own CSV.
-            All actions are <strong>simulated</strong>.
+            Run the default <span className="mono">robust9_firewall</span>{' '}
+            model on bundled flows or an uploaded CSV. All actions are{' '}
+            <strong>simulated</strong>.
           </div>
         </div>
         <div className="button-row">
