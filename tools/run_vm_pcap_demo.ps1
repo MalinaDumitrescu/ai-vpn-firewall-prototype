@@ -110,8 +110,28 @@ function Write-Warn2([string]$Msg) { Write-Host "[warn] $Msg" -ForegroundColor Y
 function Write-Err2([string]$Msg)  { Write-Host "[err ] $Msg" -ForegroundColor Red }
 function Write-Ok([string]$Msg)    { Write-Host "[ ok ] $Msg" -ForegroundColor Green }
 
+function ConvertTo-SshBashB64 {
+    # Wrap an arbitrary multi-line bash script into a single-line remote command
+    # by base64-encoding it. This survives PowerShell/Start-Job/ssh argv
+    # collapsing of embedded newlines, which would otherwise turn
+    #   set +e
+    #   for i in ...
+    # into  "set +e for i in ..."  on the remote shell.
+    param([Parameter(Mandatory)] [string] $Script)
+    $bytes = [System.Text.Encoding]::UTF8.GetBytes($Script)
+    $b64   = [Convert]::ToBase64String($bytes)
+    return "echo $b64 | base64 -d | bash"
+}
+
 function Invoke-Ssh {
-    param([Parameter(Mandatory)] [string] $RemoteCmd, [int] $TimeoutSec = 0)
+    param(
+        [Parameter(Mandatory)] [string] $RemoteCmd,
+        [int]    $TimeoutSec = 0,
+        [switch] $AsScript
+    )
+    if ($AsScript -or $RemoteCmd -match "`n") {
+        $RemoteCmd = ConvertTo-SshBashB64 -Script $RemoteCmd
+    }
     $args = @($SshOpts + @($SshTarget, $RemoteCmd))
     if ($TimeoutSec -gt 0) {
         $job = Start-Job -ScriptBlock { param($a) & ssh @a 2>&1 } -ArgumentList (,$args)
@@ -402,4 +422,5 @@ try {
 Write-Section "Demo '$TrafficProfile' complete (simulation only)"
 Write-Ok 'All steps finished.'
 exit 0
+
 

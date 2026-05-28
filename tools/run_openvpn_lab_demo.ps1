@@ -97,8 +97,28 @@ function Write-Warn2([string]$m) { Write-Host "[warn] $m" -ForegroundColor Yello
 function Write-Err2([string]$m)  { Write-Host "[err ] $m" -ForegroundColor Red }
 function Write-Ok([string]$m)    { Write-Host "[ ok ] $m" -ForegroundColor Green }
 
+function ConvertTo-SshBashB64 {
+    # Wrap an arbitrary multi-line bash script into a single-line remote
+    # command by base64-encoding it. PowerShell + Start-Job + ssh otherwise
+    # collapse embedded newlines into spaces on the remote shell, which
+    # breaks for-loops and `set +e`.
+    param([Parameter(Mandatory)] [string] $Script)
+    $bytes = [System.Text.Encoding]::UTF8.GetBytes($Script)
+    $b64   = [Convert]::ToBase64String($bytes)
+    return "echo $b64 | base64 -d | bash"
+}
+
 function Invoke-SshRaw {
-    param([string[]] $Opts, [string] $Target, [string] $RemoteCmd, [int] $TimeoutSec = 0)
+    param(
+        [string[]] $Opts,
+        [string]   $Target,
+        [string]   $RemoteCmd,
+        [int]      $TimeoutSec = 0,
+        [switch]   $AsScript
+    )
+    if ($AsScript -or $RemoteCmd -match "`n") {
+        $RemoteCmd = ConvertTo-SshBashB64 -Script $RemoteCmd
+    }
     $args = @($Opts + @($Target, $RemoteCmd))
     if ($TimeoutSec -gt 0) {
         $job = Start-Job -ScriptBlock { param($a) & ssh @a 2>&1 } -ArgumentList (,$args)
@@ -440,4 +460,5 @@ try {
 Write-Section 'OpenVPN lab demo complete (simulation only)'
 Write-Ok 'All steps finished.'
 exit 0
+
 
