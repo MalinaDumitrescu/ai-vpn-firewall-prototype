@@ -1,0 +1,15 @@
+model_id,status,reconstruction_available,audit_inferred_combo,selected_probability_column,selected_aggregation,session_grouping_column,n_val_sessions,n_test_sessions,strict_threshold,balanced_threshold,strict_recall_test,strict_fpr_test,balanced_recall_test,balanced_fpr_test,session_auc_test,reason
+robust9_firewall,default_firewall,True,False,prob_iso,p80,capture_id,120,124,0.8717948717948719,0.8717948717948718,0.9090909090909091,0.0,0.9090909090909091,0.0,0.9991087344028521,
+balanced_bagging_3ds_reference,policy_computed,True,False,prob_raw,wt5,capture_id,102,106,0.9017438818195916,0.9017438818195915,0.4,0.0,0.4,0.0,0.9504950495049506,
+balanced_bagging_3ds_refresh,alias,False,False,,,,,,,,,,,,,alias entry
+clean_pooled_benchmark,policy_computed,True,False,ensemble_score,p80,capture_id,16,91,0.10278490276532272,0.9508673713594167,1.0,0.125,0.7313432835820896,0.0,0.9987562189054726,
+twentyone_feature_experimental,unsupported,False,False,,,,,,,,,,,,,unsupported entry
+single_model_fallback,policy_computed,True,False,xgb_score,p80,capture_id,16,91,0.0764412033633562,0.9681926846504212,1.0,0.041666666666666664,0.7761194029850746,0.0,1.0,
+lodo_hold_iscx,negative_control,True,False,prob_iso,p80,capture_id,85,140,0.6666666666666667,1.0,0.0,0.0,0.0,0.0,0.5622965374371116,
+lodo_hold_usbvpn,negative_control,True,False,prob_platt,wt5,capture_id,29,504,0.03532502841315734,0.03532502841315734,0.043478260869565216,0.0,0.043478260869565216,0.0,0.8134321612582481,
+lodo_hold_vnat,negative_control,True,False,prob_platt,p80,capture_id,90,88,0.45037414864715336,0.5257381700787314,0.0,0.0,0.0,0.0,0.17590361445783131,
+balanced_bagging_xgb_baseline,policy_computed,True,False,prob_raw,wt5,capture_id,120,124,0.9443579000000001,0.9237207850000001,0.09090909090909091,0.0,0.6818181818181818,0.0,0.9710338680926917,
+balanced_bagging_baseline,policy_computed,True,False,prob_raw,p80,capture_id,102,106,0.9233466439946243,0.9233466439946242,0.2,0.0,0.2,0.0,0.9306930693069306,
+balanced_bagging_tuned_baseline,policy_computed,True,False,prob_iso,wt5,capture_id,120,124,0.8931101750021205,0.8931101750021204,0.18181818181818182,0.00980392156862745,0.18181818181818182,0.00980392156862745,0.9679144385026739,
+robust13_comparison,policy_computed,True,False,prob_platt,wt5,capture_id,120,124,0.8532016053215683,0.8431458233721466,0.09090909090909091,0.0,0.7272727272727273,0.0,0.9389483065953654,
+historical_3ds_degraded,alias,False,False,,,,,,,,,,,,,alias entry

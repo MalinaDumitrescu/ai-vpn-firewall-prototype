@@ -1,0 +1,18 @@
+{
+  "note": "These models are allowed for simulation-only CSV evaluation. Only robust9_firewall is the default firewall model. No model performs real packet blocking.",
+  "allowlist": [
+    "robust9_firewall",
+    "balanced_bagging_3ds_reference",
+    "balanced_bagging_baseline",
+    "robust13_comparison",
+    "balanced_bagging_xgb_baseline"
+  ],
+  "default_firewall": "robust9_firewall",
+  "csv_evaluation_models": [
+    "balanced_bagging_3ds_reference",
+    "balanced_bagging_baseline",
+    "robust13_comparison",
+    "balanced_bagging_xgb_baseline"
+  ],
+  "updated_utc": "2026-05-26T10:57:14.673705+00:00"
+}

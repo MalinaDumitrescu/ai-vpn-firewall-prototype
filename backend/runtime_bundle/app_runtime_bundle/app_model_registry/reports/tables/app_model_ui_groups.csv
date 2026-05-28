@@ -1,0 +1,15 @@
+model_id,status,ui_group,ui_visible_main,ui_selectable_for_comparison,ui_selectable_for_firewall_inference,ui_badge,ui_warning,ui_sort_order
+robust9_firewall,default_firewall,main_demo_comparison,true,true,true,Default known-domain prototype,"Simulation-only default model. Strong known-domain performance, not production-ready.",1
+balanced_bagging_3ds_reference,policy_computed,main_demo_comparison,true,true,false,Comparison-only,"Comparison-only, not deployment-approved.",2
+balanced_bagging_xgb_baseline,policy_computed,main_demo_comparison,true,true,false,Comparison-only,"Comparison-only, not deployment-approved.",3
+balanced_bagging_baseline,policy_computed,main_demo_comparison,true,true,false,Comparison-only,"Comparison-only, not deployment-approved.",4
+robust13_comparison,policy_computed,main_demo_comparison,true,true,false,Comparison-only,"Comparison-only, not deployment-approved.",5
+balanced_bagging_tuned_baseline,policy_computed,main_demo_comparison,true,true,false,Comparison-only,"Comparison-only, not deployment-approved.",6
+clean_pooled_benchmark,policy_computed,advanced_unsafe_benchmark,false,true,false,Blocking disabled — nonzero strict FPR,High AUC but strict FPR is nonzero; automatic blocking is disabled.,20
+single_model_fallback,policy_computed,advanced_unsafe_benchmark,false,true,false,Blocking disabled — nonzero strict FPR,High AUC but strict FPR is nonzero; automatic blocking is disabled.,21
+lodo_hold_iscx,negative_control,robustness_negative_control,false,false,false,LODO negative control,Negative control for unseen-domain robustness. Not deployable.,30
+lodo_hold_usbvpn,negative_control,robustness_negative_control,false,false,false,LODO negative control,Negative control for unseen-domain robustness. Not deployable.,31
+lodo_hold_vnat,negative_control,robustness_negative_control,false,false,false,LODO negative control,Negative control for unseen-domain robustness. Not deployable.,32
+balanced_bagging_3ds_refresh,alias,hidden_alias_or_unsupported,false,false,false,Alias / duplicate,Alias of balanced_bagging_3ds_reference; hide from normal comparison UI.,90
+historical_3ds_degraded,alias,hidden_alias_or_unsupported,false,false,false,Alias / duplicate,Historical/degraded alias; keep for documentation only.,91
+twentyone_feature_experimental,unsupported,hidden_alias_or_unsupported,false,false,false,Unsupported,Unsupported stub; exact deployable artifact/feature order not recovered.,92

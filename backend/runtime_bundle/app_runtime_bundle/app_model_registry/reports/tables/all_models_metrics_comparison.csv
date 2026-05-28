@@ -1,0 +1,532 @@
+dir,status,split,calibration,n,n_vpn,auc,pr_auc
+artifacts/ensemble/diverse_bagging_robust9,3-DS ✅,test,iso,9384,1289,0.9912306871801164,0.9645511984958675
+artifacts/experiments/exp_b_balanced,3-DS ✅,test,iso,8733,782,0.9884842936644235,0.8963779395002077
+artifacts/experiments/exp_b_balanced_sample,3-DS ✅,test,iso,8495,657,0.9858809460836117,0.8601644042969934
+artifacts/balanced_bagging,3-DS ✅,test,iso,8495,657,0.9845632622244282,0.8598983995074084
+artifacts/ensemble/diverse_bagging_robust,3-DS ✅,test,iso,8495,657,0.9842249812896855,0.8659416827709009
+artifacts/experiments/exp_f1_light_balance,3-DS ✅,test,iso,8733,782,0.9833704908034858,0.8777725621521223
+artifacts/balanced_bagging_firewall_tuned_ensemble,3-DS ✅,test,iso,8495,657,0.9825010496030151,0.8513035021525709
+artifacts/balanced_bagging_firewall_tuned_ensemble_3dataset_DEGRADED,3-DS ✅,test,iso,8495,657,0.9825010496030151,0.8513035021525709
+artifacts/balanced_bagging_firewall_tuned_ensemble_3dataset_REFRESH,3-DS ✅,test,iso,8495,657,0.9825010496030151,0.8513035021525709
+artifacts/ensemble/balanced_ensemble_robust9,3-DS ✅,test,iso,3351,1251,0.9821773057744281,0.9771017096554211
+artifacts/experiments/exp_d_iat_expanded,3-DS ✅,test,iso,8495,657,0.9816445696588799,0.8537794430898658
+artifacts/experiments/exp_f7_cat-heavy,3-DS ✅,test,iso,8733,782,0.9815678897698532,0.7876788347391188
+artifacts/balanced_bagging_firewall_tuned_ensemble_PRE_3DS_PROMOTION,3-DS ✅,test,iso,8514,672,0.980479234221105,0.8348887842071921
+artifacts/experiments/exp_f6_ratio_1_5,3-DS ✅,test,iso,8733,782,0.9802833274522563,0.7839773867124371
+artifacts/experiments/exp_f4_diverse_bagging,3-DS ✅,test,iso,8733,782,0.9793284699989482,0.7518093708629097
+artifacts/experiments/exp_f2_strict_reg,3-DS ✅,test,iso,8733,782,0.9789660358956923,0.7621149383270824
+artifacts/experiments/exp_f6_ratio_2_0,3-DS ✅,test,iso,8733,782,0.9782524259040588,0.7384531291786844
+artifacts/experiments/exp_f6_ratio_3_0,3-DS ✅,test,iso,8733,782,0.9782524259040588,0.7384531291786844
+artifacts/experiments/exp_c_combined,3-DS ✅,test,iso,8733,782,0.9780044235134573,0.7711182704924627
+artifacts/experiments/exp_d1_safe_expanded,3-DS ✅,test,iso,8733,782,0.9780044235134573,0.7711182704924627
+artifacts/experiments/exp_d2_full_expanded,3-DS ✅,test,iso,8733,782,0.9780044235134573,0.7711182704924627
+artifacts/experiments/exp_d_iat_balanced,3-DS ✅,test,iso,8733,782,0.9780044235134573,0.7711182704924627
+artifacts/experiments/exp_f7_lgbm-heavy,3-DS ✅,test,iso,8733,782,0.9771943949529743,0.7647026568651494
+artifacts/experiments/exp_f7_xgb-heavy,3-DS ✅,test,iso,8733,782,0.9767103721290347,0.7440412449900737
+artifacts/experiments/ablation_4f_no_p75,3-DS ✅,test,iso,8495,657,0.9766788113794445,0.7049277453242432
+artifacts/experiments/baseline_3ds,3-DS ✅,test,iso,8733,782,0.9760799925116789,0.8508642281777719
+artifacts/experiments/feature_leakage_reduction/exp_5f-baseline,3-DS ✅,test,iso,8733,782,0.9754796079953912,0.8471915572850328
+artifacts/experiments/exp_a_no_direction,3-DS ✅,test,iso,8733,782,0.9743812083023866,0.6925024080565048
+artifacts/experiments/feature_leakage_reduction/exp_4f-drop-p75,3-DS ✅,test,iso,8733,782,0.9730972088955336,0.8147672194158098
+artifacts/balanced_subset/balanced,3-DS ✅,test,iso,8495,657,0.9722999957666334,0.9366075873648213
+artifacts/balanced_subset/full,3-DS ✅,test,iso,8495,657,0.9712232059944469,0.9421566639198573
+artifacts/experiments/exp_f9_reduced,3-DS ✅,test,iso,8733,782,0.9708046342672397,0.747534641557841
+artifacts/experiments/exp_f5_weighted_usb,3-DS ✅,test,iso,8733,782,0.9697297964096586,0.6458514703523881
+artifacts/experiments/exp_db_iat_balanced,3-DS ✅,test,iso,8495,657,0.9646547883841083,0.7333221178316887
+artifacts/balanced_bagging_cat,3-DS ✅,test,iso,10846,1610,0.9613640520889094,0.8445898394947675
+artifacts/balanced_bagging_tuned,3-DS ✅,test,iso,9384,1289,0.960600290096608,0.8487852340612316
+artifacts/experiments/feature_leakage_reduction/exp_4f-drop-p25,3-DS ✅,test,iso,8733,782,0.9591957259956363,0.7172270254607782
+artifacts/experiments/ablation_4f_no_p25,3-DS ✅,test,iso,8495,657,0.9575549667680732,0.5771182736705069
+artifacts/balanced_bagging_xgb,3-DS ✅,test,iso,10846,1610,0.9555838078918839,0.8081655995780075
+artifacts/balanced_bagging_lgbm,3-DS ✅,test,iso,10846,1610,0.9514740792846785,0.791654846956213
+artifacts/balanced_bagging_firewall_tuned_ensemble_2dataset_backup,2-DS (by design),test,iso,1844,251,0.9460538261267548,0.8496148975273976
+artifacts/experiments/feature_leakage_reduction/exp_3f-core-v2,3-DS ✅,test,iso,8733,782,0.9386108038333258,0.6504244319368682
+artifacts/experiments/ablation_3f_core,3-DS ✅,test,iso,8495,657,0.9259607508671603,0.5162236325556924
+artifacts/experiments/feature_leakage_reduction/exp_3f-core,3-DS ✅,test,iso,8733,782,0.9237399886324196,0.5863105842616609
+artifacts/ensemble/diverse_bagging_robust13,3-DS ✅,test,iso,9384,1289,0.9195084458172468,0.6898619726736336
+artifacts/thesis_finalization/lodo_test_vnat,2-DS (by design),test,iso,16233,1030,0.8330745592496116,0.20951936488861717
+artifacts/experiments/baseline_2ds,2-DS (by design),test,iso,1890,357,0.7991662418392014,0.3674637674776409
+artifacts/experiments/exp_e_adversarial,3-DS ✅,test,iso,8733,782,0.7297548346795477,0.19287205338775323
+artifacts/thesis_finalization/lodo_test_iscx,2-DS (by design),test,iso,19251,3494,0.6493274138906799,0.24277094987402514
+artifacts/ensemble/lood_usbvpn,2-DS (by design),test,iso,6810,423,0.5518728756439,0.0738254646824843
+artifacts/ensemble/lood_iscx,2-DS (by design),test,iso,1278,231,0.5317170890236792,0.190822259581549
+artifacts/thesis_finalization/lodo_test_usbvpn,2-DS (by design),test,iso,54594,8813,0.5076890245605207,0.1647204134902796
+artifacts/leave_two_out/vnat,2-DS (by design),test,iso,63963,11269,0.5,0.1761799790503885
+artifacts/lood_firewall_tuned/hold_vnat,2-DS (by design),test,iso,2899,12,0.47643170534580304,0.004090454613012892
+artifacts/lood_firewall_tuned/hold_iscx,2-DS (by design),test,iso,11781,2942,0.46450015378203435,0.23760855798181407
+artifacts/leave_two_out/usbvpn,2-DS (by design),test,iso,14680,2954,0.4216099615330918,0.1731648106895967
+artifacts/ensemble/lood_vnat,2-DS (by design),test,iso,407,3,0.37788778877887785,0.006916311264137351
+artifacts/lood_firewall_tuned/hold_usbvpn,2-DS (by design),test,iso,52182,8327,0.36548402073456343,0.13412395947283817
+artifacts/leave_two_out/iscx,2-DS (by design),test,iso,55081,8339,0.27914868815567145,0.12532281663714462
+artifacts/balanced_subset/full,3-DS ✅,test,platt,8495,657,0.9964235821038123,0.9759800222587348
+artifacts/balanced_subset/balanced,3-DS ✅,test,platt,8495,657,0.9960652994834904,0.9715035107941026
+artifacts/ensemble/diverse_bagging_robust9,3-DS ✅,test,platt,9384,1289,0.9903070644322105,0.9702405263998235
+artifacts/experiments/exp_b_balanced,3-DS ✅,test,platt,8733,782,0.9893784371732102,0.9128099627959292
+artifacts/experiments/exp_b_balanced_sample,3-DS ✅,test,platt,8495,657,0.9877238198325838,0.8947507052010578
+artifacts/ensemble/diverse_bagging_robust,3-DS ✅,test,platt,8495,657,0.9876199275822467,0.8930568679134823
+artifacts/balanced_bagging,3-DS ✅,test,platt,8495,657,0.9876113831728732,0.8905400883209225
+artifacts/balanced_bagging_firewall_tuned_ensemble,3-DS ✅,test,platt,8495,657,0.9862165083426446,0.893252664822406
+artifacts/balanced_bagging_firewall_tuned_ensemble_3dataset_DEGRADED,3-DS ✅,test,platt,8495,657,0.9862165083426446,0.893252664822406
+artifacts/balanced_bagging_firewall_tuned_ensemble_3dataset_REFRESH,3-DS ✅,test,platt,8495,657,0.9862165083426446,0.893252664822406
+artifacts/experiments/baseline_3ds,3-DS ✅,test,platt,8733,782,0.9862092496850112,0.8967774615728303
+artifacts/experiments/exp_f1_light_balance,3-DS ✅,test,platt,8733,782,0.985870377417179,0.8936059923152104
+artifacts/balanced_bagging_firewall_tuned_ensemble_PRE_3DS_PROMOTION,3-DS ✅,test,platt,8514,672,0.984073756542913,0.8691008213943983
+artifacts/experiments/exp_d_iat_expanded,3-DS ✅,test,platt,8495,657,0.9839271892039056,0.8761976558163195
+artifacts/experiments/exp_f7_cat-heavy,3-DS ✅,test,platt,8733,782,0.9822043005737509,0.8183518880507064
+artifacts/experiments/exp_f6_ratio_1_5,3-DS ✅,test,platt,8733,782,0.9820942113154066,0.8052260747090761
+artifacts/experiments/exp_f2_strict_reg,3-DS ✅,test,platt,8733,782,0.9815267168697274,0.7881956971637628
+artifacts/experiments/exp_c_combined,3-DS ✅,test,platt,8733,782,0.9811923478878463,0.8077979657254273
+artifacts/experiments/exp_d1_safe_expanded,3-DS ✅,test,platt,8733,782,0.9811923478878463,0.8077979657254273
+artifacts/experiments/exp_d2_full_expanded,3-DS ✅,test,platt,8733,782,0.9811923478878463,0.8077979657254273
+artifacts/experiments/exp_d_iat_balanced,3-DS ✅,test,platt,8733,782,0.9811923478878463,0.8077979657254273
+artifacts/experiments/ablation_4f_no_p75,3-DS ✅,test,platt,8495,657,0.9811333615298843,0.7766400108414736
+artifacts/experiments/exp_f4_diverse_bagging,3-DS ✅,test,platt,8733,782,0.9810044965310223,0.777363541873997
+artifacts/experiments/exp_f7_xgb-heavy,3-DS ✅,test,platt,8733,782,0.9808018486632157,0.8075868833038846
+artifacts/experiments/exp_f7_lgbm-heavy,3-DS ✅,test,platt,8733,782,0.9798093566058863,0.7964005494472259
+artifacts/ensemble/balanced_ensemble_robust9,3-DS ✅,test,platt,3351,1251,0.9793388146625557,0.9791742727049163
+artifacts/experiments/exp_f6_ratio_2_0,3-DS ✅,test,platt,8733,782,0.9790589965842577,0.7664722247653442
+artifacts/experiments/exp_f6_ratio_3_0,3-DS ✅,test,platt,8733,782,0.9790589965842577,0.7664722247653442
+artifacts/experiments/feature_leakage_reduction/exp_5f-baseline,3-DS ✅,test,platt,8733,782,0.9777299643178922,0.8722256158575122
+artifacts/experiments/exp_a_no_direction,3-DS ✅,test,platt,8733,782,0.9752240465176573,0.7321726374654176
+artifacts/experiments/feature_leakage_reduction/exp_4f-drop-p75,3-DS ✅,test,platt,8733,782,0.9739369913096231,0.8485529351690166
+artifacts/experiments/exp_f9_reduced,3-DS ✅,test,platt,8733,782,0.9726792074602721,0.7788450748070956
+artifacts/experiments/exp_f5_weighted_usb,3-DS ✅,test,platt,8733,782,0.9723052738946765,0.6666976959614902
+artifacts/experiments/exp_db_iat_balanced,3-DS ✅,test,platt,8495,657,0.9693748948940553,0.7881168826842535
+artifacts/balanced_bagging_tuned,3-DS ✅,test,platt,9384,1289,0.9667708088251854,0.8822102985215932
+artifacts/balanced_bagging_cat,3-DS ✅,test,platt,10846,1610,0.9642923383788524,0.8836692621012996
+artifacts/experiments/feature_leakage_reduction/exp_4f-drop-p25,3-DS ✅,test,platt,8733,782,0.9616056273061248,0.785481069626172
+artifacts/experiments/ablation_4f_no_p25,3-DS ✅,test,platt,8495,657,0.9592071448351182,0.6485950982798261
+artifacts/balanced_bagging_xgb,3-DS ✅,test,platt,10846,1610,0.9569982367134815,0.8351758357716234
+artifacts/balanced_bagging_lgbm,3-DS ✅,test,platt,10846,1610,0.9551069068107783,0.8369131233207217
+artifacts/balanced_bagging_firewall_tuned_ensemble_2dataset_backup,2-DS (by design),test,platt,1844,251,0.9442568708217975,0.861325310784104
+artifacts/experiments/ablation_3f_core,3-DS ✅,test,platt,8495,657,0.9388026097733284,0.6226058259870119
+artifacts/experiments/feature_leakage_reduction/exp_3f-core-v2,3-DS ✅,test,platt,8733,782,0.9368365895843498,0.7006437723692812
+artifacts/experiments/feature_leakage_reduction/exp_3f-core,3-DS ✅,test,platt,8733,782,0.9347233422359008,0.6931070566186947
+artifacts/ensemble/diverse_bagging_robust13,3-DS ✅,test,platt,9384,1289,0.9223566060709448,0.7440482417232221
+artifacts/thesis_finalization/lodo_test_vnat,2-DS (by design),test,platt,16233,1030,0.8480983249984513,0.308456638943633
+artifacts/lood_firewall_tuned/hold_usbvpn,2-DS (by design),test,platt,52182,8327,0.7404548163479172,0.40706639219362345
+artifacts/experiments/exp_e_adversarial,3-DS ✅,test,platt,8733,782,0.7298488407737804,0.19485559680076187
+artifacts/thesis_finalization/lodo_test_iscx,2-DS (by design),test,platt,19251,3494,0.6485012666797421,0.2433642058373014
+artifacts/ensemble/lood_usbvpn,2-DS (by design),test,platt,6810,423,0.5798389607140094,0.20426118856757508
+artifacts/lood_firewall_tuned/hold_vnat,2-DS (by design),test,platt,2899,12,0.49965361967440247,0.00448747694461895
+artifacts/thesis_finalization/lodo_test_usbvpn,2-DS (by design),test,platt,54594,8813,0.4830651258688692,0.1694703357940486
+artifacts/leave_two_out/usbvpn,2-DS (by design),test,platt,14680,2954,0.4330801697435613,0.17201176039234206
+artifacts/leave_two_out/vnat,2-DS (by design),test,platt,63963,11269,0.4216318553481045,0.25633345077268993
+artifacts/lood_firewall_tuned/hold_iscx,2-DS (by design),test,platt,11781,2942,0.4116180731076484,0.2060490145729368
+artifacts/leave_two_out/iscx,2-DS (by design),test,platt,55081,8339,0.29120351513416215,0.10017500222719894
+artifacts/ensemble/lood_vnat,2-DS (by design),test,platt,407,3,0.2863036303630363,0.006634905988725754
+artifacts/ensemble/lood_iscx,2-DS (by design),test,platt,1278,231,0.27911121034330205,0.13631896807023994
+artifacts/experiments/baseline_2ds,2-DS (by design),test,platt,1890,357,0.22410516718102771,0.13752780151722638
+artifacts/balanced_subset/full,3-DS ✅,test,raw,8495,657,0.9964235821038123,0.9759800222587348
+artifacts/balanced_subset/balanced,3-DS ✅,test,raw,8495,657,0.9960652994834904,0.9715035107941026
+artifacts/ensemble/diverse_bagging_robust9,3-DS ✅,test,raw,9384,1289,0.9903070644322105,0.9702405263998235
+artifacts/experiments/exp_b_balanced,3-DS ✅,test,raw,8733,782,0.9893784371732102,0.9128099627959292
+artifacts/experiments/exp_b_balanced_sample,3-DS ✅,test,raw,8495,657,0.9877238198325838,0.8947507052010578
+artifacts/ensemble/diverse_bagging_robust,3-DS ✅,test,raw,8495,657,0.9876199275822467,0.8930568679134823
+artifacts/balanced_bagging,3-DS ✅,test,raw,8495,657,0.9876113831728732,0.8905400883209225
+artifacts/balanced_bagging_firewall_tuned_ensemble,3-DS ✅,test,raw,8495,657,0.9862165083426446,0.893252664822406
+artifacts/balanced_bagging_firewall_tuned_ensemble_3dataset_DEGRADED,3-DS ✅,test,raw,8495,657,0.9862165083426446,0.893252664822406
+artifacts/balanced_bagging_firewall_tuned_ensemble_3dataset_REFRESH,3-DS ✅,test,raw,8495,657,0.9862165083426446,0.893252664822406
+artifacts/experiments/baseline_3ds,3-DS ✅,test,raw,8733,782,0.9862092496850112,0.8967774615728303
+artifacts/experiments/exp_f1_light_balance,3-DS ✅,test,raw,8733,782,0.985870377417179,0.8936059923152104
+artifacts/balanced_bagging_firewall_tuned_ensemble_PRE_3DS_PROMOTION,3-DS ✅,test,raw,8514,672,0.984073756542913,0.8691008213943983
+artifacts/experiments/exp_d_iat_expanded,3-DS ✅,test,raw,8495,657,0.9839271892039056,0.8761976558163195
+artifacts/experiments/exp_f7_cat-heavy,3-DS ✅,test,raw,8733,782,0.9822043005737509,0.8183518880507064
+artifacts/experiments/exp_f6_ratio_1_5,3-DS ✅,test,raw,8733,782,0.9820942113154066,0.8052260747090761
+artifacts/experiments/exp_f2_strict_reg,3-DS ✅,test,raw,8733,782,0.9815267168697274,0.7881956971637628
+artifacts/experiments/exp_c_combined,3-DS ✅,test,raw,8733,782,0.9811923478878463,0.8077979657254273
+artifacts/experiments/exp_d1_safe_expanded,3-DS ✅,test,raw,8733,782,0.9811923478878463,0.8077979657254273
+artifacts/experiments/exp_d2_full_expanded,3-DS ✅,test,raw,8733,782,0.9811923478878463,0.8077979657254273
+artifacts/experiments/exp_d_iat_balanced,3-DS ✅,test,raw,8733,782,0.9811923478878463,0.8077979657254273
+artifacts/experiments/ablation_4f_no_p75,3-DS ✅,test,raw,8495,657,0.9811333615298843,0.7766400108414736
+artifacts/experiments/exp_f4_diverse_bagging,3-DS ✅,test,raw,8733,782,0.9810044965310223,0.777363541873997
+artifacts/experiments/exp_f7_xgb-heavy,3-DS ✅,test,raw,8733,782,0.9808018486632157,0.8075868833038846
+artifacts/experiments/exp_f7_lgbm-heavy,3-DS ✅,test,raw,8733,782,0.9798093566058863,0.7964005494472259
+artifacts/ensemble/balanced_ensemble_robust9,3-DS ✅,test,raw,3351,1251,0.9793388146625557,0.9791742727049163
+artifacts/experiments/exp_f6_ratio_2_0,3-DS ✅,test,raw,8733,782,0.9790589965842577,0.7664722247653442
+artifacts/experiments/exp_f6_ratio_3_0,3-DS ✅,test,raw,8733,782,0.9790589965842577,0.7664722247653442
+artifacts/experiments/feature_leakage_reduction/exp_5f-baseline,3-DS ✅,test,raw,8733,782,0.9777299643178922,0.8722256158575122
+artifacts/experiments/exp_a_no_direction,3-DS ✅,test,raw,8733,782,0.9752240465176573,0.7321726374654176
+artifacts/experiments/feature_leakage_reduction/exp_4f-drop-p75,3-DS ✅,test,raw,8733,782,0.9739369913096231,0.8485529351690166
+artifacts/experiments/exp_f9_reduced,3-DS ✅,test,raw,8733,782,0.9726792074602721,0.7788450748070956
+artifacts/experiments/exp_f5_weighted_usb,3-DS ✅,test,raw,8733,782,0.9723052738946765,0.6666976959614902
+artifacts/experiments/exp_db_iat_balanced,3-DS ✅,test,raw,8495,657,0.9693748948940553,0.7881168826842535
+artifacts/balanced_bagging_tuned,3-DS ✅,test,raw,9384,1289,0.9667708088251854,0.8822102985215932
+artifacts/balanced_bagging_cat,3-DS ✅,test,raw,10846,1610,0.9642923383788524,0.8836692621012996
+artifacts/experiments/feature_leakage_reduction/exp_4f-drop-p25,3-DS ✅,test,raw,8733,782,0.9616056273061248,0.785481069626172
+artifacts/experiments/ablation_4f_no_p25,3-DS ✅,test,raw,8495,657,0.9592071448351182,0.6485950982798261
+artifacts/balanced_bagging_xgb,3-DS ✅,test,raw,10846,1610,0.9569982367134815,0.8351758357716234
+artifacts/balanced_bagging_lgbm,3-DS ✅,test,raw,10846,1610,0.9551069068107783,0.8369131233207217
+artifacts/balanced_bagging_firewall_tuned_ensemble_2dataset_backup,2-DS (by design),test,raw,1844,251,0.9442568708217975,0.861325310784104
+artifacts/experiments/ablation_3f_core,3-DS ✅,test,raw,8495,657,0.9388026097733284,0.6226058259870119
+artifacts/experiments/feature_leakage_reduction/exp_3f-core-v2,3-DS ✅,test,raw,8733,782,0.9368365895843498,0.7006437723692812
+artifacts/experiments/feature_leakage_reduction/exp_3f-core,3-DS ✅,test,raw,8733,782,0.9347233422359008,0.6931070566186947
+artifacts/ensemble/diverse_bagging_robust13,3-DS ✅,test,raw,9384,1289,0.9223566060709448,0.7440482417232221
+artifacts/thesis_finalization/lodo_test_vnat,2-DS (by design),test,raw,16233,1030,0.8480983249984513,0.308456638943633
+artifacts/experiments/baseline_2ds,2-DS (by design),test,raw,1890,357,0.7758948328189723,0.3952569438747294
+artifacts/experiments/exp_e_adversarial,3-DS ✅,test,raw,8733,782,0.7298488407737804,0.19485559680076187
+artifacts/thesis_finalization/lodo_test_iscx,2-DS (by design),test,raw,19251,3494,0.6485012666797421,0.2433642058373014
+artifacts/ensemble/lood_usbvpn,2-DS (by design),test,raw,6810,423,0.5798389607140094,0.20426118856757508
+artifacts/lood_firewall_tuned/hold_vnat,2-DS (by design),test,raw,2899,12,0.49965361967440247,0.00448747694461895
+artifacts/thesis_finalization/lodo_test_usbvpn,2-DS (by design),test,raw,54594,8813,0.4830651258688692,0.1694703357940486
+artifacts/leave_two_out/usbvpn,2-DS (by design),test,raw,14680,2954,0.4330801697435613,0.17201176039234206
+artifacts/leave_two_out/vnat,2-DS (by design),test,raw,63963,11269,0.4216318553481045,0.25633345077268993
+artifacts/lood_firewall_tuned/hold_iscx,2-DS (by design),test,raw,11781,2942,0.4116180731076484,0.2060490145729368
+artifacts/leave_two_out/iscx,2-DS (by design),test,raw,55081,8339,0.29120351513416215,0.10017500222719894
+artifacts/ensemble/lood_vnat,2-DS (by design),test,raw,407,3,0.2863036303630363,0.006634905988725754
+artifacts/ensemble/lood_iscx,2-DS (by design),test,raw,1278,231,0.27911121034330205,0.13631896807023994
+artifacts/lood_firewall_tuned/hold_usbvpn,2-DS (by design),test,raw,52182,8327,0.2595451836520827,0.14326680986984425
+artifacts/leave_two_out/vnat,2-DS (by design),train,iso,2487,5,1.0,1.0
+artifacts/leave_two_out/usbvpn,2-DS (by design),train,iso,41245,5951,0.9998824955473763,0.9986183831385476
+artifacts/balanced_bagging_firewall_tuned_ensemble_2dataset_backup,2-DS (by design),train,iso,16138,2378,0.9998036904424277,0.99792768059388
+artifacts/ensemble/lood_iscx,2-DS (by design),train,iso,41230,7720,0.9995284970227741,0.9964510204601661
+artifacts/experiments/exp_db_iat_balanced,3-DS ✅,train,iso,21303,10349,0.9994691034229122,0.9990481062166776
+artifacts/lood_firewall_tuned/hold_iscx,2-DS (by design),train,iso,41230,7720,0.9993499562422786,0.9945291622487704
+artifacts/ensemble/diverse_bagging_robust9,3-DS ✅,train,iso,51499,8013,0.9993419965081234,0.9957829539412827
+artifacts/balanced_bagging_lgbm,3-DS ✅,train,iso,57971,9135,0.9993113082522816,0.9936602657946652
+artifacts/balanced_bagging_tuned,3-DS ✅,train,iso,51499,8013,0.9992457741498676,0.9926106727050504
+artifacts/leave_two_out/iscx,2-DS (by design),train,iso,9561,2263,0.9991817623990833,0.9948579992096612
+artifacts/balanced_subset/balanced,3-DS ✅,train,iso,20698,10349,0.9991289408849438,0.999129218920158
+artifacts/balanced_bagging_xgb,3-DS ✅,train,iso,57971,9135,0.9990338271456497,0.9912469811399902
+artifacts/ensemble/balanced_ensemble_robust9,3-DS ✅,train,iso,22696,6965,0.9987604276365161,0.996650519545167
+artifacts/balanced_subset/full,3-DS ✅,train,iso,49506,10349,0.9987434303464897,0.9978584442813858
+artifacts/ensemble/lood_vnat,2-DS (by design),train,iso,47137,10340,0.9986934905392643,0.99290231785335
+artifacts/ensemble/diverse_bagging_robust,3-DS ✅,train,iso,49506,10349,0.9986637002225517,0.9928238975341119
+artifacts/experiments/exp_b_balanced,3-DS ✅,train,iso,31306,10703,0.9986016165538111,0.9956422860038237
+artifacts/experiments/exp_d_iat_expanded,3-DS ✅,train,iso,49506,10349,0.9984716034202833,0.9898763260379551
+artifacts/thesis_finalization/lodo_test_iscx,2-DS (by design),train,iso,46566,8073,0.9983262081311529,0.9846209605672372
+artifacts/lood_firewall_tuned/hold_vnat,2-DS (by design),train,iso,47137,10340,0.9981244384410489,0.9897859070891885
+artifacts/balanced_bagging,3-DS ✅,train,iso,49506,10349,0.9980187584268996,0.9885558654089478
+artifacts/balanced_bagging_cat,3-DS ✅,train,iso,57971,9135,0.9978243413620368,0.9848520447355776
+artifacts/experiments/baseline_3ds,3-DS ✅,train,iso,54857,10703,0.9970489340919616,0.9827462208244362
+artifacts/experiments/exp_f1_light_balance,3-DS ✅,train,iso,45058,8781,0.9970221254050998,0.9821127216751695
+artifacts/experiments/exp_b_balanced_sample,3-DS ✅,train,iso,21303,10349,0.9965177951532769,0.9943434271911893
+artifacts/experiments/exp_f7_lgbm-heavy,3-DS ✅,train,iso,31306,10703,0.9950638215750826,0.9856503850595433
+artifacts/balanced_bagging_firewall_tuned_ensemble,3-DS ✅,train,iso,49506,10349,0.9947256065803644,0.9712199751115813
+artifacts/balanced_bagging_firewall_tuned_ensemble_3dataset_DEGRADED,3-DS ✅,train,iso,49506,10349,0.9947256065803644,0.9712199751115813
+artifacts/balanced_bagging_firewall_tuned_ensemble_3dataset_REFRESH,3-DS ✅,train,iso,49506,10349,0.9947256065803644,0.9712199751115813
+artifacts/experiments/exp_f7_xgb-heavy,3-DS ✅,train,iso,31306,10703,0.9943577368627572,0.9822116271148333
+artifacts/experiments/exp_c_combined,3-DS ✅,train,iso,31306,10703,0.9943563968112324,0.9838005140188822
+artifacts/experiments/exp_d1_safe_expanded,3-DS ✅,train,iso,31306,10703,0.9943563968112324,0.9838005140188822
+artifacts/experiments/exp_d2_full_expanded,3-DS ✅,train,iso,31306,10703,0.9943563968112324,0.9838005140188822
+artifacts/experiments/exp_d_iat_balanced,3-DS ✅,train,iso,31306,10703,0.9943563968112324,0.9838005140188822
+artifacts/balanced_bagging_firewall_tuned_ensemble_PRE_3DS_PROMOTION,3-DS ✅,train,iso,49724,10411,0.993804793417621,0.966614097121131
+artifacts/experiments/exp_f7_cat-heavy,3-DS ✅,train,iso,31306,10703,0.9931441920971977,0.980885044902607
+artifacts/thesis_finalization/lodo_test_vnat,2-DS (by design),train,iso,47523,10467,0.9927863730846334,0.9567167369514236
+artifacts/experiments/exp_f2_strict_reg,3-DS ✅,train,iso,31306,10703,0.9925141774163551,0.9791067074792222
+artifacts/experiments/exp_f4_diverse_bagging,3-DS ✅,train,iso,31306,10703,0.9921567305761197,0.9752436007572972
+artifacts/experiments/exp_f6_ratio_1_5,3-DS ✅,train,iso,31306,10703,0.99214950200715,0.9763837191505856
+artifacts/experiments/exp_a_no_direction,3-DS ✅,train,iso,54857,10703,0.992145506703367,0.9542190760587127
+artifacts/experiments/exp_f6_ratio_2_0,3-DS ✅,train,iso,31306,10703,0.9912854680744878,0.9731400553717513
+artifacts/experiments/exp_f6_ratio_3_0,3-DS ✅,train,iso,31306,10703,0.9912854680744878,0.9731400553717513
+artifacts/experiments/ablation_4f_no_p75,3-DS ✅,train,iso,49506,10349,0.9908466562824079,0.9468997414404541
+artifacts/experiments/ablation_4f_no_p25,3-DS ✅,train,iso,49506,10349,0.9905497007763082,0.9443371734610861
+artifacts/experiments/feature_leakage_reduction/exp_5f-baseline,3-DS ✅,train,iso,40583,10703,0.9895755668974443,0.9625004849394279
+artifacts/experiments/exp_f9_reduced,3-DS ✅,train,iso,31306,10703,0.9890934770921864,0.9690369968233389
+artifacts/experiments/exp_f5_weighted_usb,3-DS ✅,train,iso,35664,7228,0.9887646633615557,0.93902816837442
+artifacts/experiments/feature_leakage_reduction/exp_4f-drop-p75,3-DS ✅,train,iso,40583,10703,0.9866870437306859,0.9522573107737455
+artifacts/ensemble/diverse_bagging_robust13,3-DS ✅,train,iso,51499,8013,0.9851767489842068,0.9174815965606125
+artifacts/experiments/feature_leakage_reduction/exp_4f-drop-p25,3-DS ✅,train,iso,40583,10703,0.9784958373467085,0.9282714679689124
+artifacts/experiments/ablation_3f_core,3-DS ✅,train,iso,49506,10349,0.9687877608086807,0.8723616149090658
+artifacts/experiments/feature_leakage_reduction/exp_3f-core-v2,3-DS ✅,train,iso,40583,10703,0.9514954145273986,0.8604939552586441
+artifacts/experiments/feature_leakage_reduction/exp_3f-core,3-DS ✅,train,iso,40583,10703,0.9483782102779674,0.8365148625810139
+artifacts/ensemble/lood_usbvpn,2-DS (by design),train,iso,10645,2638,0.9359548028151637,0.7797424984639056
+artifacts/experiments/exp_e_adversarial,3-DS ✅,train,iso,31306,10703,0.8777590646220869,0.7583276049647646
+artifacts/thesis_finalization/lodo_test_usbvpn,2-DS (by design),train,iso,15625,2866,0.8397346136687063,0.41515688566415104
+artifacts/experiments/baseline_2ds,2-DS (by design),train,iso,15625,2866,0.8383241045946686,0.41179808164227555
+artifacts/lood_firewall_tuned/hold_usbvpn,2-DS (by design),train,iso,10645,2638,0.807726119668035,0.49382522308107624
+artifacts/leave_two_out/vnat,2-DS (by design),train,platt,2487,5,1.0,1.0
+artifacts/balanced_subset/balanced,3-DS ✅,train,platt,20698,10349,0.9999873764961245,0.9999875825738924
+artifacts/leave_two_out/usbvpn,2-DS (by design),train,platt,41245,5951,0.9999869259632534,0.9999208760949446
+artifacts/balanced_subset/full,3-DS ✅,train,platt,49506,10349,0.9999274027602985,0.9997327176448925
+artifacts/balanced_bagging_firewall_tuned_ensemble_2dataset_backup,2-DS (by design),train,platt,16138,2378,0.9998743325444481,0.9991719771663827
+artifacts/ensemble/lood_iscx,2-DS (by design),train,platt,41230,7720,0.9998428316966708,0.9991828360645179
+artifacts/lood_firewall_tuned/hold_iscx,2-DS (by design),train,platt,41230,7720,0.9997372178747972,0.9986030616884036
+artifacts/leave_two_out/iscx,2-DS (by design),train,platt,9561,2263,0.9997234092306962,0.9989920739054233
+artifacts/experiments/exp_db_iat_balanced,3-DS ✅,train,platt,21303,10349,0.9995855435867025,0.9995121699561902
+artifacts/balanced_bagging_lgbm,3-DS ✅,train,platt,57971,9135,0.9995193030812599,0.9965381497532826
+artifacts/ensemble/diverse_bagging_robust9,3-DS ✅,train,platt,51499,8013,0.9994252386484666,0.9972130812993418
+artifacts/balanced_bagging_tuned,3-DS ✅,train,platt,51499,8013,0.9992700973506011,0.9929143611695883
+artifacts/balanced_bagging_xgb,3-DS ✅,train,platt,57971,9135,0.999205701394025,0.9947666927702387
+artifacts/ensemble/lood_vnat,2-DS (by design),train,platt,47137,10340,0.9990628874536646,0.9963271472321273
+artifacts/thesis_finalization/lodo_test_iscx,2-DS (by design),train,platt,46566,8073,0.9989258657593612,0.9932412456087869
+artifacts/ensemble/diverse_bagging_robust,3-DS ✅,train,platt,49506,10349,0.9988940648685494,0.995736140498402
+artifacts/ensemble/balanced_ensemble_robust9,3-DS ✅,train,platt,22696,6965,0.9988261594577132,0.997535593699025
+artifacts/experiments/exp_d_iat_expanded,3-DS ✅,train,platt,49506,10349,0.9987824742815845,0.9943909351233471
+artifacts/experiments/exp_b_balanced,3-DS ✅,train,platt,31306,10703,0.9987229422339975,0.9969447146348047
+artifacts/balanced_bagging,3-DS ✅,train,platt,49506,10349,0.9985746927838627,0.9943565981982813
+artifacts/balanced_bagging_cat,3-DS ✅,train,platt,57971,9135,0.9984352328670116,0.9904450225469655
+artifacts/lood_firewall_tuned/hold_vnat,2-DS (by design),train,platt,47137,10340,0.9984328060235756,0.9935217142103405
+artifacts/experiments/baseline_3ds,3-DS ✅,train,platt,54857,10703,0.9979808170659484,0.9893660859641119
+artifacts/experiments/exp_f1_light_balance,3-DS ✅,train,platt,45058,8781,0.9975441717656809,0.9867110922649851
+artifacts/experiments/exp_b_balanced_sample,3-DS ✅,train,platt,21303,10349,0.9971828934297454,0.9967092984474969
+artifacts/balanced_bagging_firewall_tuned_ensemble,3-DS ✅,train,platt,49506,10349,0.9955637729167719,0.9807724138788831
+artifacts/balanced_bagging_firewall_tuned_ensemble_3dataset_DEGRADED,3-DS ✅,train,platt,49506,10349,0.9955637729167719,0.9807724138788831
+artifacts/balanced_bagging_firewall_tuned_ensemble_3dataset_REFRESH,3-DS ✅,train,platt,49506,10349,0.9955637729167719,0.9807724138788831
+artifacts/balanced_bagging_firewall_tuned_ensemble_PRE_3DS_PROMOTION,3-DS ✅,train,platt,49724,10411,0.9954996515738932,0.9808351064259442
+artifacts/experiments/exp_f7_lgbm-heavy,3-DS ✅,train,platt,31306,10703,0.9954221685852932,0.9896932170918615
+artifacts/experiments/exp_f7_xgb-heavy,3-DS ✅,train,platt,31306,10703,0.9951142515005709,0.9890141196387391
+artifacts/experiments/exp_c_combined,3-DS ✅,train,platt,31306,10703,0.9948373347279423,0.9884161032595463
+artifacts/experiments/exp_d1_safe_expanded,3-DS ✅,train,platt,31306,10703,0.9948373347279423,0.9884161032595463
+artifacts/experiments/exp_d2_full_expanded,3-DS ✅,train,platt,31306,10703,0.9948373347279423,0.9884161032595463
+artifacts/experiments/exp_d_iat_balanced,3-DS ✅,train,platt,31306,10703,0.9948373347279423,0.9884161032595463
+artifacts/thesis_finalization/lodo_test_vnat,2-DS (by design),train,platt,47523,10467,0.9945820074601598,0.9772317524277498
+artifacts/experiments/exp_f7_cat-heavy,3-DS ✅,train,platt,31306,10703,0.9939167578767106,0.9864896702684232
+artifacts/experiments/exp_f4_diverse_bagging,3-DS ✅,train,platt,31306,10703,0.9933375517822778,0.984649397616438
+artifacts/experiments/exp_f2_strict_reg,3-DS ✅,train,platt,31306,10703,0.9931339750546075,0.9845439659366416
+artifacts/experiments/exp_f6_ratio_1_5,3-DS ✅,train,platt,31306,10703,0.992925947360536,0.9837656154004355
+artifacts/experiments/ablation_4f_no_p25,3-DS ✅,train,platt,49506,10349,0.9929008010898978,0.9701118898432914
+artifacts/experiments/exp_a_no_direction,3-DS ✅,train,platt,54857,10703,0.992873482515442,0.9664114247243207
+artifacts/experiments/ablation_4f_no_p75,3-DS ✅,train,platt,49506,10349,0.9925141447216633,0.9670084821384443
+artifacts/experiments/exp_f6_ratio_2_0,3-DS ✅,train,platt,31306,10703,0.9922805867089317,0.9824438272084509
+artifacts/experiments/exp_f6_ratio_3_0,3-DS ✅,train,platt,31306,10703,0.9922805867089317,0.9824438272084509
+artifacts/experiments/exp_f5_weighted_usb,3-DS ✅,train,platt,35664,7228,0.991512730010977,0.9625314990616312
+artifacts/experiments/exp_f9_reduced,3-DS ✅,train,platt,31306,10703,0.9901378465881715,0.9788077940411335
+artifacts/experiments/feature_leakage_reduction/exp_5f-baseline,3-DS ✅,train,platt,40583,10703,0.9891054954502991,0.9697109091699171
+artifacts/ensemble/diverse_bagging_robust13,3-DS ✅,train,platt,51499,8013,0.9869823308727971,0.9437502264810884
+artifacts/experiments/feature_leakage_reduction/exp_4f-drop-p75,3-DS ✅,train,platt,40583,10703,0.9864607531624521,0.9626509924122082
+artifacts/experiments/feature_leakage_reduction/exp_4f-drop-p25,3-DS ✅,train,platt,40583,10703,0.977483216055852,0.942387967934876
+artifacts/experiments/ablation_3f_core,3-DS ✅,train,platt,49506,10349,0.9744528354137759,0.9214137121906516
+artifacts/experiments/feature_leakage_reduction/exp_3f-core,3-DS ✅,train,platt,40583,10703,0.9591316150646999,0.8992723798372794
+artifacts/ensemble/lood_usbvpn,2-DS (by design),train,platt,10645,2638,0.9532682642263456,0.8776730290373179
+artifacts/experiments/feature_leakage_reduction/exp_3f-core-v2,3-DS ✅,train,platt,40583,10703,0.9502249803974689,0.8820737711610885
+artifacts/experiments/exp_e_adversarial,3-DS ✅,train,platt,31306,10703,0.8791115280623863,0.7940849497159613
+artifacts/thesis_finalization/lodo_test_usbvpn,2-DS (by design),train,platt,15625,2866,0.8621605416031057,0.47751216671358293
+artifacts/lood_firewall_tuned/hold_usbvpn,2-DS (by design),train,platt,10645,2638,0.15776952842532685,0.1534624356265298
+artifacts/experiments/baseline_2ds,2-DS (by design),train,platt,15625,2866,0.12367581806846305,0.10963153971104755
+artifacts/leave_two_out/vnat,2-DS (by design),train,raw,2487,5,1.0,1.0
+artifacts/balanced_subset/balanced,3-DS ✅,train,raw,20698,10349,0.9999873764961245,0.9999875825738924
+artifacts/leave_two_out/usbvpn,2-DS (by design),train,raw,41245,5951,0.9999869259632534,0.9999208760949446
+artifacts/balanced_subset/full,3-DS ✅,train,raw,49506,10349,0.9999274027602985,0.9997327176448925
+artifacts/balanced_bagging_firewall_tuned_ensemble_2dataset_backup,2-DS (by design),train,raw,16138,2378,0.9998743325444481,0.9991719771663827
+artifacts/ensemble/lood_iscx,2-DS (by design),train,raw,41230,7720,0.9998428316966708,0.9991828360645179
+artifacts/lood_firewall_tuned/hold_iscx,2-DS (by design),train,raw,41230,7720,0.9997372178747972,0.9986030616884036
+artifacts/leave_two_out/iscx,2-DS (by design),train,raw,9561,2263,0.9997234092306962,0.9989920739054233
+artifacts/experiments/exp_db_iat_balanced,3-DS ✅,train,raw,21303,10349,0.9995855435867025,0.9995121699561902
+artifacts/balanced_bagging_lgbm,3-DS ✅,train,raw,57971,9135,0.9995193030812599,0.9965381497532826
+artifacts/ensemble/diverse_bagging_robust9,3-DS ✅,train,raw,51499,8013,0.9994252386484666,0.9972130812993418
+artifacts/balanced_bagging_tuned,3-DS ✅,train,raw,51499,8013,0.9992700973506011,0.9929143611695883
+artifacts/balanced_bagging_xgb,3-DS ✅,train,raw,57971,9135,0.999205701394025,0.9947666927702387
+artifacts/ensemble/lood_vnat,2-DS (by design),train,raw,47137,10340,0.9990628874536646,0.9963271472321273
+artifacts/thesis_finalization/lodo_test_iscx,2-DS (by design),train,raw,46566,8073,0.9989258657593612,0.9932412456087869
+artifacts/ensemble/diverse_bagging_robust,3-DS ✅,train,raw,49506,10349,0.9988940648685494,0.995736140498402
+artifacts/ensemble/balanced_ensemble_robust9,3-DS ✅,train,raw,22696,6965,0.9988261594577132,0.997535593699025
+artifacts/experiments/exp_d_iat_expanded,3-DS ✅,train,raw,49506,10349,0.9987824742815845,0.9943909351233471
+artifacts/experiments/exp_b_balanced,3-DS ✅,train,raw,31306,10703,0.9987229422339975,0.9969447146348047
+artifacts/balanced_bagging,3-DS ✅,train,raw,49506,10349,0.9985746927838627,0.9943565981982813
+artifacts/balanced_bagging_cat,3-DS ✅,train,raw,57971,9135,0.9984352328670116,0.9904450225469655
+artifacts/lood_firewall_tuned/hold_vnat,2-DS (by design),train,raw,47137,10340,0.9984328060235756,0.9935217142103405
+artifacts/experiments/baseline_3ds,3-DS ✅,train,raw,54857,10703,0.9979808170659484,0.9893660859641119
+artifacts/experiments/exp_f1_light_balance,3-DS ✅,train,raw,45058,8781,0.9975441717656809,0.9867110922649851
+artifacts/experiments/exp_b_balanced_sample,3-DS ✅,train,raw,21303,10349,0.9971828934297454,0.9967092984474969
+artifacts/balanced_bagging_firewall_tuned_ensemble,3-DS ✅,train,raw,49506,10349,0.9955637729167719,0.9807724138788831
+artifacts/balanced_bagging_firewall_tuned_ensemble_3dataset_DEGRADED,3-DS ✅,train,raw,49506,10349,0.9955637729167719,0.9807724138788831
+artifacts/balanced_bagging_firewall_tuned_ensemble_3dataset_REFRESH,3-DS ✅,train,raw,49506,10349,0.9955637729167719,0.9807724138788831
+artifacts/balanced_bagging_firewall_tuned_ensemble_PRE_3DS_PROMOTION,3-DS ✅,train,raw,49724,10411,0.9954996515738932,0.9808351064259442
+artifacts/experiments/exp_f7_lgbm-heavy,3-DS ✅,train,raw,31306,10703,0.9954221685852932,0.9896932170918615
+artifacts/experiments/exp_f7_xgb-heavy,3-DS ✅,train,raw,31306,10703,0.9951142515005709,0.9890141196387391
+artifacts/experiments/exp_c_combined,3-DS ✅,train,raw,31306,10703,0.9948373347279423,0.9884161032595463
+artifacts/experiments/exp_d1_safe_expanded,3-DS ✅,train,raw,31306,10703,0.9948373347279423,0.9884161032595463
+artifacts/experiments/exp_d2_full_expanded,3-DS ✅,train,raw,31306,10703,0.9948373347279423,0.9884161032595463
+artifacts/experiments/exp_d_iat_balanced,3-DS ✅,train,raw,31306,10703,0.9948373347279423,0.9884161032595463
+artifacts/thesis_finalization/lodo_test_vnat,2-DS (by design),train,raw,47523,10467,0.9945820074601598,0.9772317524277498
+artifacts/experiments/exp_f7_cat-heavy,3-DS ✅,train,raw,31306,10703,0.9939167578767106,0.9864896702684232
+artifacts/experiments/exp_f4_diverse_bagging,3-DS ✅,train,raw,31306,10703,0.9933375517822778,0.984649397616438
+artifacts/experiments/exp_f2_strict_reg,3-DS ✅,train,raw,31306,10703,0.9931339750546075,0.9845439659366416
+artifacts/experiments/exp_f6_ratio_1_5,3-DS ✅,train,raw,31306,10703,0.992925947360536,0.9837656154004355
+artifacts/experiments/ablation_4f_no_p25,3-DS ✅,train,raw,49506,10349,0.9929008010898978,0.9701118898432914
+artifacts/experiments/exp_a_no_direction,3-DS ✅,train,raw,54857,10703,0.992873482515442,0.9664114247243207
+artifacts/experiments/ablation_4f_no_p75,3-DS ✅,train,raw,49506,10349,0.9925141447216633,0.9670084821384443
+artifacts/experiments/exp_f6_ratio_2_0,3-DS ✅,train,raw,31306,10703,0.9922805867089317,0.9824438272084509
+artifacts/experiments/exp_f6_ratio_3_0,3-DS ✅,train,raw,31306,10703,0.9922805867089317,0.9824438272084509
+artifacts/experiments/exp_f5_weighted_usb,3-DS ✅,train,raw,35664,7228,0.991512730010977,0.9625314990616312
+artifacts/experiments/exp_f9_reduced,3-DS ✅,train,raw,31306,10703,0.9901378465881715,0.9788077940411335
+artifacts/experiments/feature_leakage_reduction/exp_5f-baseline,3-DS ✅,train,raw,40583,10703,0.9891054954502991,0.9697109091699171
+artifacts/ensemble/diverse_bagging_robust13,3-DS ✅,train,raw,51499,8013,0.9869823308727971,0.9437502264810884
+artifacts/experiments/feature_leakage_reduction/exp_4f-drop-p75,3-DS ✅,train,raw,40583,10703,0.9864607531624521,0.9626509924122082
+artifacts/experiments/feature_leakage_reduction/exp_4f-drop-p25,3-DS ✅,train,raw,40583,10703,0.977483216055852,0.942387967934876
+artifacts/experiments/ablation_3f_core,3-DS ✅,train,raw,49506,10349,0.9744528354137759,0.9214137121906516
+artifacts/experiments/feature_leakage_reduction/exp_3f-core,3-DS ✅,train,raw,40583,10703,0.9591316150646999,0.8992723798372794
+artifacts/ensemble/lood_usbvpn,2-DS (by design),train,raw,10645,2638,0.9532682642263456,0.8776730290373179
+artifacts/experiments/feature_leakage_reduction/exp_3f-core-v2,3-DS ✅,train,raw,40583,10703,0.9502249803974689,0.8820737711610885
+artifacts/experiments/exp_e_adversarial,3-DS ✅,train,raw,31306,10703,0.8791115280623863,0.7940849497159613
+artifacts/experiments/baseline_2ds,2-DS (by design),train,raw,15625,2866,0.876324181931537,0.5069335601158813
+artifacts/thesis_finalization/lodo_test_usbvpn,2-DS (by design),train,raw,15625,2866,0.8621605416031057,0.47751216671358293
+artifacts/lood_firewall_tuned/hold_usbvpn,2-DS (by design),train,raw,10645,2638,0.8422304715746731,0.6069356410216503
+artifacts/leave_two_out/usbvpn,2-DS (by design),val,iso,10937,2376,0.9999372693567297,0.9997036835622156
+artifacts/leave_two_out/vnat,2-DS (by design),val,iso,412,7,0.9998236331569665,0.9821428571428572
+artifacts/lood_firewall_tuned/hold_iscx,2-DS (by design),val,iso,6634,193,0.9996492676047954,0.9826156181742622
+artifacts/ensemble/lood_iscx,2-DS (by design),val,iso,6634,193,0.9994883811849768,0.9849895306306247
+artifacts/balanced_subset/full,3-DS ✅,val,iso,8861,275,0.9993397285221184,0.9799097962023001
+artifacts/balanced_subset/balanced,3-DS ✅,val,iso,8861,275,0.9990434745780657,0.9697518298785079
+artifacts/thesis_finalization/lodo_test_iscx,2-DS (by design),val,iso,6795,206,0.9954882143967513,0.7965661782725784
+artifacts/leave_two_out/iscx,2-DS (by design),val,iso,2220,679,0.9905551642440931,0.9846632653513284
+artifacts/ensemble/diverse_bagging_robust9,3-DS ✅,val,iso,8675,1178,0.9896397721510789,0.9536131959540297
+artifacts/ensemble/balanced_ensemble_robust9,3-DS ✅,val,iso,3906,2264,0.9894010417787495,0.9914291876321871
+artifacts/ensemble/lood_vnat,2-DS (by design),val,iso,8738,275,0.9874521177746984,0.7699832665416537
+artifacts/balanced_bagging,3-DS ✅,val,iso,8861,275,0.9865963619422738,0.830972532093407
+artifacts/lood_firewall_tuned/hold_vnat,2-DS (by design),val,iso,8738,275,0.9865433491239942,0.7601170458360003
+artifacts/ensemble/diverse_bagging_robust,3-DS ✅,val,iso,8861,275,0.9861275226055101,0.8142775122109316
+artifacts/balanced_bagging_firewall_tuned_ensemble_2dataset_backup,2-DS (by design),val,iso,1926,688,0.9845505222226396,0.9753937987277148
+artifacts/experiments/exp_b_balanced,3-DS ✅,val,iso,9022,288,0.9844030274406533,0.7807979999109872
+artifacts/balanced_bagging_firewall_tuned_ensemble_PRE_3DS_PROMOTION,3-DS ✅,val,iso,8924,288,0.9815597498842056,0.7669498889281398
+artifacts/experiments/exp_b_balanced_sample,3-DS ✅,val,iso,8861,275,0.9805431675242996,0.7758415870533031
+artifacts/experiments/feature_leakage_reduction/exp_5f-baseline,3-DS ✅,val,iso,9022,288,0.9801251653817774,0.676350220163299
+artifacts/experiments/feature_leakage_reduction/exp_4f-drop-p75,3-DS ✅,val,iso,9022,288,0.9763184028572883,0.647528988547181
+artifacts/balanced_bagging_firewall_tuned_ensemble,3-DS ✅,val,iso,8861,275,0.9752508311627809,0.7380833525775728
+artifacts/balanced_bagging_firewall_tuned_ensemble_3dataset_DEGRADED,3-DS ✅,val,iso,8861,275,0.9752508311627809,0.7380833525775728
+artifacts/balanced_bagging_firewall_tuned_ensemble_3dataset_REFRESH,3-DS ✅,val,iso,8861,275,0.9752508311627809,0.7380833525775728
+artifacts/experiments/baseline_3ds,3-DS ✅,val,iso,9022,288,0.9711438614736789,0.6188674703490789
+artifacts/balanced_bagging_lgbm,3-DS ✅,val,iso,10068,1358,0.971010417494492,0.8188325624388653
+artifacts/experiments/exp_db_iat_balanced,3-DS ✅,val,iso,8861,275,0.9698610846409588,0.6255770536268107
+artifacts/balanced_bagging_xgb,3-DS ✅,val,iso,10068,1358,0.9697012980864343,0.7986041937225644
+artifacts/experiments/exp_d_iat_expanded,3-DS ✅,val,iso,8861,275,0.9690972619274506,0.5800335006167842
+artifacts/balanced_bagging_cat,3-DS ✅,val,iso,10068,1358,0.9685706084959816,0.8165017439196355
+artifacts/experiments/exp_f7_xgb-heavy,3-DS ✅,val,iso,9022,288,0.9677105993817267,0.515578571226371
+artifacts/experiments/exp_f4_diverse_bagging,3-DS ✅,val,iso,9022,288,0.9670611976185024,0.47639365765131947
+artifacts/experiments/exp_f7_cat-heavy,3-DS ✅,val,iso,9022,288,0.966917879996438,0.4617422497475502
+artifacts/experiments/exp_c_combined,3-DS ✅,val,iso,9022,288,0.9665394101595298,0.46723541938975593
+artifacts/experiments/exp_d1_safe_expanded,3-DS ✅,val,iso,9022,288,0.9665394101595298,0.46723541938975593
+artifacts/experiments/exp_d2_full_expanded,3-DS ✅,val,iso,9022,288,0.9665394101595298,0.46723541938975593
+artifacts/experiments/exp_d_iat_balanced,3-DS ✅,val,iso,9022,288,0.9665394101595298,0.46723541938975593
+artifacts/experiments/exp_f1_light_balance,3-DS ✅,val,iso,9022,288,0.9663448082843549,0.5143941200356469
+artifacts/experiments/exp_f7_lgbm-heavy,3-DS ✅,val,iso,9022,288,0.9662454201969315,0.4667765603368414
+artifacts/experiments/exp_f6_ratio_2_0,3-DS ✅,val,iso,9022,288,0.9659214150319314,0.4831210842020644
+artifacts/experiments/exp_f6_ratio_3_0,3-DS ✅,val,iso,9022,288,0.9659214150319314,0.4831210842020644
+artifacts/experiments/exp_f2_strict_reg,3-DS ✅,val,iso,9022,288,0.9639493566012773,0.43166068755332326
+artifacts/experiments/feature_leakage_reduction/exp_4f-drop-p25,3-DS ✅,val,iso,9022,288,0.9626765927537337,0.5354072196576279
+artifacts/balanced_bagging_tuned,3-DS ✅,val,iso,8675,1178,0.959910506364402,0.7729712572443733
+artifacts/experiments/exp_f6_ratio_1_5,3-DS ✅,val,iso,9022,288,0.9584211924026156,0.4378559899097547
+artifacts/thesis_finalization/lodo_test_vnat,2-DS (by design),val,iso,8856,276,0.9581635755548799,0.3587572745558397
+artifacts/experiments/exp_f9_reduced,3-DS ✅,val,iso,9022,288,0.953175489148411,0.4314506625737551
+artifacts/experiments/ablation_3f_core,3-DS ✅,val,iso,8861,275,0.9498360968172289,0.3662239354197294
+artifacts/experiments/exp_f5_weighted_usb,3-DS ✅,val,iso,9022,288,0.9496873648322011,0.35070164245098984
+artifacts/experiments/ablation_4f_no_p75,3-DS ✅,val,iso,8861,275,0.9465355864726933,0.3478798337968605
+artifacts/experiments/ablation_4f_no_p25,3-DS ✅,val,iso,8861,275,0.9437651144569383,0.26154783313269775
+artifacts/experiments/feature_leakage_reduction/exp_3f-core,3-DS ✅,val,iso,9022,288,0.9420384576241,0.452279907203315
+artifacts/experiments/exp_a_no_direction,3-DS ✅,val,iso,9022,288,0.9398417821158689,0.3197158577357306
+artifacts/experiments/feature_leakage_reduction/exp_3f-core-v2,3-DS ✅,val,iso,9022,288,0.913715039246368,0.4100540004615023
+artifacts/ensemble/diverse_bagging_robust13,3-DS ✅,val,iso,8675,1178,0.8716684749734641,0.44083115218233737
+artifacts/experiments/exp_e_adversarial,3-DS ✅,val,iso,9022,288,0.8647234705366003,0.19647568708006335
+artifacts/ensemble/lood_usbvpn,2-DS (by design),val,iso,2350,82,0.7813588850174217,0.16746050801309448
+artifacts/thesis_finalization/lodo_test_usbvpn,2-DS (by design),val,iso,2393,94,0.5619395111658169,0.0447492854146546
+artifacts/lood_firewall_tuned/hold_usbvpn,2-DS (by design),val,iso,2350,82,0.5607739708349464,0.04223076830781938
+artifacts/experiments/baseline_2ds,2-DS (by design),val,iso,2393,94,0.5493692909960852,0.04339796860572484
+artifacts/leave_two_out/usbvpn,2-DS (by design),val,platt,10937,2376,0.9999252246799263,0.9997351998634137
+artifacts/leave_two_out/vnat,2-DS (by design),val,platt,412,7,0.9996472663139331,0.982142857142857
+artifacts/lood_firewall_tuned/hold_iscx,2-DS (by design),val,platt,6634,193,0.9993821961478965,0.9830177417131143
+artifacts/balanced_subset/full,3-DS ✅,val,platt,8861,275,0.9990966266437964,0.9805793874391442
+artifacts/ensemble/lood_iscx,2-DS (by design),val,platt,6634,193,0.9990652499008538,0.9845944170147877
+artifacts/balanced_subset/balanced,3-DS ✅,val,platt,8861,275,0.9988399720475192,0.9728814789821904
+artifacts/thesis_finalization/lodo_test_iscx,2-DS (by design),val,platt,6795,206,0.9936743646000173,0.7868367800038152
+artifacts/ensemble/diverse_bagging_robust9,3-DS ✅,val,platt,8675,1178,0.988060928955623,0.9570117674054482
+artifacts/ensemble/balanced_ensemble_robust9,3-DS ✅,val,platt,3906,2264,0.9875098453579407,0.9920867031459984
+artifacts/leave_two_out/iscx,2-DS (by design),val,platt,2220,679,0.9868847476773781,0.9855296021874832
+artifacts/ensemble/lood_vnat,2-DS (by design),val,platt,8738,275,0.9830891688956206,0.7666520481643894
+artifacts/balanced_bagging,3-DS ✅,val,platt,8861,275,0.9829451750206467,0.8441897259660501
+artifacts/ensemble/diverse_bagging_robust,3-DS ✅,val,platt,8861,275,0.9826211803570295,0.8190414163035095
+artifacts/lood_firewall_tuned/hold_vnat,2-DS (by design),val,platt,8738,275,0.9824416443771282,0.7583365157500388
+artifacts/balanced_bagging_firewall_tuned_ensemble_2dataset_backup,2-DS (by design),val,platt,1926,688,0.9817263168275913,0.9773338923560789
+artifacts/experiments/exp_b_balanced,3-DS ✅,val,platt,9022,288,0.9812410948273669,0.7872302236404052
+artifacts/balanced_bagging_firewall_tuned_ensemble_PRE_3DS_PROMOTION,3-DS ✅,val,platt,8924,288,0.97682142903093,0.7868759780214671
+artifacts/experiments/exp_b_balanced_sample,3-DS ✅,val,platt,8861,275,0.9757906105075916,0.7806467512052127
+artifacts/experiments/feature_leakage_reduction/exp_5f-baseline,3-DS ✅,val,platt,9022,288,0.975730025379742,0.687943144260167
+artifacts/experiments/feature_leakage_reduction/exp_4f-drop-p75,3-DS ✅,val,platt,9022,288,0.9708498715110806,0.6578748455555437
+artifacts/balanced_bagging_firewall_tuned_ensemble,3-DS ✅,val,platt,8861,275,0.968792749295894,0.7521477118301674
+artifacts/balanced_bagging_firewall_tuned_ensemble_3dataset_DEGRADED,3-DS ✅,val,platt,8861,275,0.968792749295894,0.7521477118301674
+artifacts/balanced_bagging_firewall_tuned_ensemble_3dataset_REFRESH,3-DS ✅,val,platt,8861,275,0.968792749295894,0.7521477118301674
+artifacts/experiments/exp_d_iat_expanded,3-DS ✅,val,platt,8861,275,0.9663443660927938,0.5599906727735022
+artifacts/experiments/exp_db_iat_balanced,3-DS ✅,val,platt,8861,275,0.9652762425089471,0.6312706875828499
+artifacts/balanced_bagging_xgb,3-DS ✅,val,platt,10068,1358,0.96504846899523,0.809514421070401
+artifacts/balanced_bagging_lgbm,3-DS ✅,val,platt,10068,1358,0.9640383812217941,0.8211766952139559
+artifacts/experiments/baseline_3ds,3-DS ✅,val,platt,9022,288,0.9636820026461085,0.625707971538545
+artifacts/balanced_bagging_cat,3-DS ✅,val,platt,10068,1358,0.9606346031257555,0.8258982374688255
+artifacts/experiments/exp_f7_cat-heavy,3-DS ✅,val,platt,9022,288,0.9605584338345673,0.43771098107503487
+artifacts/experiments/exp_f7_xgb-heavy,3-DS ✅,val,platt,9022,288,0.9597736654962725,0.47657394789172164
+artifacts/experiments/exp_f7_lgbm-heavy,3-DS ✅,val,platt,9022,288,0.9594341557896344,0.44756362565077806
+artifacts/experiments/exp_c_combined,3-DS ✅,val,platt,9022,288,0.959280303030303,0.44926366106848215
+artifacts/experiments/exp_d1_safe_expanded,3-DS ✅,val,platt,9022,288,0.959280303030303,0.44926366106848215
+artifacts/experiments/exp_d2_full_expanded,3-DS ✅,val,platt,9022,288,0.959280303030303,0.44926366106848215
+artifacts/experiments/exp_d_iat_balanced,3-DS ✅,val,platt,9022,288,0.959280303030303,0.44926366106848215
+artifacts/experiments/exp_f4_diverse_bagging,3-DS ✅,val,platt,9022,288,0.9584605500852352,0.44146710293258956
+artifacts/experiments/exp_f6_ratio_2_0,3-DS ✅,val,platt,9022,288,0.9575775863165662,0.44849904872973445
+artifacts/experiments/exp_f6_ratio_3_0,3-DS ✅,val,platt,9022,288,0.9575775863165662,0.44849904872973445
+artifacts/experiments/exp_f2_strict_reg,3-DS ✅,val,platt,9022,288,0.9571339178943084,0.4111994935314837
+artifacts/experiments/exp_f1_light_balance,3-DS ✅,val,platt,9022,288,0.9556832493702772,0.4994571304334957
+artifacts/balanced_bagging_tuned,3-DS ✅,val,platt,8675,1178,0.953398450495082,0.7817036240692933
+artifacts/experiments/feature_leakage_reduction/exp_4f-drop-p25,3-DS ✅,val,platt,9022,288,0.9526282583390582,0.5395426613453829
+artifacts/thesis_finalization/lodo_test_vnat,2-DS (by design),val,platt,8856,276,0.9489451369886153,0.3230473514546624
+artifacts/experiments/exp_f6_ratio_1_5,3-DS ✅,val,platt,9022,288,0.9459436143551383,0.4150371579535333
+artifacts/experiments/exp_f9_reduced,3-DS ✅,val,platt,9022,288,0.9414711504210875,0.3872667733723813
+artifacts/experiments/exp_f5_weighted_usb,3-DS ✅,val,platt,9022,288,0.9384914955601353,0.32884809132904047
+artifacts/experiments/ablation_3f_core,3-DS ✅,val,platt,8861,275,0.9344272917857823,0.3209062842453935
+artifacts/experiments/feature_leakage_reduction/exp_3f-core,3-DS ✅,val,platt,9022,288,0.93414147774979,0.4840178350347841
+artifacts/experiments/ablation_4f_no_p25,3-DS ✅,val,platt,8861,275,0.9324236071405883,0.23484142807387995
+artifacts/experiments/exp_a_no_direction,3-DS ✅,val,platt,9022,288,0.9252804334274738,0.26892094805252065
+artifacts/experiments/ablation_4f_no_p75,3-DS ✅,val,platt,8861,275,0.9249306482010884,0.3200786467916348
+artifacts/experiments/feature_leakage_reduction/exp_3f-core-v2,3-DS ✅,val,platt,9022,288,0.8971812345749689,0.4188881643116964
+artifacts/ensemble/diverse_bagging_robust13,3-DS ✅,val,platt,8675,1178,0.860200899827956,0.44810676063895466
+artifacts/experiments/exp_e_adversarial,3-DS ✅,val,platt,9022,288,0.8411718730122383,0.18444122808465985
+artifacts/experiments/baseline_2ds,2-DS (by design),val,platt,2393,94,0.7592570312716908,0.08321682180766679
+artifacts/ensemble/lood_usbvpn,2-DS (by design),val,platt,2350,82,0.721388781348131,0.1492836581902577
+artifacts/lood_firewall_tuned/hold_usbvpn,2-DS (by design),val,platt,2350,82,0.6811631608379576,0.07111073397640416
+artifacts/thesis_finalization/lodo_test_usbvpn,2-DS (by design),val,platt,2393,94,0.3370267368791241,0.03358225323256411
+artifacts/leave_two_out/usbvpn,2-DS (by design),val,raw,10937,2376,0.9999252246799263,0.9997351998634137
+artifacts/leave_two_out/vnat,2-DS (by design),val,raw,412,7,0.9996472663139331,0.982142857142857
+artifacts/lood_firewall_tuned/hold_iscx,2-DS (by design),val,raw,6634,193,0.9993821961478965,0.9830177417131143
+artifacts/balanced_subset/full,3-DS ✅,val,raw,8861,275,0.9990966266437964,0.9805793874391442
+artifacts/ensemble/lood_iscx,2-DS (by design),val,raw,6634,193,0.9990652499008538,0.9845944170147877
+artifacts/balanced_subset/balanced,3-DS ✅,val,raw,8861,275,0.9988399720475192,0.9728814789821904
+artifacts/thesis_finalization/lodo_test_iscx,2-DS (by design),val,raw,6795,206,0.9936743646000173,0.7868367800038152
+artifacts/ensemble/diverse_bagging_robust9,3-DS ✅,val,raw,8675,1178,0.988060928955623,0.9570117674054482
+artifacts/ensemble/balanced_ensemble_robust9,3-DS ✅,val,raw,3906,2264,0.9875098453579407,0.9920867031459984
+artifacts/leave_two_out/iscx,2-DS (by design),val,raw,2220,679,0.9868847476773781,0.9855296021874832
+artifacts/ensemble/lood_vnat,2-DS (by design),val,raw,8738,275,0.9830891688956206,0.7666520481643894
+artifacts/balanced_bagging,3-DS ✅,val,raw,8861,275,0.9829451750206467,0.8441897259660501
+artifacts/ensemble/diverse_bagging_robust,3-DS ✅,val,raw,8861,275,0.9826211803570295,0.8190414163035095
+artifacts/lood_firewall_tuned/hold_vnat,2-DS (by design),val,raw,8738,275,0.9824416443771282,0.7583365157500388
+artifacts/balanced_bagging_firewall_tuned_ensemble_2dataset_backup,2-DS (by design),val,raw,1926,688,0.9817263168275913,0.9773338923560789
+artifacts/experiments/exp_b_balanced,3-DS ✅,val,raw,9022,288,0.9812410948273669,0.7872302236404052
+artifacts/balanced_bagging_firewall_tuned_ensemble_PRE_3DS_PROMOTION,3-DS ✅,val,raw,8924,288,0.97682142903093,0.7868759780214671
+artifacts/experiments/exp_b_balanced_sample,3-DS ✅,val,raw,8861,275,0.9757906105075916,0.7806467512052127
+artifacts/experiments/feature_leakage_reduction/exp_5f-baseline,3-DS ✅,val,raw,9022,288,0.975730025379742,0.687943144260167
+artifacts/experiments/feature_leakage_reduction/exp_4f-drop-p75,3-DS ✅,val,raw,9022,288,0.9708498715110806,0.6578748455555437
+artifacts/balanced_bagging_firewall_tuned_ensemble,3-DS ✅,val,raw,8861,275,0.968792749295894,0.7521477118301674
+artifacts/balanced_bagging_firewall_tuned_ensemble_3dataset_DEGRADED,3-DS ✅,val,raw,8861,275,0.968792749295894,0.7521477118301674
+artifacts/balanced_bagging_firewall_tuned_ensemble_3dataset_REFRESH,3-DS ✅,val,raw,8861,275,0.968792749295894,0.7521477118301674
+artifacts/experiments/exp_d_iat_expanded,3-DS ✅,val,raw,8861,275,0.9663443660927938,0.5599906727735022
+artifacts/experiments/exp_db_iat_balanced,3-DS ✅,val,raw,8861,275,0.9652762425089471,0.6312706875828499
+artifacts/balanced_bagging_xgb,3-DS ✅,val,raw,10068,1358,0.96504846899523,0.809514421070401
+artifacts/balanced_bagging_lgbm,3-DS ✅,val,raw,10068,1358,0.9640383812217941,0.8211766952139559
+artifacts/experiments/baseline_3ds,3-DS ✅,val,raw,9022,288,0.9636820026461085,0.625707971538545
+artifacts/balanced_bagging_cat,3-DS ✅,val,raw,10068,1358,0.9606346031257555,0.8258982374688255
+artifacts/experiments/exp_f7_cat-heavy,3-DS ✅,val,raw,9022,288,0.9605584338345673,0.43771098107503487
+artifacts/experiments/exp_f7_xgb-heavy,3-DS ✅,val,raw,9022,288,0.9597736654962725,0.47657394789172164
+artifacts/experiments/exp_f7_lgbm-heavy,3-DS ✅,val,raw,9022,288,0.9594341557896344,0.44756362565077806
+artifacts/experiments/exp_c_combined,3-DS ✅,val,raw,9022,288,0.959280303030303,0.44926366106848215
+artifacts/experiments/exp_d1_safe_expanded,3-DS ✅,val,raw,9022,288,0.959280303030303,0.44926366106848215
+artifacts/experiments/exp_d2_full_expanded,3-DS ✅,val,raw,9022,288,0.959280303030303,0.44926366106848215
+artifacts/experiments/exp_d_iat_balanced,3-DS ✅,val,raw,9022,288,0.959280303030303,0.44926366106848215
+artifacts/experiments/exp_f4_diverse_bagging,3-DS ✅,val,raw,9022,288,0.9584605500852352,0.44146710293258956
+artifacts/experiments/exp_f6_ratio_2_0,3-DS ✅,val,raw,9022,288,0.9575775863165662,0.44849904872973445
+artifacts/experiments/exp_f6_ratio_3_0,3-DS ✅,val,raw,9022,288,0.9575775863165662,0.44849904872973445
+artifacts/experiments/exp_f2_strict_reg,3-DS ✅,val,raw,9022,288,0.9571339178943084,0.4111994935314837
+artifacts/experiments/exp_f1_light_balance,3-DS ✅,val,raw,9022,288,0.9556832493702772,0.4994571304334957
+artifacts/balanced_bagging_tuned,3-DS ✅,val,raw,8675,1178,0.953398450495082,0.7817036240692933
+artifacts/experiments/feature_leakage_reduction/exp_4f-drop-p25,3-DS ✅,val,raw,9022,288,0.9526282583390582,0.5395426613453829
+artifacts/thesis_finalization/lodo_test_vnat,2-DS (by design),val,raw,8856,276,0.9489451369886153,0.3230473514546624
+artifacts/experiments/exp_f6_ratio_1_5,3-DS ✅,val,raw,9022,288,0.9459436143551383,0.4150371579535333
+artifacts/experiments/exp_f9_reduced,3-DS ✅,val,raw,9022,288,0.9414711504210875,0.3872667733723813
+artifacts/experiments/exp_f5_weighted_usb,3-DS ✅,val,raw,9022,288,0.9384914955601353,0.32884809132904047
+artifacts/experiments/ablation_3f_core,3-DS ✅,val,raw,8861,275,0.9344272917857823,0.3209062842453935
+artifacts/experiments/feature_leakage_reduction/exp_3f-core,3-DS ✅,val,raw,9022,288,0.93414147774979,0.4840178350347841
+artifacts/experiments/ablation_4f_no_p25,3-DS ✅,val,raw,8861,275,0.9324236071405883,0.23484142807387995
+artifacts/experiments/exp_a_no_direction,3-DS ✅,val,raw,9022,288,0.9252804334274738,0.26892094805252065
+artifacts/experiments/ablation_4f_no_p75,3-DS ✅,val,raw,8861,275,0.9249306482010884,0.3200786467916348
+artifacts/experiments/feature_leakage_reduction/exp_3f-core-v2,3-DS ✅,val,raw,9022,288,0.8971812345749689,0.4188881643116964
+artifacts/ensemble/diverse_bagging_robust13,3-DS ✅,val,raw,8675,1178,0.860200899827956,0.44810676063895466
+artifacts/experiments/exp_e_adversarial,3-DS ✅,val,raw,9022,288,0.8411718730122383,0.18444122808465985
+artifacts/ensemble/lood_usbvpn,2-DS (by design),val,raw,2350,82,0.721388781348131,0.1492836581902577
+artifacts/thesis_finalization/lodo_test_usbvpn,2-DS (by design),val,raw,2393,94,0.3370267368791241,0.03358225323256411
+artifacts/lood_firewall_tuned/hold_usbvpn,2-DS (by design),val,raw,2350,82,0.3188368391620424,0.031665760494749944
+artifacts/experiments/baseline_2ds,2-DS (by design),val,raw,2393,94,0.24074296872830925,0.026984491687200483

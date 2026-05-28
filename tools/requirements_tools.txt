@@ -1,0 +1,7 @@
+# Requirements for host-side tools (tools/).
+# Install with:  pip install -r tools/requirements_tools.txt
+# These are NOT part of the backend runtime — do not add to backend/requirements.txt.
+
+scapy>=2.5.0
+requests>=2.28.0
+

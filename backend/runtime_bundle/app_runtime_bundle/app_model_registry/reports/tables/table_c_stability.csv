@@ -1,0 +1,7 @@
+Backend,Val Flow AUC,Test Flow AUC,Delta AUC,Abs Delta
+XGBoost (3 bags),0.9796,0.9427,-0.0369,0.0369
+LightGBM (3 bags),0.9774,0.941,-0.0364,0.0364
+CatBoost (3 bags),0.9824,0.9492,-0.0331,0.0331
+Ensemble (raw),0.9817,0.9443,-0.0375,0.0375
+Ensemble (isotonic),0.9846,0.9461,-0.0385,0.0385
+Ensemble (platt),0.9817,0.9443,-0.0375,0.0375
