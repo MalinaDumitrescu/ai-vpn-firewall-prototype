@@ -73,7 +73,7 @@ function PipelineDiagram() {
     { icon: '🖥', label: 'VM traffic' },
     { icon: '📄', label: 'Feature CSV' },
     { icon: '▶', label: 'Replay batches' },
-    { icon: '🔍', label: 'robust9 analysis' },
+    { icon: '🔍', label: 'robust9 analysis (legacy)' },
     { icon: '🏷', label: 'Simulated labels' },
   ];
   return (
@@ -348,9 +348,11 @@ export default function LiveVMReplay() {
       {/* ── safety warning ── */}
       <WarningBox tone="warn">
         <strong>Simulation only.</strong> This page replays uploaded feature rows
-        and labels them using <span className="mono">robust9_firewall</span>.
+        and labels them using <span className="mono">robust9_firewall</span>{' '}
+        (legacy baseline — compatible with 9-feature PCAP CSV uploads).
         <strong> No packets are captured or blocked.</strong> All results are
         labelled <em>simulated</em> and have no effect on any network.
+        The recommended model is <span className="mono">full_canonical__lgbm</span>.
       </WarningBox>
 
       {/* ── pipeline ── */}
@@ -558,8 +560,9 @@ export default function LiveVMReplay() {
 
       {/* ── footer ── */}
       <div className="mm-page-footer">
-        Live VM Replay is simulation-only. robust9_firewall labels are simulated
+        Live VM Replay is simulation-only. robust9_firewall (legacy baseline) labels are simulated
         and have no effect on network traffic. No packets are captured or blocked.
+        Recommended model: full_canonical__lgbm.
       </div>
     </div>
   );

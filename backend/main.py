@@ -12,6 +12,7 @@ from app import registry_loader
 from app.csv_service import (
     load_comparison_rows,
     load_demo_flows,
+    load_demo_flows_full_canonical,
     load_multimodel_demo_flows,
     parse_multimodel_csv,
     parse_uploaded_csv,
@@ -21,8 +22,7 @@ from app.live_replay_service import (
     get_replay_state,
 )
 from app.live_ingest_service import get_ingest_state
-from app.robust9_inference import REQUIRED_FEATURES, ROBUST9_MODEL_ID, Robust9Engine
-from app.runtime_model_inference import get_all_engines, get_engine
+from app.runtime_model_inference import get_engine
 from app.schemas import (
     FirewallResult,
     HealthResponse,
@@ -41,8 +41,9 @@ app = FastAPI(
     version="0.1.0",
     description=(
         "Read-only access to the standalone runtime bundle. "
-        "Inference is simulation-only and uses the robust9_firewall ensemble. "
-        "No real blocking is performed."
+        "Default inference model: full_canonical__lgbm (single LightGBM, 34 features). "
+        "Legacy baseline: robust9_firewall (XGB+LGBM+CatBoost ensemble, 9 features). "
+        "Inference is simulation-only — no real blocking is performed."
     ),
 )
 
@@ -82,16 +83,22 @@ def list_models() -> Dict[str, Any]:
 
 @app.get("/models/default")
 def get_default_model() -> Dict[str, Any]:
-    defaults = registry_loader.find_default_models()
-    if len(defaults) == 0:
-        raise HTTPException(status_code=500, detail="No model with status 'default_firewall' found.")
-    if len(defaults) > 1:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Multiple default firewall models found: {list(defaults.keys())}",
-        )
-    model_id, entry = next(iter(defaults.items()))
-    return {"model_id": model_id, **entry}
+    # Prefer allowlist's declared default_firewall; fall back to registry status.
+    default_id = registry_loader.get_default_firewall_model_id()
+    if not default_id:
+        defaults = registry_loader.find_default_models()
+        if len(defaults) == 0:
+            raise HTTPException(status_code=500, detail="No default firewall model found.")
+        if len(defaults) > 1:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Multiple default firewall models found: {list(defaults.keys())}",
+            )
+        default_id = next(iter(defaults))
+    entry = registry_loader.get_model_entry(default_id)
+    if entry is None:
+        raise HTTPException(status_code=500, detail=f"Default model '{default_id}' not found in registry.")
+    return {"model_id": default_id, **entry}
 
 
 # --- UI group endpoints (declared before /models/{model_id} to avoid path collision) ---
@@ -170,18 +177,23 @@ def comparison_summary() -> List[Dict[str, Any]]:
 
 # --------------------------------------------------------------------------- firewall
 
-def _guard_robust9_only(model_id: str) -> None:
-    if model_id != ROBUST9_MODEL_ID:
-        raise HTTPException(
-            status_code=400,
-            detail=(
-                "Firewall actions are restricted to 'robust9_firewall'. "
-                "Other registry entries are metadata/comparison-only."
-            ),
-        )
+# Legacy single-model guard — kept for reference; default model is now full_canonical__lgbm.
+# The live ingest and live replay services continue to use robust9_firewall since they
+# consume 9-feature PCAP-derived flow batches that match the robust9 feature schema.
 
 
 # ---------------------------------------------------------------- runtime models
+
+def _get_default_engine_and_demo_csv():
+    """Return (RuntimeModelEngine, load_fn) for the allowlist default firewall model."""
+    default_id = registry_loader.get_default_firewall_model_id() or "full_canonical__lgbm"
+    engine = get_engine(default_id)
+    # Use the full_canonical demo CSV for full_canonical__lgbm; fall back to legacy CSV.
+    if default_id == "full_canonical__lgbm":
+        load_csv = load_demo_flows_full_canonical
+    else:
+        load_csv = load_demo_flows
+    return engine, load_csv
 
 @app.get("/firewall/runtime-models")
 def get_runtime_models() -> List[Dict[str, Any]]:
@@ -192,7 +204,7 @@ def get_runtime_models() -> List[Dict[str, Any]]:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
     allowed_ids: List[str] = alist.get("allowlist", [])
-    default_id: str = alist.get("default_firewall", ROBUST9_MODEL_ID)
+    default_id: str = alist.get("default_firewall", "full_canonical__lgbm")
     result = []
     for mid in allowed_ids:
         entry = registry_loader.get_model_entry(mid) or {}
@@ -205,13 +217,19 @@ def get_runtime_models() -> List[Dict[str, Any]]:
                 feature_order = fo.get("feature_order", [])
         except Exception:
             pass
-        # Threshold info.
+        # Threshold info — supports both nested (robust9) and flat (full_canonical) formats.
         strict_threshold = balanced_threshold = None
         try:
             th = registry_loader._read_json(model_dir / "thresholds.json")  # type: ignore[attr-defined]
             if th:
+                # Nested format: {"strict": {"threshold": ...}, "balanced": {"threshold": ...}}
                 strict_threshold = th.get("strict", {}).get("threshold")
                 balanced_threshold = th.get("balanced", {}).get("threshold")
+                # Flat format fallback: {"block_threshold": ..., "review_threshold": ...}
+                if strict_threshold is None:
+                    strict_threshold = th.get("block_threshold")
+                if balanced_threshold is None:
+                    balanced_threshold = th.get("review_threshold")
         except Exception:
             pass
         # Loader config.
@@ -325,7 +343,7 @@ def firewall_multimodel_demo() -> Dict[str, Any]:
         "warnings": [
             "Simulation only — no real packets are blocked.",
             "All comparison model results are for benchmarking only.",
-            "Only robust9_firewall is the deployment-approved model.",
+            "full_canonical__lgbm is the recommended firewall model (simulation mode). robust9_firewall is the legacy baseline.",
         ],
     }
 
@@ -407,17 +425,18 @@ async def firewall_analyze_csv_multimodel(
         "warnings": [
             "Simulation only — no real packets are blocked.",
             "All comparison model results are for benchmarking only.",
-            "Only robust9_firewall is the deployment-approved model.",
+            "full_canonical__lgbm is the recommended firewall model (simulation mode). robust9_firewall is the legacy baseline.",
         ],
     }
 
 
 @app.get("/firewall/demo", response_model=FirewallResult)
 def firewall_demo() -> FirewallResult:
-    _guard_robust9_only(ROBUST9_MODEL_ID)
+    """Run the default/recommended firewall model against the bundled demo CSV."""
     try:
-        df = load_demo_flows()
-        result = Robust9Engine.get().run(df)
+        engine, load_csv = _get_default_engine_and_demo_csv()
+        df = load_csv()
+        result = engine.run(df)
     except Exception as exc:  # noqa: BLE001
         logger.exception("firewall/demo failed")
         raise HTTPException(status_code=500, detail=str(exc)) from exc
@@ -426,7 +445,7 @@ def firewall_demo() -> FirewallResult:
 
 @app.post("/firewall/analyze-csv", response_model=FirewallResult)
 async def firewall_analyze_csv(file: UploadFile = File(...)) -> FirewallResult:
-    _guard_robust9_only(ROBUST9_MODEL_ID)
+    """Analyze an uploaded CSV using the default/recommended firewall model."""
     raw = await file.read()
     if not raw:
         raise HTTPException(status_code=400, detail="Uploaded file is empty.")
@@ -436,7 +455,8 @@ async def firewall_analyze_csv(file: UploadFile = File(...)) -> FirewallResult:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     try:
-        result = Robust9Engine.get().run(df)
+        engine, _ = _get_default_engine_and_demo_csv()
+        result = engine.run(df)
     except Exception as exc:  # noqa: BLE001
         logger.exception("firewall/analyze-csv failed")
         raise HTTPException(status_code=500, detail=str(exc)) from exc
@@ -445,7 +465,13 @@ async def firewall_analyze_csv(file: UploadFile = File(...)) -> FirewallResult:
 
 @app.get("/firewall/required-features")
 def firewall_required_features() -> Dict[str, Any]:
-    return {"model_id": ROBUST9_MODEL_ID, "required_features": REQUIRED_FEATURES}
+    default_id = registry_loader.get_default_firewall_model_id() or "full_canonical__lgbm"
+    try:
+        engine = get_engine(default_id)
+        return {"model_id": default_id, "required_features": engine.feature_order}
+    except Exception as exc:
+        logger.warning("Could not load engine for required-features: %s", exc)
+        return {"model_id": default_id, "required_features": []}
 
 
 # ======================================================================= live replay

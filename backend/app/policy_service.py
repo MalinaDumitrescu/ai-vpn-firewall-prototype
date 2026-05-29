@@ -13,13 +13,28 @@ def decide_action(
 ) -> Tuple[str, bool, bool]:
     """Map a session score to (action, strict_trigger, balanced_trigger).
 
-    Implements the policy:
-      - strict trigger -> BLOCK (unless strict action is disabled)
+    Supports two threshold formats:
+      - Nested (robust9 / bagging-ensemble style):
+          {"strict": {"threshold": ...}, "balanced": {"threshold": ...}}
+      - Flat (full_canonical__lgbm / open_set_three_tier style):
+          {"block_threshold": ..., "review_threshold": ...}
+
+    Policy:
+      - strict trigger  -> BLOCK (unless strict action is disabled)
       - balanced trigger only -> FLAG_REVIEW
       - neither -> PASS
     """
     strict = thresholds.get("strict", {}) or {}
     balanced = thresholds.get("balanced", {}) or {}
+
+    # Flat-format fallback (full_canonical__lgbm open_set_three_tier)
+    if not strict and not balanced:
+        block_thr = thresholds.get("block_threshold")
+        review_thr = thresholds.get("review_threshold")
+        if block_thr is not None:
+            strict = {"threshold": float(block_thr), "action": "BLOCK"}
+        if review_thr is not None:
+            balanced = {"threshold": float(review_thr), "action": "FLAG_REVIEW"}
 
     strict_thr = float(strict.get("threshold", float("inf")))
     balanced_thr = float(balanced.get("threshold", float("inf")))

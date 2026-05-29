@@ -83,17 +83,28 @@ class RuntimeModelEngine:
             "session_grouping_column", "session_id"
         )
 
-        # Load model pickles (only families that exist).
+        # Load model pickles.
+        # Bagging-ensemble format: loader_config["model_files"] = {family: [rel_path, ...]}
+        # Single-model format (e.g. single_lgbm_with_isotonic_calibration):
+        #   loader_config["model_file"] = rel_path (no model_files key)
         families: Dict[str, List[str]] = self.loader_config.get("model_files", {})
         self.models: Dict[str, List[Any]] = {}
-        for family, paths in families.items():
-            loaded = []
-            for rel in paths:
-                pkl = BUNDLE_ROOT / rel
+        if families:
+            for family, paths in families.items():
+                loaded = []
+                for rel in paths:
+                    pkl = BUNDLE_ROOT / rel
+                    if pkl.exists():
+                        loaded.append(joblib.load(pkl))
+                if loaded:
+                    self.models[family] = loaded
+        else:
+            # Single-model format
+            model_file = self.loader_config.get("model_file")
+            if model_file:
+                pkl = BUNDLE_ROOT / model_file
                 if pkl.exists():
-                    loaded.append(joblib.load(pkl))
-            if loaded:
-                self.models[family] = loaded
+                    self.models["single"] = [joblib.load(pkl)]
 
         if not self.models:
             raise RuntimeError(
@@ -231,10 +242,14 @@ class RuntimeModelEngine:
             "aggregation": self.session_aggregation,
             "thresholds": {
                 "strict": float(
-                    self.thresholds.get("strict", {}).get("threshold", float("nan"))
+                    self.thresholds.get("strict", {}).get("threshold")
+                    or self.thresholds.get("block_threshold")
+                    or float("nan")
                 ),
                 "balanced": float(
-                    self.thresholds.get("balanced", {}).get("threshold", float("nan"))
+                    self.thresholds.get("balanced", {}).get("threshold")
+                    or self.thresholds.get("review_threshold")
+                    or float("nan")
                 ),
             },
             "total_flows": int(len(scored)),
@@ -267,8 +282,7 @@ class RuntimeModelEngine:
             "production_readiness": False,
             "probability_column": self.probability_column,
             "aggregation": self.session_aggregation,
-            "thresholds": None,
-            "total_flows": 0,
+            "thresholds": None,            "total_flows": 0,
             "total_sessions": 0,
             "counts": {"PASS": 0, "FLAG_REVIEW": 0, "BLOCK": 0},
             "sessions": [],

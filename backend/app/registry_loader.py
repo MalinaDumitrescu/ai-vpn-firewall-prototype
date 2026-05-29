@@ -14,6 +14,7 @@ UI_GROUPS_PATH = BUNDLE_ROOT / "app_model_registry" / "backend" / "model_registr
 ALLOWLIST_PATH = BUNDLE_ROOT / "app_model_registry" / "backend" / "model_registry" / "runtime_inference_allowlist.json"
 RUNTIME_MODELS_DIR = BUNDLE_ROOT / "runtime_models"
 DEMO_FLOWS_PATH = BUNDLE_ROOT / "demo_data" / "demo_flows.csv"
+DEMO_FLOWS_FULL_CANONICAL_PATH = BUNDLE_ROOT / "demo_data" / "demo_flows_full_canonical.csv"
 COMPARISON_CSV_PATH = (
     BUNDLE_ROOT / "app_model_registry" / "reports" / "tables" / "app_model_policy_comparison.csv"
 )
@@ -91,11 +92,27 @@ def get_calibration_info(model_id: str) -> Optional[Dict[str, Any]]:
 
 
 def find_default_models() -> Dict[str, Dict[str, Any]]:
+    """Return models with status 'default_firewall' or 'recommended_firewall'."""
     return {
         mid: entry
         for mid, entry in list_models().items()
-        if entry.get("status") == "default_firewall"
+        if entry.get("status") in ("default_firewall", "recommended_firewall")
     }
+
+
+def get_default_firewall_model_id() -> Optional[str]:
+    """Return the default_firewall model ID from the inference allowlist."""
+    try:
+        alist = _read_json(ALLOWLIST_PATH)
+        if alist:
+            return alist.get("default_firewall")
+    except Exception:
+        pass
+    # Fallback: find from registry
+    defaults = find_default_models()
+    if defaults:
+        return next(iter(defaults))
+    return None
 
 
 # ----------------------------------------------------------------- UI groups

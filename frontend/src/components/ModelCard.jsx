@@ -12,7 +12,8 @@ function fmt(v, digits = 4) {
 
 export default function ModelCard({ modelId, entry, variant = 'full' }) {
   const status = entry?.status || 'unknown';
-  const isDefault    = status === 'default_firewall';
+  const isDefault    = status === 'default_firewall' || status === 'recommended_firewall';
+  const isLegacy     = status === 'legacy_baseline';
   const isNegative   = status === 'negative_control';
   const isUnsupp     = status === 'unsupported';
   const isAlias      = status === 'alias';
@@ -25,6 +26,7 @@ export default function ModelCard({ modelId, entry, variant = 'full' }) {
 
   const approvalLabel =
     isDefault     ? 'Approved (simulation only)' :
+    isLegacy      ? 'Legacy baseline (simulation only)' :
     isNegative    ? 'Negative control - not deployable' :
     isPolicyOnly  ? 'Benchmark only - not deployable' :
     isUnsupp      ? 'Unsupported - not deployable' :
@@ -99,10 +101,16 @@ export default function ModelCard({ modelId, entry, variant = 'full' }) {
         )}
       </div>
 
-      {!isDefault && (
+      {!isDefault && !isLegacy && (
         <div className="warning-box warn" style={{ marginBottom: 0 }}>
           <span className="icon">⚠</span>
           <div>Not deployment-approved.</div>
+        </div>
+      )}
+      {isLegacy && (
+        <div className="warning-box info" style={{ marginBottom: 0 }}>
+          <span className="icon">ℹ</span>
+          <div>Legacy baseline — not the recommended model.</div>
         </div>
       )}
       {isNegative && (

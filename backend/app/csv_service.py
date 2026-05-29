@@ -7,16 +7,24 @@ from typing import Any, Dict, List
 
 import pandas as pd
 
-from .registry_loader import BUNDLE_ROOT, COMPARISON_CSV_PATH, DEMO_FLOWS_PATH
-from .robust9_inference import REQUIRED_FEATURES
+from .registry_loader import BUNDLE_ROOT, COMPARISON_CSV_PATH, DEMO_FLOWS_PATH, DEMO_FLOWS_FULL_CANONICAL_PATH
+from .robust9_inference import REQUIRED_FEATURES as ROBUST9_REQUIRED_FEATURES
 
 DEMO_MULTIMODEL_FLOWS_PATH = BUNDLE_ROOT / "demo_data" / "demo_multimodel_flows.csv"
 
 
 def load_demo_flows() -> pd.DataFrame:
+    """Load the legacy robust9 demo flows CSV (9 sz_* features)."""
     if not DEMO_FLOWS_PATH.exists():
         raise FileNotFoundError(f"Demo CSV missing: {DEMO_FLOWS_PATH}")
     return pd.read_csv(DEMO_FLOWS_PATH)
+
+
+def load_demo_flows_full_canonical() -> pd.DataFrame:
+    """Load the full_canonical__lgbm demo flows CSV (34 features)."""
+    if not DEMO_FLOWS_FULL_CANONICAL_PATH.exists():
+        raise FileNotFoundError(f"Full-canonical demo CSV missing: {DEMO_FLOWS_FULL_CANONICAL_PATH}")
+    return pd.read_csv(DEMO_FLOWS_FULL_CANONICAL_PATH)
 
 
 def load_multimodel_demo_flows() -> pd.DataFrame:
@@ -26,11 +34,24 @@ def load_multimodel_demo_flows() -> pd.DataFrame:
 
 
 def parse_uploaded_csv(raw_bytes: bytes) -> pd.DataFrame:
+    """Parse an uploaded CSV for single-model evaluation (no feature pre-validation).
+
+    Feature validation is delegated to the model engine, which returns a
+    graceful 'skipped' result when features are missing.
+    """
+    try:
+        return pd.read_csv(io.BytesIO(raw_bytes))
+    except Exception as exc:  # noqa: BLE001
+        raise ValueError(f"Could not parse uploaded CSV: {exc}") from exc
+
+
+def parse_uploaded_csv_robust9(raw_bytes: bytes) -> pd.DataFrame:
+    """Parse and validate an uploaded CSV for the robust9 (9-feature) engine."""
     try:
         df = pd.read_csv(io.BytesIO(raw_bytes))
     except Exception as exc:  # noqa: BLE001
         raise ValueError(f"Could not parse uploaded CSV: {exc}") from exc
-    missing = [c for c in REQUIRED_FEATURES if c not in df.columns]
+    missing = [c for c in ROBUST9_REQUIRED_FEATURES if c not in df.columns]
     if missing:
         raise ValueError(
             "Uploaded CSV is missing required robust9 feature columns: " + ", ".join(missing)

@@ -112,22 +112,31 @@ export default function Dashboard() {
             </div>
 
             <div className="card">
-              <h2>Test-set policy metrics</h2>
+              <h2>Model performance metrics</h2>
               <div className="kv">
-                <div className="k">strict_test_recall</div>
-                <div className="v">{num(defaultModel?.strict_test_recall)}</div>
+                <div className="k">policy</div>
+                <div className="v mono">{defaultModel?.policy || '—'}</div>
 
-                <div className="k">strict_test_fpr</div>
-                <div className="v">{num(defaultModel?.strict_test_fpr)}</div>
+                <div className="k">pooled_auc</div>
+                <div className="v">{num(defaultModel?.pooled_auc)}</div>
 
-                <div className="k">balanced_test_recall</div>
-                <div className="v">{num(defaultModel?.balanced_test_recall)}</div>
+                <div className="k">lodo_min_auc</div>
+                <div className="v">{num(defaultModel?.lodo_min_auc)}</div>
 
-                <div className="k">balanced_test_fpr</div>
-                <div className="v">{num(defaultModel?.balanced_test_fpr)}</div>
+                <div className="k">lodo_mean_auc</div>
+                <div className="v">{num(defaultModel?.lodo_mean_auc)}</div>
 
-                <div className="k">session_auc_test</div>
-                <div className="v">{num(defaultModel?.session_auc_test)}</div>
+                <div className="k">fpr_at_0.5</div>
+                <div className="v">{num(defaultModel?.['fpr_at_0.5'])}</div>
+
+                <div className="k">ece</div>
+                <div className="v">{num(defaultModel?.ece)}</div>
+
+                <div className="k">review_threshold</div>
+                <div className="v">{num(defaultModel?.review_threshold, 6)}</div>
+
+                <div className="k">block_threshold</div>
+                <div className="v">{num(defaultModel?.block_threshold, 6)}</div>
 
                 <div className="k">updated_utc</div>
                 <div className="v mono" style={{ fontSize: 11 }}>

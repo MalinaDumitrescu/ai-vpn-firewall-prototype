@@ -1,8 +1,9 @@
 {
-  "generated_utc": "2026-05-26T09:27:26.556757+00:00",
-  "default_firewall_model": "robust9_firewall",
+  "generated_utc": "2026-05-28T22:04:33.103285+00:00",
+  "default_firewall_model": "full_canonical__lgbm",
   "groups": {
     "main_demo_comparison": [
+      "full_canonical__lgbm",
       "robust9_firewall",
       "balanced_bagging_3ds_reference",
       "balanced_bagging_xgb_baseline",
@@ -24,5 +25,7 @@
       "historical_3ds_degraded",
       "twentyone_feature_experimental"
     ]
-  }
+  },
+  "recommended_firewall": "full_canonical__lgbm",
+  "legacy_baseline": "robust9_firewall"
 }

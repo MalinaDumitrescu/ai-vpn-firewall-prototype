@@ -3,12 +3,17 @@
 Consumes a user-uploaded flow-feature CSV and replays rows in batches,
 labelling sessions with robust9_firewall in simulation mode.
 
+NOTE: Live replay uses the legacy robust9_firewall ensemble (9 sz_* features)
+for feature-set compatibility with PCAP-derived CSV uploads. The recommended
+default firewall model is full_canonical__lgbm (34 features), available via
+/firewall/demo and the multi-model endpoints.
+
 SAFETY CONSTRAINTS (enforced in this module):
   - No packet capture.
   - No shell commands.
   - No OS firewall modification.
   - All decisions are simulated=True, action_mode="simulation".
-  - Only robust9_firewall is used for inference.
+  - Only robust9_firewall is used for replay inference.
 """
 from __future__ import annotations
 
@@ -48,6 +53,7 @@ TEMPLATE_HEADER = (
 WARNINGS = [
     "Simulation only — no real packets are blocked.",
     "Live replay consumes uploaded flow-feature CSV rows, not raw packets.",
+    "robust9_firewall (legacy baseline) is used for replay; full_canonical__lgbm is the recommended model.",
 ]
 
 # ─── state ────────────────────────────────────────────────────────────────────

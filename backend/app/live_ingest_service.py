@@ -4,12 +4,18 @@ Receives batches of robust9-formatted flow rows posted by
 tools/pcap_to_live_stream.py, runs robust9_firewall inference,
 and maintains a rolling session state for the frontend Live VM Monitor.
 
+NOTE: The live ingest pipeline uses the legacy robust9_firewall ensemble
+(9 sz_* features) because tools/pcap_to_live_stream.py generates those
+specific features from raw PCAP data.  The recommended default firewall model
+is full_canonical__lgbm (34 features), available via /firewall/demo and the
+multi-model endpoints.
+
 SAFETY CONSTRAINTS (enforced in this module):
   - No packet capture.
   - No shell commands.
   - No OS firewall modification.
   - All decisions are simulated=True, action_mode="simulation".
-  - Only robust9_firewall is used for inference.
+  - Only robust9_firewall is used for live PCAP ingest inference.
 """
 from __future__ import annotations
 
@@ -42,7 +48,7 @@ OPTIONAL_META_COLS = [
 WARNINGS = [
     "Simulation only — no real packets are blocked.",
     "Live ingest consumes PCAP-derived flow features, not raw packets.",
-    "robust9_firewall is the only model used for inference.",
+    "robust9_firewall (legacy baseline) is used for live PCAP ingest; full_canonical__lgbm is the recommended model.",
 ]
 
 

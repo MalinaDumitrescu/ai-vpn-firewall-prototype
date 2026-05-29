@@ -5,11 +5,13 @@ import React from 'react';
  * Accepts a `status` prop or a free-form `label` + `tone`.
  */
 const STATUS_MAP = {
-  default_firewall: { tone: 'ok',      label: 'Default firewall' },
-  policy_computed:  { tone: 'warn',    label: 'Comparison only' },
-  negative_control: { tone: 'bad',     label: 'Negative control' },
-  unsupported:      { tone: 'neutral', label: 'Unsupported' },
-  alias:            { tone: 'info',    label: 'Alias' },
+  default_firewall:      { tone: 'ok',      label: 'Default firewall' },
+  recommended_firewall:  { tone: 'ok',      label: 'Recommended firewall' },
+  legacy_baseline:       { tone: 'neutral', label: 'Legacy baseline' },
+  policy_computed:       { tone: 'warn',    label: 'Comparison only' },
+  negative_control:      { tone: 'bad',     label: 'Negative control' },
+  unsupported:           { tone: 'neutral', label: 'Unsupported' },
+  alias:                 { tone: 'info',    label: 'Alias' },
 };
 
 export default function StatusBadge({ status, label, tone, title }) {

@@ -223,7 +223,8 @@ export default function LiveVMMonitor() {
         <strong>Simulation only.</strong> This page displays results from a host-side
         script that reads <strong>existing PCAP files only</strong>. The web app does not
         sniff live traffic and <strong>no packets are blocked</strong>. All labels are
-        from <span className="mono">robust9_firewall</span> and are simulated.
+        from <span className="mono">robust9_firewall</span> (legacy baseline used for
+        live PCAP ingest) and are simulated.
       </WarningBox>
 
       {/* ── local demo runner (frontend-triggered scripts) ── */}
@@ -290,7 +291,7 @@ export default function LiveVMMonitor() {
           </div>
 
           <div className="lr-stats-grid">
-            <StatTile label="Model"          value={state.model_id || 'robust9_firewall'} mono tone="info" />
+            <StatTile label="Model"          value={state.model_id || 'robust9_firewall (legacy)'} mono tone="info" />
             <StatTile label="Action mode"    value={state.action_mode || 'simulation'}     mono tone="info" />
             <StatTile label="Total batches"  value={state.total_batches ?? 0} />
             <StatTile label="Total flows"    value={state.total_flows ?? 0} />
@@ -347,8 +348,10 @@ export default function LiveVMMonitor() {
       <div className="mm-page-footer">
         Live VM Monitor is simulation-only. Decisions come from
         <code className="mono" style={{ margin: '0 4px' }}>robust9_firewall</code>
+        (legacy baseline, used for PCAP-based live streaming)
         and have no effect on network traffic. No packets are captured or blocked
-        by the web application.
+        by the web application. The recommended model is{' '}
+        <code className="mono">full_canonical__lgbm</code>.
       </div>
     </div>
   );

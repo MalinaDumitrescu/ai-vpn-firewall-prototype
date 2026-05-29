@@ -114,9 +114,10 @@ export default function ModelComparison() {
       </div>
 
       <WarningBox tone="info">
-        Only <strong>robust9_firewall</strong> is deployment-approved (in
-        simulation mode). The other five rows are <em>policy_computed</em>
-        baselines and ablations shown for benchmarking — not for deployment.
+        <strong>full_canonical__lgbm</strong> is the recommended firewall model (simulation
+        mode). <strong>robust9_firewall</strong> is retained as a legacy baseline.
+        The other rows are <em>policy_computed</em> baselines and ablations shown
+        for benchmarking — not for deployment.
       </WarningBox>
 
       {loading && <div className="loading-line"><span className="spinner" />Loading comparison…</div>}

@@ -1,8 +1,57 @@
 {
   "models": {
+    "full_canonical__lgbm": {
+      "status": "deployment_eligible",
+      "role": "recommended_firewall",
+      "status_reason": "Final selected model from final_transfer experiment. Highest deployment_final_score (0.6836). LODO-evaluated (LODO-min=0.6164). Well-calibrated (ECE=0.0026). Low FPR (0.0025). Runtime compatible. Marked deployment_eligible as best known-domain simulation prototype.",
+      "recommended_action_mode": "simulation",
+      "action_mode": "simulation",
+      "deployment_eligible": true,
+      "runtime_compatible": true,
+      "production_ready": false,
+      "package_dir": "runtime_models/full_canonical__lgbm",
+      "runtime_loader_config": "runtime_models/full_canonical__lgbm/runtime_loader_config.json",
+      "source_artifact": "artifacts/final_transfer/recommended/recommended_firewall",
+      "updated_utc": "2026-05-29T00:00:00.000000+00:00",
+      "feature_family": "full_canonical",
+      "n_features": 34,
+      "algorithm": "lightgbm",
+      "ensemble_type": "single_model",
+      "selected_probability_column": "prob",
+      "selected_aggregation": "mean_per_capture",
+      "session_grouping_column": "capture_id",
+      "policy": "open_set_three_tier",
+      "review_threshold": 0.02709,
+      "block_threshold": 0.165365,
+      "pooled_auc": 0.9994,
+      "lodo_min_auc": 0.6164,
+      "lodo_mean_auc": 0.6531,
+      "domain_auc": 1.0,
+      "fpr_at_0.5": 0.0025,
+      "ece": 0.0026,
+      "deployment_final_score": 0.6836,
+      "runtime_binary_exported": true,
+      "warnings": [
+        "Dataset fingerprinting remains unresolved (domain_auc=1.0).",
+        "Known-domain simulation prototype only.",
+        "Not production-ready.",
+        "No packets are blocked.",
+        "LODO-min AUC = 0.6164 \u2014 moderate cross-dataset transfer.",
+        "DANN v2 adversarial training did not reduce fingerprinting (domain_reduction \u2248 0.0003)."
+      ],
+      "ui_group": "main_demo_comparison",
+      "ui_visible_main": true,
+      "ui_selectable_for_comparison": true,
+      "ui_selectable_for_firewall_inference": true,
+      "ui_badge": "Final recommended firewall",
+      "ui_warning": "Simulation-only. Best deployment-eligible known-domain prototype. NOT production-ready.",
+      "ui_sort_order": 0,
+      "ui_selectable_for_csv_evaluation": true,
+      "recommendation": "Best deployment-eligible known-domain simulation prototype."
+    },
     "robust9_firewall": {
-      "status": "default_firewall",
-      "status_reason": "All policy files generated; session policy available; no flow_id/capture_id overlap; feature order recovered.",
+      "status": "legacy_baseline",
+      "status_reason": "Legacy default firewall. Superseded by full_canonical__lgbm as recommended_firewall.",
       "recommended_action_mode": "simulation",
       "package_dir": "backend/model_registry/robust9_firewall",
       "source_artifact": "artifacts/ensemble/diverse_bagging_robust9",
@@ -19,15 +68,16 @@
       "ui_visible_main": true,
       "ui_selectable_for_comparison": true,
       "ui_selectable_for_firewall_inference": true,
-      "ui_badge": "Default known-domain prototype",
-      "ui_warning": "Simulation-only default model. Strong known-domain performance, not production-ready.",
+      "ui_badge": "Legacy baseline",
+      "ui_warning": "Legacy baseline. Superseded by full_canonical__lgbm. Simulation-only, not production-ready.",
       "ui_sort_order": 1,
       "ui_selectable_for_csv_evaluation": true,
-      "runtime_binary_exported": true
+      "runtime_binary_exported": true,
+      "role": "legacy_baseline"
     },
     "balanced_bagging_3ds_reference": {
-      "status": "policy_computed",
-      "status_reason": "Thresholds recomputed from validation; persisted thresholds not adopted.",
+      "status": "benchmark_comparison",
+      "status_reason": "Comparison-only benchmark. Thresholds recomputed from validation; persisted thresholds not adopted.",
       "recommended_action_mode": "simulation",
       "package_dir": "backend/model_registry/balanced_bagging_3ds_reference",
       "source_artifact": "artifacts/balanced_bagging_firewall_tuned_ensemble",
@@ -76,8 +126,8 @@
       "runtime_binary_exported": false
     },
     "clean_pooled_benchmark": {
-      "status": "policy_computed",
-      "status_reason": "Thresholds recomputed from clean_pipeline val parquet; comparison-only.",
+      "status": "benchmark_comparison",
+      "status_reason": "Comparison-only benchmark. Thresholds recomputed from clean_pipeline val parquet; comparison-only.",
       "recommended_action_mode": "simulation",
       "package_dir": "backend/model_registry/clean_pooled_benchmark",
       "source_artifact": "artifacts/clean_pipeline/models",
@@ -127,8 +177,8 @@
       "runtime_binary_exported": false
     },
     "single_model_fallback": {
-      "status": "policy_computed",
-      "status_reason": "Thresholds recomputed from clean_pipeline val parquet; comparison-only.",
+      "status": "benchmark_comparison",
+      "status_reason": "Comparison-only benchmark. Thresholds recomputed from clean_pipeline val parquet; comparison-only.",
       "recommended_action_mode": "simulation",
       "package_dir": "backend/model_registry/single_model_fallback",
       "source_artifact": "artifacts/clean_pipeline/models",
@@ -262,8 +312,8 @@
       "runtime_binary_exported": false
     },
     "balanced_bagging_xgb_baseline": {
-      "status": "policy_computed",
-      "status_reason": "Thresholds recomputed from validation; comparison-only.",
+      "status": "benchmark_comparison",
+      "status_reason": "Comparison-only benchmark. Thresholds recomputed from validation; comparison-only.",
       "recommended_action_mode": "simulation",
       "package_dir": "backend/model_registry/balanced_bagging_xgb_baseline",
       "source_artifact": "artifacts/balanced_bagging_xgb",
@@ -296,8 +346,8 @@
       "runtime_binary_exported": true
     },
     "balanced_bagging_baseline": {
-      "status": "policy_computed",
-      "status_reason": "Thresholds recomputed from validation; comparison-only.",
+      "status": "benchmark_comparison",
+      "status_reason": "Comparison-only benchmark. Thresholds recomputed from validation; comparison-only.",
       "recommended_action_mode": "simulation",
       "package_dir": "backend/model_registry/balanced_bagging_baseline",
       "source_artifact": "artifacts/balanced_bagging",
@@ -329,8 +379,8 @@
       "runtime_binary_exported": true
     },
     "balanced_bagging_tuned_baseline": {
-      "status": "policy_computed",
-      "status_reason": "Thresholds recomputed from validation; comparison-only.",
+      "status": "benchmark_comparison",
+      "status_reason": "Comparison-only benchmark. Thresholds recomputed from validation; comparison-only.",
       "recommended_action_mode": "simulation",
       "package_dir": "backend/model_registry/balanced_bagging_tuned_baseline",
       "source_artifact": "artifacts/balanced_bagging_tuned",
@@ -362,8 +412,8 @@
       "runtime_binary_exported": false
     },
     "robust13_comparison": {
-      "status": "policy_computed",
-      "status_reason": "Thresholds recomputed from validation; comparison-only.",
+      "status": "benchmark_comparison",
+      "status_reason": "Comparison-only benchmark. Thresholds recomputed from validation; comparison-only.",
       "recommended_action_mode": "simulation",
       "package_dir": "backend/model_registry/robust13_comparison",
       "source_artifact": "artifacts/ensemble/diverse_bagging_robust13",
@@ -421,5 +471,8 @@
       "runtime_binary_exported": false
     }
   },
-  "updated_utc": "2026-05-26T10:57:14.638707+00:00"
+  "updated_utc": "2026-05-29T00:00:00.000000+00:00",
+  "default_firewall_model": "full_canonical__lgbm",
+  "recommended_firewall": "full_canonical__lgbm",
+  "legacy_firewall": "robust9_firewall"
 }
