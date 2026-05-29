@@ -70,11 +70,19 @@ export const api = {
 
   // ---- compatible benchmark (4 audit-approved models, read-only) ----
   benchmarkInfo: () => request('/benchmark/compatible-csv/info'),
-  benchmarkBundled: () => request('/benchmark/compatible-csv/bundled'),
-  benchmarkUploadCsv: (file) => {
+  benchmarkBundled: (selectedIds) => {
+    const qs = selectedIds && selectedIds.length
+      ? `?selected_model_ids=${encodeURIComponent(selectedIds.join(','))}`
+      : '';
+    return request(`/benchmark/compatible-csv/bundled${qs}`);
+  },
+  benchmarkUploadCsv: (file, selectedIds) => {
     const fd = new FormData();
     fd.append('file', file);
-    return request('/benchmark/compatible-csv', { method: 'POST', body: fd });
+    const qs = selectedIds && selectedIds.length
+      ? `?selected_model_ids=${encodeURIComponent(selectedIds.join(','))}`
+      : '';
+    return request(`/benchmark/compatible-csv${qs}`, { method: 'POST', body: fd });
   },
 
   // ---- model permissions ----

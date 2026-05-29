@@ -202,6 +202,11 @@ def get_model_permissions() -> Dict[str, Any]:
         else:
             reason = "Not compatible with the shared raw-feature benchmark CSV."
 
+        # Enrich with runtime feature/threshold metadata where available
+        feature_count = entry.get("n_features") or entry.get("feature_count")
+        prob_col_meta = entry.get("selected_probability_column") or entry.get("probability_column")
+        agg_meta = entry.get("selected_aggregation") or entry.get("aggregation")
+
         result[mid] = {
             "model_id": mid,
             "role": role,
@@ -215,6 +220,12 @@ def get_model_permissions() -> Dict[str, Any]:
             "reason_not_selectable": reason,
             "status": status,
             "ui_group": entry.get("ui_group", ""),
+            "feature_count": feature_count,
+            "probability_column": prob_col_meta,
+            "aggregation": agg_meta,
+            "n_features": feature_count,
+            "ui_badge": entry.get("ui_badge", ""),
+            "ui_warning": entry.get("ui_warning", ""),
         }
 
     return result
@@ -718,19 +729,39 @@ def benchmark_compatible_info() -> Dict[str, Any]:
 
 
 @app.get("/benchmark/compatible-csv/bundled")
-def benchmark_bundled() -> Dict[str, Any]:
-    """Run the bundled simultaneous benchmark CSV against the 4 compatible models.
+def benchmark_bundled(
+    selected_model_ids: Optional[str] = Query(
+        None,
+        description="Comma-separated benchmark-compatible model IDs to run. "
+                    "If omitted, runs all 4 compatible models.",
+    ),
+) -> Dict[str, Any]:
+    """Run the bundled simultaneous benchmark CSV against compatible models.
 
     Uses demo_data/simultaneous_test_selected_models.csv (7,952 flows, 104 captures).
+    Pass ?selected_model_ids=full_canonical__lgbm,robust9_firewall to run a subset.
     Results are benchmark-only and do not affect firewall decisions.
     """
+    selected: Optional[List[str]] = None
+    if selected_model_ids:
+        selected = [s.strip() for s in selected_model_ids.split(",") if s.strip()]
+        invalid = [m for m in selected if m not in BENCHMARK_COMPATIBLE_MODEL_IDS]
+        if invalid:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Not benchmark-compatible: {invalid}. "
+                       f"Allowed: {BENCHMARK_COMPATIBLE_MODEL_IDS}",
+            )
+
     try:
         df = load_benchmark_csv()
     except FileNotFoundError as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
     try:
-        result = run_benchmark(df)
+        result = run_benchmark(df, selected)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:  # noqa: BLE001
         logger.exception("benchmark/bundled failed")
         raise HTTPException(status_code=500, detail=str(exc)) from exc
@@ -740,26 +771,34 @@ def benchmark_bundled() -> Dict[str, Any]:
 
 
 @app.post("/benchmark/compatible-csv")
-async def benchmark_upload_csv(file: UploadFile = File(...)) -> Dict[str, Any]:
-    """Run an uploaded benchmark CSV against the 4 compatible models.
+async def benchmark_upload_csv(
+    file: UploadFile = File(...),
+    selected_model_ids: Optional[str] = Query(
+        None,
+        description="Comma-separated benchmark-compatible model IDs to run.",
+    ),
+) -> Dict[str, Any]:
+    """Run an uploaded benchmark CSV against compatible models.
 
     The uploaded CSV must contain the required features for each model.
     Extra columns (session_id, flow_id, dataset, label, source_file) are
     silently passed through. Missing features for a specific model cause only
     that model to be skipped — the rest still run.
 
-    Compatible models:
-      - full_canonical__lgbm
-      - robust9_firewall
-      - balanced_bagging_3ds_reference
-      - balanced_bagging_baseline
-
-    NOT compatible (excluded automatically):
-      - balanced_bagging_xgb_baseline
-      - robust13_comparison
-
+    Pass ?selected_model_ids=full_canonical__lgbm,robust9_firewall to run a subset.
     Results are benchmark-only and do not affect firewall decisions.
     """
+    selected: Optional[List[str]] = None
+    if selected_model_ids:
+        selected = [s.strip() for s in selected_model_ids.split(",") if s.strip()]
+        invalid = [m for m in selected if m not in BENCHMARK_COMPATIBLE_MODEL_IDS]
+        if invalid:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Not benchmark-compatible: {invalid}. "
+                       f"Allowed: {BENCHMARK_COMPATIBLE_MODEL_IDS}",
+            )
+
     raw = await file.read()
     if not raw:
         raise HTTPException(status_code=400, detail="Uploaded file is empty.")
@@ -770,7 +809,9 @@ async def benchmark_upload_csv(file: UploadFile = File(...)) -> Dict[str, Any]:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     try:
-        result = run_benchmark(df)
+        result = run_benchmark(df, selected)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:  # noqa: BLE001
         logger.exception("benchmark/compatible-csv upload failed")
         raise HTTPException(status_code=500, detail=str(exc)) from exc
