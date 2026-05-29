@@ -4,18 +4,22 @@ Receives batches of robust9-formatted flow rows posted by
 tools/pcap_to_live_stream.py, runs robust9_firewall inference,
 and maintains a rolling session state for the frontend Live VM Monitor.
 
-NOTE: The live ingest pipeline uses the legacy robust9_firewall ensemble
-(9 sz_* features) because tools/pcap_to_live_stream.py generates those
-specific features from raw PCAP data.  The recommended default firewall model
-is full_canonical__lgbm (34 features), available via /firewall/demo and the
-multi-model endpoints.
+NOTE: This service uses the legacy robust9_firewall ensemble (9 sz_* features)
+for feature-set compatibility with the PCAP streaming tool.  The PCAP tool
+generates only 9 flow-size features; full_canonical__lgbm (34 features)
+cannot be applied here without regenerating the PCAP features.
+
+For full_canonical__lgbm inference, use:
+  - GET  /firewall/demo              (bundled demo CSV, 34 features)
+  - POST /firewall/analyze-csv       (uploaded 34-feature CSV)
+  - POST /firewall/live-replay/upload + step  (CSV replay, 34 features)
 
 SAFETY CONSTRAINTS (enforced in this module):
   - No packet capture.
   - No shell commands.
   - No OS firewall modification.
   - All decisions are simulated=True, action_mode="simulation".
-  - Only robust9_firewall is used for live PCAP ingest inference.
+  - Only robust9_firewall is used here due to PCAP feature-set compatibility.
 """
 from __future__ import annotations
 
@@ -48,7 +52,8 @@ OPTIONAL_META_COLS = [
 WARNINGS = [
     "Simulation only — no real packets are blocked.",
     "Live ingest consumes PCAP-derived flow features, not raw packets.",
-    "robust9_firewall (legacy baseline) is used for live PCAP ingest; full_canonical__lgbm is the recommended model.",
+    "robust9_firewall (legacy 9-feature ensemble) is used here for PCAP feature-set compatibility.",
+    "The executable firewall model is full_canonical__lgbm (34 features) — use /firewall/demo or /firewall/live-replay/upload for full_canonical inference.",
 ]
 
 
@@ -241,6 +246,8 @@ class LiveIngestState:
             "active_sessions":   list(self.active_sessions.values()),
             "recent_events":     list(self.recent_events[-20:]),  # last 20 for response
             "model_id":          MODEL_ID,
+            "model_note":        "Legacy 9-feature PCAP ensemble. Executable model is full_canonical__lgbm (34 features) — see /firewall/demo.",
+            "recommended_model": "full_canonical__lgbm",
             "action_mode":       ACTION_MODE,
             "production_readiness": False,
             "warnings":          WARNINGS,

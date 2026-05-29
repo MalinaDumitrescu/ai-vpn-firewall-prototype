@@ -7,8 +7,11 @@ import React from 'react';
 const STATUS_MAP = {
   default_firewall:      { tone: 'ok',      label: 'Default firewall' },
   recommended_firewall:  { tone: 'ok',      label: 'Recommended firewall' },
+  deployment_eligible:   { tone: 'ok',      label: 'Deployment eligible' },
   legacy_baseline:       { tone: 'neutral', label: 'Legacy baseline' },
+  benchmark_comparison:  { tone: 'neutral', label: 'Comparison only' },
   policy_computed:       { tone: 'warn',    label: 'Comparison only' },
+  research_only:         { tone: 'neutral', label: 'Research only' },
   negative_control:      { tone: 'bad',     label: 'Negative control' },
   unsupported:           { tone: 'neutral', label: 'Unsupported' },
   alias:                 { tone: 'info',    label: 'Alias' },

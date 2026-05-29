@@ -9,6 +9,7 @@ from fastapi.responses import PlainTextResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 from app import registry_loader
+from app.registry_loader import EXECUTABLE_FIREWALL_MODEL_ID
 from app.csv_service import (
     load_comparison_rows,
     load_demo_flows,
@@ -67,6 +68,21 @@ app.add_middleware(
 app.include_router(build_demo_router())
 
 
+# --------------------------------------------------------------------------- enforcement helpers
+
+def _require_executable(model_id: str) -> None:
+    """Raise HTTP 400 if model_id is not the single executable firewall model."""
+    if model_id != EXECUTABLE_FIREWALL_MODEL_ID:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"This model is comparison-only. "
+                f"Only '{EXECUTABLE_FIREWALL_MODEL_ID}' is executable in this prototype. "
+                f"Requested: '{model_id}'."
+            ),
+        )
+
+
 # --------------------------------------------------------------------------- meta
 
 @app.get("/health", response_model=HealthResponse)
@@ -83,22 +99,30 @@ def list_models() -> Dict[str, Any]:
 
 @app.get("/models/default")
 def get_default_model() -> Dict[str, Any]:
-    # Prefer allowlist's declared default_firewall; fall back to registry status.
+    # Priority-order selector: hardcoded constant → allowlist → role → deployment_eligible
     default_id = registry_loader.get_default_firewall_model_id()
     if not default_id:
-        defaults = registry_loader.find_default_models()
-        if len(defaults) == 0:
-            raise HTTPException(status_code=500, detail="No default firewall model found.")
-        if len(defaults) > 1:
-            raise HTTPException(
-                status_code=500,
-                detail=f"Multiple default firewall models found: {list(defaults.keys())}",
-            )
-        default_id = next(iter(defaults))
+        available = list(registry_loader.list_models().keys())
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                f"No executable firewall model found. "
+                f"Expected '{EXECUTABLE_FIREWALL_MODEL_ID}'. "
+                f"Available model IDs: {available}"
+            ),
+        )
     entry = registry_loader.get_model_entry(default_id)
     if entry is None:
         raise HTTPException(status_code=500, detail=f"Default model '{default_id}' not found in registry.")
-    return {"model_id": default_id, **entry}
+    return {
+        "model_id": default_id,
+        "executable": True,
+        "comparison_only": False,
+        "action_mode": "simulation",
+        "production_ready": False,
+        "warning": "Dataset fingerprinting remains unresolved (domain_auc=1.0). Known-domain simulation prototype only.",
+        **entry,
+    }
 
 
 # --- UI group endpoints (declared before /models/{model_id} to avoid path collision) ---
@@ -185,14 +209,9 @@ def comparison_summary() -> List[Dict[str, Any]]:
 # ---------------------------------------------------------------- runtime models
 
 def _get_default_engine_and_demo_csv():
-    """Return (RuntimeModelEngine, load_fn) for the allowlist default firewall model."""
-    default_id = registry_loader.get_default_firewall_model_id() or "full_canonical__lgbm"
-    engine = get_engine(default_id)
-    # Use the full_canonical demo CSV for full_canonical__lgbm; fall back to legacy CSV.
-    if default_id == "full_canonical__lgbm":
-        load_csv = load_demo_flows_full_canonical
-    else:
-        load_csv = load_demo_flows
+    """Return (RuntimeModelEngine, load_fn) for the executable firewall model."""
+    engine = get_engine(EXECUTABLE_FIREWALL_MODEL_ID)
+    load_csv = load_demo_flows_full_canonical
     return engine, load_csv
 
 @app.get("/firewall/runtime-models")
@@ -203,11 +222,16 @@ def get_runtime_models() -> List[Dict[str, Any]]:
     except FileNotFoundError as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
-    allowed_ids: List[str] = alist.get("allowlist", [])
-    default_id: str = alist.get("default_firewall", "full_canonical__lgbm")
+    allowlist_models = alist.get("allowlist", {})
+    if isinstance(allowlist_models, list):
+        # Legacy list format — wrap as dict
+        allowlist_models = {mid: {} for mid in allowlist_models}
+    allowed_ids: List[str] = list(allowlist_models.keys())
+    default_id: str = alist.get("default_firewall", EXECUTABLE_FIREWALL_MODEL_ID)
     result = []
     for mid in allowed_ids:
         entry = registry_loader.get_model_entry(mid) or {}
+        model_info = allowlist_models.get(mid, {})
         model_dir = registry_loader.RUNTIME_MODELS_DIR / mid
         # Feature info.
         feature_order: List[str] = []
@@ -222,10 +246,8 @@ def get_runtime_models() -> List[Dict[str, Any]]:
         try:
             th = registry_loader._read_json(model_dir / "thresholds.json")  # type: ignore[attr-defined]
             if th:
-                # Nested format: {"strict": {"threshold": ...}, "balanced": {"threshold": ...}}
                 strict_threshold = th.get("strict", {}).get("threshold")
                 balanced_threshold = th.get("balanced", {}).get("threshold")
-                # Flat format fallback: {"block_threshold": ..., "review_threshold": ...}
                 if strict_threshold is None:
                     strict_threshold = th.get("block_threshold")
                 if balanced_threshold is None:
@@ -242,9 +264,12 @@ def get_runtime_models() -> List[Dict[str, Any]]:
         except Exception:
             pass
 
+        is_exec = model_info.get("executable", mid == EXECUTABLE_FIREWALL_MODEL_ID)
         result.append(
             {
                 "model_id": mid,
+                "executable": is_exec,
+                "comparison_only": model_info.get("comparison_only", not is_exec),
                 "status": entry.get("status", "policy_computed"),
                 "ui_badge": entry.get("ui_badge", ""),
                 "ui_warning": entry.get("ui_warning", ""),
@@ -255,7 +280,6 @@ def get_runtime_models() -> List[Dict[str, Any]]:
                 "strict_threshold": strict_threshold,
                 "balanced_threshold": balanced_threshold,
                 "default_firewall": mid == default_id,
-                "comparison_only": mid != default_id,
             }
         )
     return result
@@ -295,15 +319,41 @@ def get_runtime_required_features() -> Dict[str, Any]:
 
 @app.get("/firewall/multimodel-demo")
 def firewall_multimodel_demo() -> Dict[str, Any]:
-    """Run all allowlisted models against the bundled multimodel demo CSV."""
+    """Run the executable firewall model against the bundled demo CSV.
+    Comparison models are listed with metadata but no inference is performed on them.
+    """
     try:
-        df = load_multimodel_demo_flows()
+        df = load_demo_flows_full_canonical()
     except FileNotFoundError as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
     allowed_ids = registry_loader.get_allowlisted_model_ids()
     per_model_results: List[Dict[str, Any]] = []
     for mid in allowed_ids:
+        if mid != EXECUTABLE_FIREWALL_MODEL_ID:
+            # Comparison-only: return metadata without running inference.
+            entry = registry_loader.get_model_entry(mid) or {}
+            per_model_results.append({
+                "model_id": mid,
+                "executable": False,
+                "comparison_only": True,
+                "skipped": True,
+                "missing_features": [],
+                "warnings": [
+                    f"Comparison-only model — inference restricted to '{EXECUTABLE_FIREWALL_MODEL_ID}' only.",
+                    "See /comparison/summary for cross-model benchmark metrics.",
+                ],
+                "counts": {"PASS": 0, "FLAG_REVIEW": 0, "BLOCK": 0},
+                "sessions": [],
+                "total_flows": 0,
+                "total_sessions": 0,
+                "action_mode": "report_only",
+                "production_readiness": False,
+                "status": entry.get("status", "comparison_only"),
+                "ui_badge": entry.get("ui_badge", ""),
+                "ui_warning": entry.get("ui_warning", ""),
+            })
+            continue
         try:
             engine = get_engine(mid)
             res = engine.run(df)
@@ -323,9 +373,10 @@ def firewall_multimodel_demo() -> Dict[str, Any]:
             }
         per_model_results.append(res)
 
-    # Determine sessions from session_id col if present.
     total_sessions = (
-        int(df["session_id"].nunique())
+        int(df["capture_id"].nunique())
+        if "capture_id" in df.columns
+        else int(df["session_id"].nunique())
         if "session_id" in df.columns
         else int(len(df))
     )
@@ -334,16 +385,17 @@ def firewall_multimodel_demo() -> Dict[str, Any]:
         "input_summary": {
             "total_flows": int(len(df)),
             "total_sessions": total_sessions,
-            "source": "demo_multimodel_flows.csv",
+            "source": "demo_flows_full_canonical.csv",
         },
+        "executable_model": EXECUTABLE_FIREWALL_MODEL_ID,
         "selected_models": allowed_ids,
         "action_mode": "simulation",
         "production_readiness": False,
         "model_results": per_model_results,
         "warnings": [
             "Simulation only — no real packets are blocked.",
-            "All comparison model results are for benchmarking only.",
-            "full_canonical__lgbm is the recommended firewall model (simulation mode). robust9_firewall is the legacy baseline.",
+            f"Only '{EXECUTABLE_FIREWALL_MODEL_ID}' runs inference. All other models are comparison/documentation only.",
+            "See /comparison/summary for cross-model benchmark metrics.",
         ],
     }
 
@@ -353,10 +405,10 @@ async def firewall_analyze_csv_multimodel(
     file: UploadFile = File(...),
     selected_model_ids: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """Run multi-model inference on an uploaded CSV.
+    """Run inference on an uploaded CSV using only the executable firewall model.
 
-    selected_model_ids: optional comma-separated list of model IDs.
-    If omitted, all allowlist models are used.
+    selected_model_ids: optional comma-separated list.  Only
+    EXECUTABLE_FIREWALL_MODEL_ID is permitted; any other model_id returns 400.
     """
     raw = await file.read()
     if not raw:
@@ -367,23 +419,21 @@ async def firewall_analyze_csv_multimodel(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
-    allowed_ids = registry_loader.get_allowlisted_model_ids()
-
     if selected_model_ids:
         requested = [s.strip() for s in selected_model_ids.split(",") if s.strip()]
-        # Validate each requested model is in allowlist.
-        invalid = [mid for mid in requested if mid not in allowed_ids]
-        if invalid:
+        non_executable = [mid for mid in requested if mid != EXECUTABLE_FIREWALL_MODEL_ID]
+        if non_executable:
             raise HTTPException(
                 status_code=400,
                 detail=(
-                    "The following model IDs are not in the runtime inference allowlist: "
-                    + ", ".join(invalid)
+                    f"The following model IDs are comparison-only and cannot run inference: "
+                    + ", ".join(non_executable)
+                    + f". Only '{EXECUTABLE_FIREWALL_MODEL_ID}' is executable in this prototype."
                 ),
             )
-        target_ids = requested
-    else:
-        target_ids = allowed_ids
+
+    # Always use only the executable model.
+    target_ids = [EXECUTABLE_FIREWALL_MODEL_ID]
 
     per_model_results: List[Dict[str, Any]] = []
     for mid in target_ids:
@@ -418,14 +468,14 @@ async def firewall_analyze_csv_multimodel(
             "total_sessions": total_sessions,
             "filename": file.filename or "uploaded.csv",
         },
+        "executable_model": EXECUTABLE_FIREWALL_MODEL_ID,
         "selected_models": target_ids,
         "action_mode": "simulation",
         "production_readiness": False,
         "model_results": per_model_results,
         "warnings": [
             "Simulation only — no real packets are blocked.",
-            "All comparison model results are for benchmarking only.",
-            "full_canonical__lgbm is the recommended firewall model (simulation mode). robust9_firewall is the legacy baseline.",
+            f"Only '{EXECUTABLE_FIREWALL_MODEL_ID}' is executable. Comparison models are read-only via /comparison/summary.",
         ],
     }
 
@@ -465,13 +515,12 @@ async def firewall_analyze_csv(file: UploadFile = File(...)) -> FirewallResult:
 
 @app.get("/firewall/required-features")
 def firewall_required_features() -> Dict[str, Any]:
-    default_id = registry_loader.get_default_firewall_model_id() or "full_canonical__lgbm"
     try:
-        engine = get_engine(default_id)
-        return {"model_id": default_id, "required_features": engine.feature_order}
+        engine = get_engine(EXECUTABLE_FIREWALL_MODEL_ID)
+        return {"model_id": EXECUTABLE_FIREWALL_MODEL_ID, "required_features": engine.feature_order}
     except Exception as exc:
         logger.warning("Could not load engine for required-features: %s", exc)
-        return {"model_id": default_id, "required_features": []}
+        return {"model_id": EXECUTABLE_FIREWALL_MODEL_ID, "required_features": []}
 
 
 # ======================================================================= live replay

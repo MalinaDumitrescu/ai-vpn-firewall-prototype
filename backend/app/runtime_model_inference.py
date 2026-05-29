@@ -118,10 +118,14 @@ class RuntimeModelEngine:
 
         # Allowlist metadata.
         alist_data = load_inference_allowlist()
+        allowlist_models = alist_data.get("allowlist", {})
+        model_alist = allowlist_models.get(model_id, {}) if isinstance(allowlist_models, dict) else {}
         self.is_default_firewall: bool = (
             alist_data.get("default_firewall") == model_id
         )
-        self.is_comparison_only: bool = not self.is_default_firewall
+        # Executable = only full_canonical__lgbm (inference_permitted=true, executable=true)
+        self.is_executable: bool = model_alist.get("executable", False)
+        self.is_comparison_only: bool = not self.is_executable
 
     # ------------------------------------------------------------------ private
 

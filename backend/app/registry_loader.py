@@ -3,7 +3,11 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional  # noqa: F401 – List used by callers
+
+# ── Executable firewall model (single source of truth) ───────────────────────
+# Only this model may run inference.  All others are comparison/documentation.
+EXECUTABLE_FIREWALL_MODEL_ID = "full_canonical__lgbm"
 
 # Bundle root: backend/runtime_bundle/app_runtime_bundle/
 BUNDLE_ROOT = Path(__file__).resolve().parent.parent / "runtime_bundle" / "app_runtime_bundle"
@@ -101,18 +105,48 @@ def find_default_models() -> Dict[str, Dict[str, Any]]:
 
 
 def get_default_firewall_model_id() -> Optional[str]:
-    """Return the default_firewall model ID from the inference allowlist."""
+    """Return the executable firewall model ID using priority selector.
+
+    Priority order:
+    1. EXECUTABLE_FIREWALL_MODEL_ID constant (hardcoded preference)
+    2. Allowlist declared default_firewall == EXECUTABLE_FIREWALL_MODEL_ID
+    3. Model with role == "recommended_firewall"
+    4. Model with deployment_eligible == True
+
+    If none is found, returns None (caller should raise a clear error).
+    """
+    models = list_models()
+
+    # Priority 1: hardcoded constant (preferred)
+    if EXECUTABLE_FIREWALL_MODEL_ID in models:
+        return EXECUTABLE_FIREWALL_MODEL_ID
+
+    # Priority 2: allowlist declared default_firewall
     try:
         alist = _read_json(ALLOWLIST_PATH)
         if alist:
-            return alist.get("default_firewall")
+            declared = alist.get("default_firewall")
+            if declared and declared in models:
+                return declared
     except Exception:
         pass
-    # Fallback: find from registry
-    defaults = find_default_models()
-    if defaults:
-        return next(iter(defaults))
+
+    # Priority 3: role == "recommended_firewall"
+    for mid, entry in models.items():
+        if entry.get("role") == "recommended_firewall":
+            return mid
+
+    # Priority 4: deployment_eligible == True
+    for mid, entry in models.items():
+        if entry.get("deployment_eligible") is True:
+            return mid
+
     return None
+
+
+def is_executable(model_id: str) -> bool:
+    """Return True only for EXECUTABLE_FIREWALL_MODEL_ID."""
+    return model_id == EXECUTABLE_FIREWALL_MODEL_ID
 
 
 # ----------------------------------------------------------------- UI groups

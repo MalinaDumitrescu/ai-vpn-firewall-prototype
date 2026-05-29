@@ -71,9 +71,9 @@ function ProgressBar({ pct }) {
 function PipelineDiagram() {
   const steps = [
     { icon: '🖥', label: 'VM traffic' },
-    { icon: '📄', label: 'Feature CSV' },
+    { icon: '📄', label: 'Feature CSV (34 features)' },
     { icon: '▶', label: 'Replay batches' },
-    { icon: '🔍', label: 'robust9 analysis (legacy)' },
+    { icon: '🔍', label: 'full_canonical__lgbm' },
     { icon: '🏷', label: 'Simulated labels' },
   ];
   return (
@@ -348,11 +348,12 @@ export default function LiveVMReplay() {
       {/* ── safety warning ── */}
       <WarningBox tone="warn">
         <strong>Simulation only.</strong> This page replays uploaded feature rows
-        and labels them using <span className="mono">robust9_firewall</span>{' '}
-        (legacy baseline — compatible with 9-feature PCAP CSV uploads).
+        and labels them using{' '}
+        <span className="mono">full_canonical__lgbm</span>{' '}
+        (34-feature single LightGBM — the executable firewall model).
         <strong> No packets are captured or blocked.</strong> All results are
         labelled <em>simulated</em> and have no effect on any network.
-        The recommended model is <span className="mono">full_canonical__lgbm</span>.
+        Upload a CSV with the 34 full_canonical features (download the template below).
       </WarningBox>
 
       {/* ── pipeline ── */}
@@ -560,9 +561,11 @@ export default function LiveVMReplay() {
 
       {/* ── footer ── */}
       <div className="mm-page-footer">
-        Live VM Replay is simulation-only. robust9_firewall (legacy baseline) labels are simulated
-        and have no effect on network traffic. No packets are captured or blocked.
-        Recommended model: full_canonical__lgbm.
+        Live VM Replay is simulation-only.{' '}
+        <code className="mono">full_canonical__lgbm</code> (34-feature single LightGBM)
+        labels are simulated and have no effect on network traffic.
+        No packets are captured or blocked. Upload a CSV with the 34 full_canonical
+        features — see <code className="mono">/firewall/live-replay/template</code>.
       </div>
     </div>
   );

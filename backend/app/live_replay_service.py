@@ -1,19 +1,18 @@
 """Live replay simulation service — CSV-row-based only.
 
 Consumes a user-uploaded flow-feature CSV and replays rows in batches,
-labelling sessions with robust9_firewall in simulation mode.
+labelling sessions using full_canonical__lgbm (34-feature single LightGBM)
+in simulation mode.
 
-NOTE: Live replay uses the legacy robust9_firewall ensemble (9 sz_* features)
-for feature-set compatibility with PCAP-derived CSV uploads. The recommended
-default firewall model is full_canonical__lgbm (34 features), available via
-/firewall/demo and the multi-model endpoints.
+This is the EXECUTABLE firewall model for all inference tasks.
+The legacy robust9_firewall is no longer used for replay inference.
 
 SAFETY CONSTRAINTS (enforced in this module):
   - No packet capture.
   - No shell commands.
   - No OS firewall modification.
   - All decisions are simulated=True, action_mode="simulation".
-  - Only robust9_firewall is used for replay inference.
+  - Only full_canonical__lgbm (EXECUTABLE_FIREWALL_MODEL_ID) is used.
 """
 from __future__ import annotations
 
@@ -22,14 +21,16 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 import io
+import numpy as np
 import pandas as pd
 
-from .robust9_inference import REQUIRED_FEATURES, Robust9Engine
+from .registry_loader import EXECUTABLE_FIREWALL_MODEL_ID
+from .runtime_model_inference import _aggregate, get_engine
 from .policy_service import decide_action
 
 # ─── constants ────────────────────────────────────────────────────────────────
 
-MODEL_ID       = "robust9_firewall"
+MODEL_ID       = EXECUTABLE_FIREWALL_MODEL_ID   # "full_canonical__lgbm"
 ACTION_MODE    = "simulation"
 MAX_EVENTS     = 200        # ring buffer limit
 
@@ -44,16 +45,29 @@ LABEL_MAP = {
     "BLOCK":       "VPN_LIKE_SIMULATED_BLOCK",
 }
 
+# 34 full_canonical features (must match feature_order.json)
+_FULL_CANONICAL_FEATURES: List[str] = [
+    "sz_coef_variation", "sz_p25_median_ratio", "sz_p75_median_ratio",
+    "sz_iqr_norm_median", "dispersion_symmetry", "direction_balance_bytes",
+    "direction_balance_packets", "sz_mean_max", "sz_mean_min",
+    "sz_std_max", "sz_std_min", "iat_all_mean", "iat_all_std",
+    "iat_all_p25", "iat_all_median", "iat_all_p75", "iat_mean_max",
+    "iat_mean_min", "iat_std_max", "iat_std_min", "sz_all_mean",
+    "sz_all_std", "sz_all_median", "sz_all_p25", "sz_all_p75",
+    "sz_cv", "sz_iqr", "sz_qratio", "sz_median_to_mean",
+    "iat_iqr", "iat_cv", "iat_median", "iat_p25", "iat_p75",
+]
+
 TEMPLATE_HEADER = (
-    "session_id,flow_id,timestamp,src_ip,dst_ip,protocol,dst_port,scenario,"
-    "sz_all_mean,sz_cv,sz_all_p25,sz_all_median,sz_all_p75,"
-    "sz_mean_max,sz_mean_min,sz_std_max,sz_std_min"
+    "capture_id,session_id,flow_id,timestamp,src_ip,dst_ip,protocol,dst_port,scenario,"
+    + ",".join(_FULL_CANONICAL_FEATURES)
 )
 
 WARNINGS = [
     "Simulation only — no real packets are blocked.",
     "Live replay consumes uploaded flow-feature CSV rows, not raw packets.",
-    "robust9_firewall (legacy baseline) is used for replay; full_canonical__lgbm is the recommended model.",
+    f"'{MODEL_ID}' (34-feature single LightGBM) is the executable firewall model.",
+    "Upload a CSV with the 34 full_canonical features. See /firewall/live-replay/template.",
 ]
 
 # ─── state ────────────────────────────────────────────────────────────────────
@@ -104,14 +118,29 @@ class LiveReplayState:
         except Exception as exc:
             raise ValueError(f"Cannot parse CSV: {exc}") from exc
 
-        missing = [c for c in REQUIRED_FEATURES if c not in df.columns]
+        # Resolve the engine's feature_order as required features
+        try:
+            required = get_engine(MODEL_ID).feature_order
+        except Exception:
+            required = _FULL_CANONICAL_FEATURES
+
+        missing = [c for c in required if c not in df.columns]
         if missing:
-            raise ValueError(f"Missing required columns: {missing}")
-        if "session_id" not in df.columns:
-            raise ValueError("Missing required column: session_id")
+            raise ValueError(
+                f"Missing required full_canonical features: {missing}. "
+                f"Expected {len(required)} features. Download the template from "
+                "/firewall/live-replay/template."
+            )
+
+        # Resolve session grouping column (capture_id preferred, session_id fallback)
+        if "capture_id" not in df.columns and "session_id" not in df.columns:
+            # Create a synthetic capture_id
+            df["capture_id"] = "session_0"
 
         optional_present = [c for c in OPTIONAL_COLS if c in df.columns]
-        detected_sessions = int(df["session_id"].nunique())
+        # Count sessions using the best available column
+        session_col = "capture_id" if "capture_id" in df.columns else "session_id"
+        detected_sessions = int(df[session_col].nunique())
 
         with self._lock:
             self._reset_internal()
@@ -132,6 +161,7 @@ class LiveReplayState:
             "detected_sessions": detected_sessions,
             "required_columns_present": True,
             "optional_columns_detected": optional_present,
+            "model_id": MODEL_ID,
             "message": (
                 f"Loaded {len(df)} rows across {detected_sessions} sessions. "
                 "Call /firewall/live-replay/step to begin replay."
@@ -185,37 +215,27 @@ class LiveReplayState:
     # ------------------------------------------------------------------ score
 
     def _recompute_sessions(self, batch_index: int) -> None:
-        """Score all processed rows and update active_sessions + recent_events.
+        """Score all processed rows with full_canonical__lgbm and update state.
 
         Called inside lock.
         """
-        engine = Robust9Engine.get()
+        engine = get_engine(MODEL_ID)
         df     = self._processed_rows
 
-        # Score flows.
-        feature_cols = [c for c in engine.feature_order if c in df.columns]
-        try:
-            X      = df[feature_cols].to_numpy(dtype=float)
-            raw    = engine._ensemble_raw(X)
-            cal    = engine._apply_calibration(raw)
-            prob   = cal
-        except Exception:
-            return
+        # Score flows via the RuntimeModelEngine.
+        scored, session_col, missing = engine.score_dataframe(df)
+        if missing:
+            return  # Missing required features — skip silently
 
-        df = df.copy()
-        df["_prob"] = prob
-        df["_raw"]  = raw
-
-        # Determine grouping column.
-        session_col = "session_id"
+        prob_col = engine.probability_column if engine.probability_column in scored.columns else "prob_raw"
 
         new_sessions: Dict[str, Any] = {}
         counts: Dict[str, int]       = {"PASS": 0, "FLAG_REVIEW": 0, "BLOCK": 0}
         new_events: List[Dict]        = []
 
-        for sid, grp in df.groupby(session_col, sort=False):
-            scores       = grp["_prob"].to_numpy()
-            sess_score   = engine._aggregate(scores, engine.session_aggregation)
+        for sid, grp in scored.groupby(session_col, sort=False):
+            flow_scores  = grp[prob_col].to_numpy(dtype=float)
+            sess_score   = _aggregate(flow_scores, engine.session_aggregation)
             action, strict_trig, bal_trig = decide_action(
                 sess_score, engine.thresholds
             )
@@ -236,8 +256,7 @@ class LiveReplayState:
             }
             new_sessions[str(sid)] = session_entry
 
-            # One event per (session × batch) that touches this session.
-            # Only emit if this session appears in the current batch.
+            # One event per (session × batch).
             last_row   = grp.iloc[-1]
             event_time = _now()
             event      = {
@@ -248,12 +267,11 @@ class LiveReplayState:
                 "strict_trigger":   bool(strict_trig),
                 "balanced_trigger": bool(bal_trig),
                 "action":      action,
-                "action_label": label,          # mapped label (BENIGN_LIKE etc.)
+                "action_label": label,
                 "simulated":   True,
             }
             for opt in self._optional_cols_present:
                 if opt == "label":
-                    # Rename CSV ground-truth label to avoid collision with action_label.
                     val = last_row.get(opt)
                     if val is not None and str(val) not in ("nan", ""):
                         event["ground_truth_label"] = val
@@ -291,6 +309,8 @@ class LiveReplayState:
             "running":                  self.running,
             "finished":                 self.finished,
             "model_id":                 self.model_id,
+            "executable":               True,
+            "comparison_only":          False,
             "action_mode":              ACTION_MODE,
             "production_readiness":     False,
             "uploaded_filename":        self.uploaded_filename,
@@ -327,4 +347,3 @@ def get_replay_state() -> LiveReplayState:
 
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
-
