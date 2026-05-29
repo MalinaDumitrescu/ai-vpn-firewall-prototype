@@ -52,9 +52,7 @@ param(
     [switch] $SkipClientVmStart,
     [switch] $SkipServerVmStart,
     [switch] $KeepBackendState,
-    [switch] $DryRun,
-
-    [string] $VBoxManagePath = "C:\Program Files\Oracle\VirtualBox\VBoxManage.exe"
+    [switch] $DryRun
 )
 
 # ---------------------------------------------------------------------------
@@ -143,40 +141,20 @@ function Invoke-ServerSsh { param([string]$RemoteCmd,[int]$TimeoutSec=0) Invoke-
 
 function Test-VmRunning {
     param([string] $Name)
-    if (-not $ResolvedVBoxManage) { return $false }
     try {
-        $running = & $ResolvedVBoxManage list runningvms 2>$null
+        $running = & VBoxManage list runningvms 2>$null
         return ($running -match [regex]::Escape($Name))
     } catch { return $false }
 }
 function Start-VmIfNeeded {
     param([string]$Name,[switch]$Skip)
     if ($Skip) { Write-Info "Skipping VM start for '$Name' (flag set)."; return }
-    if (-not $ResolvedVBoxManage) {
-        Write-Warn2 "VBoxManage unavailable. Skipping VM start for '$Name'."
-        return
-    }
     if (Test-VmRunning -Name $Name) { Write-Info "VM '$Name' already running."; return }
     Write-Info "Starting VM '$Name' headless..."
     try {
-        & $ResolvedVBoxManage startvm $Name --type headless | Out-Null
+        & VBoxManage startvm $Name --type headless | Out-Null
         if ($LASTEXITCODE -ne 0) { Write-Warn2 "VBoxManage returned $LASTEXITCODE for '$Name'. Continuing." }
     } catch { Write-Warn2 "Failed to start VM '$Name': $($_.Exception.Message). Continuing." }
-}
-
-function Resolve-VBoxManage {
-    param([string] $PreferredPath)
-    if ($PreferredPath -and (Test-Path $PreferredPath)) { return $PreferredPath }
-    $cmd = Get-Command VBoxManage -ErrorAction SilentlyContinue
-    if ($cmd) { return $cmd.Source }
-    return $null
-}
-
-$ResolvedVBoxManage = Resolve-VBoxManage -PreferredPath $VBoxManagePath
-if ($ResolvedVBoxManage) {
-    Write-Info "Using VBoxManage: $ResolvedVBoxManage"
-} else {
-    Write-Warn2 "VBoxManage not found. VM auto-start will be skipped. Start the VM manually or pass -VBoxManagePath."
 }
 function Wait-SshGeneric {
     param([scriptblock]$Probe,[string]$Label,[int]$TimeoutSec=120)

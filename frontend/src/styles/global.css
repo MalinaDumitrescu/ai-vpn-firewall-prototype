@@ -253,6 +253,50 @@ button.secondary:hover { background: var(--bg-2); }
 .summary-tile.accent-bad   { border-left: 3px solid var(--bad); }
 .summary-tile.accent-info  { border-left: 3px solid var(--info); }
 
+/* ---------- dashboard compact status grid ---------- */
+
+.dashboard-status-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+/* compact card variant — layered on top of summary-tile */
+.summary-tile.compact {
+  padding: 1rem 1.1rem;
+  min-height: 95px;
+  border-radius: 14px;
+  gap: 2px;
+}
+.summary-tile.compact .label {
+  margin-bottom: 0.4rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+}
+.summary-tile.compact .value {
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+.summary-tile.compact .sub {
+  margin-top: 0.25rem;
+  font-size: 0.8rem;
+  opacity: 0.75;
+}
+
+@media (max-width: 900px) {
+  .dashboard-status-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 520px) {
+  .dashboard-status-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* ---------- badges ---------- */
 
 .badge {

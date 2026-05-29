@@ -36,14 +36,6 @@ export default function Dashboard() {
 
   return (
     <div>
-      <div className="page-header">
-        <div>
-          <h1>Operations dashboard</h1>
-          <div className="subtitle">
-            Live status of the prototype API and the default firewall model.
-          </div>
-        </div>
-      </div>
 
       <WarningBox tone="warn">
         <strong>Simulation only — no packets are blocked.</strong>{' '}
@@ -56,34 +48,39 @@ export default function Dashboard() {
 
       {!loading && !error && (
         <>
-          <div className="section grid cols-5">
+          <div className="dashboard-status-grid">
             <SummaryCard
-              label="API status"
+              compact
+              label="API Status"
               value={health?.status === 'ok' ? 'Online' : 'Unknown'}
               sub={health?.service}
               accent={health?.status === 'ok' ? 'ok' : 'bad'}
             />
             <SummaryCard
-              label="Default model"
+              compact
+              label="Default Model"
               value={defaultModel?.model_id || 'full_canonical__lgbm'}
               sub={defaultModel?.model_id === 'full_canonical__lgbm' ? 'Final recommended prototype' : (defaultModel?.status || 'Final recommended prototype')}
               accent="info"
             />
             <SummaryCard
-              label="Action mode"
+              compact
+              label="Action Mode"
               value={defaultModel?.recommended_action_mode || 'simulation'}
               sub="Simulation only"
               accent="warn"
             />
             <SummaryCard
-              label="Runtime compatible"
-              value={'true'}
+              compact
+              label="Runtime Compatible"
+              value="true"
               sub="34-feature LightGBM"
               accent="ok"
             />
             <SummaryCard
-              label="Production ready"
-              value={'false'}
+              compact
+              label="Production Ready"
+              value="false"
               sub="Prototype — do not deploy"
               accent="bad"
             />

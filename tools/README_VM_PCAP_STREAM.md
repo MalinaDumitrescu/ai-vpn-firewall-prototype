@@ -15,7 +15,7 @@ This workflow demonstrates VM-generated traffic being captured as a PCAP file, c
 
 ---
 
-## 🖱️ Running demos from the frontend
+## ️ Running demos from the frontend
 
 For the thesis demo you don't have to paste PowerShell commands every time.
 The backend exposes a small allowlist API under `/demo/...` that the
@@ -78,7 +78,7 @@ otherwise run manually.
 
 ---
 
-## 🚀 One-command local demo
+##  One-command local demo
 
 A PowerShell script automates the **entire** thesis demo workflow end-to-end:
 
@@ -96,7 +96,7 @@ FastAPI /firewall/live-ingest receives batches
 Frontend Live VM Monitor displays simulated labels
 ```
 
-### 🔑 Smooth demo setup: avoid repeated password prompts
+###  Smooth demo setup: avoid repeated password prompts
 
 The runner performs **two preflight checks** at startup and reports their status. If either is missing the demo still works, but you'll be asked for passwords many times. For a smooth thesis demo, configure both **once**.
 
@@ -271,7 +271,7 @@ Then open `http://127.0.0.1:5173` → **Live VM Monitor** and confirm the same v
 | `tcpdump: command not found` inside the VM | SSH in and run `sudo apt update && sudo apt install tcpdump -y` — or re-run the script with `-InstallTcpdump` |
 | Backend reset returns "connection refused" | Start the backend: `cd backend ; python -m uvicorn main:app --host 127.0.0.1 --port 8765` |
 | Frontend does not show results | Check raw state at `http://127.0.0.1:8765/firewall/live-ingest/state`; ensure the **Live VM Monitor** page polls `/firewall/live-ingest/state` (**not** `/firewall/live-replay/state`) |
-| Script prompts for the VM password many times | Set up SSH key auth — see Section 🔑 "Smooth demo setup" above (`ssh-keygen -t ed25519`, copy public key to VM `~/.ssh/authorized_keys`) |
+| Script prompts for the VM password many times | Set up SSH key auth — see Section  "Smooth demo setup" above (`ssh-keygen -t ed25519`, copy public key to VM `~/.ssh/authorized_keys`) |
 | `sudo` keeps asking for the password | Configure a **scoped** sudoers entry inside the VM: `sudo visudo -f /etc/sudoers.d/tcpdump-demo` then add exactly `scoti ALL=(root) NOPASSWD: /usr/bin/tcpdump, /usr/bin/timeout`. Do **not** use `NOPASSWD: ALL`. |
 
 ### Safety statement
@@ -286,7 +286,7 @@ The script never touches iptables, nftables, Windows Firewall, routing tables, o
 
 ---
 
-## 🎛️ Traffic profiles
+## ️ Traffic profiles
 
 The runner can generate three different traffic profiles inside the VM. Pick one via `-TrafficProfile`:
 
@@ -394,7 +394,7 @@ This honest framing matters because `robust9_firewall` was trained on flow-level
 
 ---
 
-## 🧪 Local OpenVPN lab demo
+##  Local OpenVPN lab demo
 
 For the thesis demo we also ship a dedicated end-to-end runner that orchestrates a **two-VM local OpenVPN lab** instead of a single VM with public HTTPS:
 

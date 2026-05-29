@@ -1,18 +1,17 @@
-import React, { useState } from 'react';
+import React from 'react';
 import LiveVMReplay from './LiveVMReplay.jsx';
 import LiveVMMonitor from './LiveVMMonitor.jsx';
 import TabSwitcher from '../components/TabSwitcher.jsx';
 
 /**
- * Live VM — unified page that hosts two complementary sub-views:
- *   - CSV Replay   (the previous Live VM Replay page)
- *   - PCAP Monitor (the previous Live VM Monitor page)
+ * Live VM — unified page hosting two sub-views:
+ *   - CSV Replay   (step-by-step replay + bundled full-canonical demo)
+ *   - PCAP Monitor (live ingest + local demo scripts)
  *
- * The original pages are re-used as-is; only the parent navigation changes.
+ * `tab` and `onTabChange` are controlled from App.jsx so legacy routes
+ * (demorunner → monitor, firewall → replay) land on the right tab.
  */
-export default function LiveVM() {
-  const [tab, setTab] = useState('replay');
-
+export default function LiveVM({ tab = 'replay', onTabChange }) {
   const tabs = [
     { id: 'replay',  label: 'CSV Replay'   },
     { id: 'monitor', label: 'PCAP Monitor' },
@@ -26,14 +25,13 @@ export default function LiveVM() {
           <div className="subtitle">
             Replay exported CSV flow features through{' '}
             <span className="mono">full_canonical__lgbm</span>{' '}
-            (34-feature full-canonical model analysis), or monitor PCAP-derived batches
-            from the local ingest script. Simulation only &mdash; no packets
-            are blocked.
+            (34-feature LightGBM), or monitor PCAP-derived batches from the
+            local ingest script. Simulation only &mdash; no packets are blocked.
           </div>
         </div>
       </div>
 
-      <TabSwitcher tabs={tabs} active={tab} onChange={setTab} />
+      <TabSwitcher tabs={tabs} active={tab} onChange={onTabChange} />
 
       <div className="tab-panel">
         {tab === 'replay'  && <LiveVMReplay />}
@@ -42,4 +40,3 @@ export default function LiveVM() {
     </div>
   );
 }
-

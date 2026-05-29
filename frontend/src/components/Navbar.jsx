@@ -1,13 +1,11 @@
 import React from 'react';
 
 const LINKS = [
-  { id: 'dashboard',   label: 'Dashboard'             },
-  { id: 'demorunner',  label: 'Demo Runner'           },
-  { id: 'firewall',    label: 'Final Model Demo'     },
-  { id: 'multimodel',  label: 'Model Comparison'},
-  { id: 'livevm',      label: 'Live VM'               },
-  { id: 'models',      label: 'Models'                },
-  { id: 'robustness',  label: 'Robustness'            },
+  { id: 'dashboard',  label: 'Dashboard'        },
+  { id: 'livevm',     label: 'Live VM'          },
+  { id: 'multimodel', label: 'Model Comparison' },
+  { id: 'models',     label: 'Models'           },
+  { id: 'robustness', label: 'Robustness'       },
 ];
 
 export default function Navbar({ current, onNavigate, apiStatus }) {

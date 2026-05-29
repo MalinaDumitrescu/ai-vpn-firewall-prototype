@@ -208,6 +208,8 @@ export default function LiveVMMonitor() {
             Near-real-time view of PCAP-derived flow features streamed by
             <code className="mono" style={{ margin: '0 4px' }}>tools/pcap_to_live_stream.py</code>
             into <code className="mono">POST /firewall/live-ingest</code>.
+            Use the <strong>Local demo scripts</strong> section below to launch
+            bundled VirtualBox / SSH scenarios.
           </div>
         </div>
         {hasData && (
@@ -226,12 +228,12 @@ export default function LiveVMMonitor() {
         PCAP analysis uses the legacy CICFlowMeter-compatible pipeline for PCAP-derived flow features.
         The recommended executable model is{' '}
         <span className="mono">full_canonical__lgbm</span> (34 features),
-        available via the Final Model Demo and CSV Replay pages.
+        available in the CSV Replay tab.
       </WarningBox>
 
-      {/* ── local demo runner (frontend-triggered scripts) ── */}
+      {/* ── local demo scripts (frontend-triggered scripts) ── */}
       <div className="section card">
-        <h2 style={{ marginTop: 0 }}>Local Demo Runner</h2>
+        <h2 style={{ marginTop: 0 }}>Local demo scripts</h2>
         <DemoRunnerPanel
           compact={true}
           showJobs={false}
@@ -348,11 +350,11 @@ export default function LiveVMMonitor() {
       </div>
 
       <div className="mm-page-footer">
-        Live VM Monitor is simulation-only. Decisions use the full-canonical model analysis pipeline
+        Live VM PCAP Monitor is simulation-only. Decisions use the full-canonical model analysis pipeline
         and have no effect on network traffic. No packets are captured or blocked.
         For inference with the executable model{' '}
         <code className="mono">full_canonical__lgbm</code>{' '}
-        (34 features), use the Final Model Demo or CSV Replay pages.
+        (34 features), use the CSV Replay tab.
       </div>
     </div>
   );

@@ -1,6 +1,9 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from '../api.js';
 import WarningBox from '../components/WarningBox.jsx';
+import SummaryCard from '../components/SummaryCard.jsx';
+import SessionTable from '../components/SessionTable.jsx';
+import StatusBadge from '../components/StatusBadge.jsx';
 
 // ─── tiny helpers ────────────────────────────────────────────────────────────
 
@@ -196,6 +199,15 @@ function ActiveSessions({ sessions }) {
   );
 }
 
+// ─── num helper (shared with bundled-demo results) ────────────────────────────
+
+function numFmt(v, d = 4) {
+  if (v === null || v === undefined) return '—';
+  if (typeof v !== 'number') return String(v);
+  if (Number.isInteger(v)) return v.toString();
+  return v.toFixed(d);
+}
+
 // ─── main page ────────────────────────────────────────────────────────────────
 
 const POLL_MS    = 2000;  // state poll interval
@@ -203,6 +215,12 @@ const AUTO_MS    = 2000;  // auto-play step interval
 const MIN_GAP_MS = 1000;  // minimum between any two requests
 
 export default function LiveVMReplay() {
+  // ── bundled / one-shot demo state (from former Final Model Demo page) ──
+  const [demoResult,    setDemoResult]    = useState(null);
+  const [demoLoading,   setDemoLoading]   = useState(false);
+  const [demoError,     setDemoError]     = useState(null);
+  const oneShotFileRef  = useRef(null);
+
   // Remote state mirror.
   const [state,       setState]       = useState(null);
   const [loadError,   setLoadError]   = useState(null);
@@ -280,7 +298,32 @@ export default function LiveVMReplay() {
     return () => clearInterval(autoTimerRef.current);
   }, [autoPlay, state?.finished, state?.loaded]); // eslint-disable-line
 
-  // ── actions ──
+  // ── bundled demo / one-shot CSV actions ──
+
+  async function runBundledDemo() {
+    setDemoLoading(true); setDemoError(null); setDemoResult(null);
+    try {
+      const r = await api.firewallDemo();
+      setDemoResult(r);
+    } catch (e) { setDemoError(e.message); }
+    finally { setDemoLoading(false); }
+  }
+
+  async function runOneShotCsv(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setDemoLoading(true); setDemoError(null); setDemoResult(null);
+    try {
+      const r = await api.analyzeCsv(file);
+      setDemoResult(r);
+    } catch (e) { setDemoError(e.message); }
+    finally {
+      setDemoLoading(false);
+      if (oneShotFileRef.current) oneShotFileRef.current.value = '';
+    }
+  }
+
+  // ── replay actions ──
 
   async function doUpload() {
     const file = fileRef.current?.files?.[0];
@@ -318,42 +361,23 @@ export default function LiveVMReplay() {
   // ── derived ──
 
   const loaded   = state?.loaded   ?? false;
-  const running  = state?.running  ?? false;
   const finished = state?.finished ?? false;
   const lc       = state?.labelled_counts ?? { BENIGN_LIKE: 0, FLAGGED_FOR_REVIEW: 0, VPN_LIKE_SIMULATED_BLOCK: 0 };
   const pct      = state?.progress_percent ?? 0;
 
   // ── render ──────────────────────────────────────────────────────────────────
 
+  const demoCounts = demoResult?.counts || { PASS: 0, FLAG_REVIEW: 0, BLOCK: 0 };
+
   return (
     <div>
-      {/* ── header ── */}
-      <div className="page-header">
-        <div>
-          <h1>CSV replay</h1>
-          <div className="subtitle">
-            Replay a VM-exported feature CSV as near-real-time traffic. The app
-            labels sessions but does <strong>not</strong> block packets.
-          </div>
-        </div>
-        {loaded && !finished && (
-          <span className="badge ok">
-            <span className="dot" />
-            {autoPlay ? 'AUTO-PLAYING' : 'LOADED'}
-          </span>
-        )}
-        {finished && <span className="badge neutral"><span className="dot" />FINISHED</span>}
-      </div>
-
       {/* ── safety warning ── */}
       <WarningBox tone="warn">
-        <strong>Simulation only.</strong> This page replays uploaded feature rows
-        and labels them using{' '}
+        <strong>Simulation only.</strong> Replay exported CSV flow features through{' '}
         <span className="mono">full_canonical__lgbm</span>{' '}
         (34-feature single LightGBM — the executable firewall model).
         <strong> No packets are captured or blocked.</strong> All results are
         labelled <em>simulated</em> and have no effect on any network.
-        Upload a CSV with the 34 full_canonical features (download the template below).
       </WarningBox>
 
       {/* ── pipeline ── */}
@@ -361,9 +385,149 @@ export default function LiveVMReplay() {
         <PipelineDiagram />
       </div>
 
-      {/* ── upload section ── */}
+      {/* ── model explanation ── */}
       <div className="section card">
-        <h2 style={{ marginTop: 0 }}>Upload replay CSV</h2>
+        <h2 style={{ marginTop: 0 }}>
+          About <span className="mono">full_canonical__lgbm</span>
+        </h2>
+        <div className="dim" style={{ fontSize: 13, lineHeight: 1.6 }}>
+          <strong>full_canonical__lgbm</strong> is the final recommended prototype model.
+          It is a single LightGBM classifier trained on a 34-feature full-canonical
+          feature set extracted from VM traffic captures.
+          It is the <em>only</em> executable firewall model in this prototype.
+          All runtime inference uses this model regardless of which CSV you upload.
+        </div>
+        <div style={{ marginTop: 10, fontSize: 12, color: 'var(--text-dim)' }}>
+          <strong>Required:</strong> CSV must contain all 34 full_canonical features
+          (<span className="mono">sz_coef_variation, sz_all_mean, iat_all_mean, …</span>).
+          Download the template below to see the exact column list.
+        </div>
+      </div>
+
+      {/* ── bundled demo / one-shot CSV analysis ── */}
+      <div className="section card">
+        <h2 style={{ marginTop: 0 }}>Run bundled full-canonical demo</h2>
+        <div className="dim" style={{ fontSize: 13, marginBottom: 12 }}>
+          Run the bundled sample flows (shipped with the runtime bundle) through{' '}
+          <span className="mono">full_canonical__lgbm</span> for a one-shot result,
+          or upload your own CSV for instant one-shot analysis (not step-by-step replay).
+        </div>
+
+        <div className="button-row" style={{ flexWrap: 'wrap', gap: 8 }}>
+          <button onClick={runBundledDemo} disabled={demoLoading}>
+            {demoLoading
+              ? <><span className="spinner" />&nbsp;Running…</>
+              : '▶ Run bundled demo'}
+          </button>
+          <button
+            className="secondary"
+            onClick={() => oneShotFileRef.current?.click()}
+            disabled={demoLoading}
+          >
+            📂 Upload CSV (one-shot)
+          </button>
+          <input
+            ref={oneShotFileRef}
+            type="file"
+            accept=".csv,text/csv"
+            style={{ display: 'none' }}
+            onChange={runOneShotCsv}
+          />
+        </div>
+
+        {demoError && (
+          <div className="error-box" style={{ marginTop: 10 }}>Error: {demoError}</div>
+        )}
+
+        {demoResult && (
+          <>
+            <div className="section grid cols-4" style={{ marginTop: 14 }}>
+              <SummaryCard label="Total flows"    value={demoResult.total_flows}    accent="info" />
+              <SummaryCard label="Total sessions" value={demoResult.total_sessions} accent="info" />
+              <SummaryCard label="Action mode"    value={demoResult.action_mode}    accent="warn" />
+              <SummaryCard
+                label="Production ready"
+                value={demoResult.production_readiness ? 'true' : 'false'}
+                accent={demoResult.production_readiness ? 'warn' : 'bad'}
+              />
+            </div>
+            <div className="section grid cols-3">
+              <SummaryCard label="PASS"        value={demoCounts.PASS}        accent="ok"   sub="Below balanced threshold" />
+              <SummaryCard label="FLAG_REVIEW" value={demoCounts.FLAG_REVIEW} accent="warn" sub="Balanced trigger only" />
+              <SummaryCard label="BLOCK"       value={demoCounts.BLOCK}       accent="bad"  sub="Strict trigger (simulated)" />
+            </div>
+            <div className="section grid cols-2">
+              <div className="card">
+                <h2>Active policy</h2>
+                <div className="kv">
+                  <div className="k">model_id</div>
+                  <div className="v mono">{demoResult.model_id}</div>
+                  <div className="k">probability_column</div>
+                  <div className="v mono">{demoResult.probability_column}</div>
+                  <div className="k">aggregation</div>
+                  <div className="v mono">{demoResult.aggregation}</div>
+                  <div className="k">strict threshold</div>
+                  <div className="v">{numFmt(demoResult.thresholds?.strict, 6)}</div>
+                  <div className="k">balanced threshold</div>
+                  <div className="v">{numFmt(demoResult.thresholds?.balanced, 6)}</div>
+                  <div className="k">action_mode</div>
+                  <div className="v"><StatusBadge tone="warn" label={demoResult.action_mode} /></div>
+                  <div className="k">production_readiness</div>
+                  <div className="v">
+                    <StatusBadge
+                      tone={demoResult.production_readiness ? 'warn' : 'bad'}
+                      label={demoResult.production_readiness ? 'true' : 'false'}
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="card">
+                <h2>Backend warnings</h2>
+                {Array.isArray(demoResult.warnings) && demoResult.warnings.length > 0 ? (
+                  <ul className="clean">
+                    {demoResult.warnings.map((w, i) => <li key={i}>{w}</li>)}
+                  </ul>
+                ) : (
+                  <div className="muted">No warnings reported.</div>
+                )}
+              </div>
+            </div>
+            {demoResult.sessions?.length > 0 && (
+              <div className="section">
+                <div className="page-header" style={{ marginBottom: 10 }}>
+                  <h1 style={{ fontSize: 16 }}>Per-session decisions</h1>
+                  <div className="subtitle">{demoResult.total_sessions} session(s) scored.</div>
+                </div>
+                <SessionTable sessions={demoResult.sessions} />
+              </div>
+            )}
+          </>
+        )}
+
+        {!demoResult && !demoError && !demoLoading && (
+          <div className="dim" style={{ fontSize: 12, marginTop: 10 }}>
+            Click <strong>Run bundled demo</strong> to score the sample flows shipped with the
+            runtime bundle, or upload a CSV with the 34 full_canonical features for a one-shot analysis.
+          </div>
+        )}
+      </div>
+
+      {/* ── upload section (step-by-step replay) ── */}
+      <div className="section card">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+          <h2 style={{ margin: 0 }}>Upload replay CSV &mdash; step-by-step</h2>
+          {loaded && !finished && (
+            <span className="badge ok">
+              <span className="dot" />
+              {autoPlay ? 'AUTO-PLAYING' : 'LOADED'}
+            </span>
+          )}
+          {finished && <span className="badge neutral"><span className="dot" />FINISHED</span>}
+        </div>
+        <div className="dim" style={{ fontSize: 12, marginBottom: 10 }}>
+          Upload a CSV with the 34 full_canonical features and step through batches manually
+          or via auto-play. Download the template for the required column list.
+        </div>
 
         <div className="lr-upload-row">
           <label className="mm-file-label" style={{ cursor: 'pointer' }}>
@@ -516,7 +680,7 @@ export default function LiveVMReplay() {
             <StatTile label="Model"          value={state.model_id}      mono tone="info" />
             <StatTile label="Action mode"    value={state.action_mode}   mono tone="info" />
             <StatTile label="Batches"        value={state.total_batches_processed} />
-            <StatTile label="Flows processed"value={state.total_flows_processed} />
+            <StatTile label="Flows processed" value={state.total_flows_processed} />
             <StatTile label="Sessions seen"  value={state.total_sessions_seen} />
             <StatTile label="BENIGN_LIKE"    value={lc.BENIGN_LIKE}      tone="ok" />
             <StatTile label="FLAGGED_FOR_REVIEW" value={lc.FLAGGED_FOR_REVIEW} tone="warn" />
@@ -561,7 +725,7 @@ export default function LiveVMReplay() {
 
       {/* ── footer ── */}
       <div className="mm-page-footer">
-        Live VM Replay is simulation-only.{' '}
+        Live VM CSV Replay is simulation-only.{' '}
         <code className="mono">full_canonical__lgbm</code> (34-feature single LightGBM)
         labels are simulated and have no effect on network traffic.
         No packets are captured or blocked. Upload a CSV with the 34 full_canonical
