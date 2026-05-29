@@ -80,15 +80,6 @@ export const api = {
   // ---- model permissions ----
   modelPermissions: () => request('/models/permissions'),
 
-  // ---- benchmark (4 audit-compatible models) ----
-  benchmarkInfo: () => request('/benchmark/compatible-csv/info'),
-  benchmarkBundled: () => request('/benchmark/compatible-csv/bundled'),
-  benchmarkUploadCsv: (file) => {
-    const fd = new FormData();
-    fd.append('file', file);
-    return request('/benchmark/compatible-csv', { method: 'POST', body: fd });
-  },
-
   // ---- demo runner (local thesis demo only) ----
   demoAllowed: () => request('/demo/allowed'),
   demoJobs:    () => request('/demo/jobs'),

@@ -266,8 +266,14 @@ def run_benchmark(df: pd.DataFrame) -> Dict[str, Any]:
         }
         if auc is not None:
             result["AUC"] = round(auc, 4)
+            result["auc"] = round(auc, 4)  # lowercase alias
         if confusion:
-            result.update(confusion)
+            result.update(confusion)  # TP, FP, TN, FN (uppercase)
+            # Also add lowercase aliases for frontend table
+            result["tp"] = confusion.get("TP", 0)
+            result["fp"] = confusion.get("FP", 0)
+            result["tn"] = confusion.get("TN", 0)
+            result["fn"] = confusion.get("FN", 0)
 
         per_model_results.append(result)
 
@@ -313,6 +319,8 @@ def run_benchmark(df: pd.DataFrame) -> Dict[str, Any]:
         "models_run": models_run,
         "models_skipped": models_skipped,
         "per_model_results": per_model_results,
+        # `results` is an alias for per_model_results — only compatible (run + skipped-compat) models
+        "results": [r for r in per_model_results if r.get("benchmark_compatible", False)],
         "warnings": [
             BENCHMARK_WARNING,
             f"Only '{EXECUTABLE_FIREWALL_MODEL_ID}' is executable as the firewall prototype.",
