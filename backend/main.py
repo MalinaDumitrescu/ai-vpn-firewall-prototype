@@ -9,7 +9,11 @@ from fastapi.responses import PlainTextResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 from app import registry_loader
-from app.registry_loader import EXECUTABLE_FIREWALL_MODEL_ID
+from app.registry_loader import (
+    EXECUTABLE_FIREWALL_MODEL_ID,
+    BENCHMARK_COMPATIBLE_MODEL_IDS,
+    BENCHMARK_INCOMPATIBLE_MODEL_IDS,
+)
 from app.csv_service import (
     load_comparison_rows,
     load_demo_flows,
@@ -17,6 +21,12 @@ from app.csv_service import (
     load_multimodel_demo_flows,
     parse_multimodel_csv,
     parse_uploaded_csv,
+    load_benchmark_csv,
+)
+from app.benchmark_service import (
+    run_benchmark,
+    COMPATIBLE_BENCHMARK_MODEL_IDS,
+    INCOMPATIBLE_MODEL_IDS,
 )
 from app.live_replay_service import (
     TEMPLATE_HEADER,
@@ -153,6 +163,61 @@ def get_robustness_control_models() -> List[Dict[str, Any]]:
 @app.get("/models/hidden")
 def get_hidden_models() -> List[Dict[str, Any]]:
     return registry_loader.get_models_in_group("hidden_alias_or_unsupported")
+
+
+@app.get("/models/permissions")
+def get_model_permissions() -> Dict[str, Any]:
+    """Return explicit permission fields for every registered model.
+
+    Each entry includes: executable, benchmark_compatible, selectable_in_benchmark,
+    comparison_only, role, reason_not_selectable (null for selectable models).
+
+    Rules:
+      full_canonical__lgbm → executable=true, benchmark_compatible=true
+      robust9_firewall / balanced_bagging_3ds_reference / balanced_bagging_baseline
+                           → executable=false, benchmark_compatible=true
+      everything else      → executable=false, benchmark_compatible=false
+    """
+    models = registry_loader.list_models()
+    result: Dict[str, Any] = {}
+
+    for mid, entry in models.items():
+        is_exec = mid == EXECUTABLE_FIREWALL_MODEL_ID
+        is_bench = mid in BENCHMARK_COMPATIBLE_MODEL_IDS
+        is_selectable = is_bench
+
+        status = entry.get("status", "")
+        role = entry.get("role", "comparison_only" if not is_exec else "recommended_firewall")
+
+        if is_selectable:
+            reason = None
+        elif mid in BENCHMARK_INCOMPATIBLE_MODEL_IDS:
+            reason = "Requires session-derived probability features not present in the raw-feature benchmark CSV."
+        elif status == "negative_control" or "lodo" in mid.lower():
+            reason = "Negative-control LODO model — not compatible with benchmark CSV."
+        elif status == "research_only" or "dann" in mid.lower():
+            reason = "Research-only DANN model — not compatible with benchmark CSV."
+        elif status in ("unsupported", "alias"):
+            reason = "Unsupported/documentation-only artifact."
+        else:
+            reason = "Not compatible with the shared raw-feature benchmark CSV."
+
+        result[mid] = {
+            "model_id": mid,
+            "role": role,
+            "executable": is_exec,
+            "benchmark_compatible": is_bench,
+            "comparison_only": not is_exec,
+            "selectable_in_benchmark": is_selectable,
+            "runtime_compatible": entry.get("runtime_compatible", False),
+            "production_ready": False,
+            "action_mode": "simulation",
+            "reason_not_selectable": reason,
+            "status": status,
+            "ui_group": entry.get("ui_group", ""),
+        }
+
+    return result
 
 
 @app.get("/models/{model_id}", response_model=ModelDetailResponse)
@@ -620,6 +685,98 @@ def firewall_live_ingest_reset() -> Dict[str, Any]:
 def firewall_live_ingest_state() -> Dict[str, Any]:
     """Return the current live-ingest session state without modifying it."""
     return get_ingest_state().get_state()
+
+
+# ======================================================================= benchmark
+
+@app.get("/benchmark/compatible-csv/info")
+def benchmark_compatible_info() -> Dict[str, Any]:
+    """Return metadata about the compatible benchmark and model list."""
+    return {
+        "benchmark_only": True,
+        "benchmark_csv": "simultaneous_test_selected_models.csv",
+        "benchmark_csv_description": "7,952 flows, 104 captures — audit-generated simultaneous benchmark",
+        "compatible_models": BENCHMARK_COMPATIBLE_MODEL_IDS,
+        "incompatible_models": BENCHMARK_INCOMPATIBLE_MODEL_IDS,
+        "incompatible_reason": (
+            "balanced_bagging_xgb_baseline and robust13_comparison require "
+            "session-derived probability features not present in the raw-feature benchmark CSV."
+        ),
+        "firewall_model": EXECUTABLE_FIREWALL_MODEL_ID,
+        "executable_firewall_model_only": True,
+        "note": (
+            "Benchmark comparison is read-only / benchmark-only. "
+            "Results do not affect firewall decisions."
+        ),
+        "model_roles": {
+            "full_canonical__lgbm": {"role": "recommended_firewall", "executable": True, "selectable_in_benchmark": True},
+            "robust9_firewall": {"role": "legacy_baseline", "executable": False, "selectable_in_benchmark": True},
+            "balanced_bagging_3ds_reference": {"role": "benchmark_comparison", "executable": False, "selectable_in_benchmark": True},
+            "balanced_bagging_baseline": {"role": "benchmark_comparison", "executable": False, "selectable_in_benchmark": True},
+        },
+    }
+
+
+@app.get("/benchmark/compatible-csv/bundled")
+def benchmark_bundled() -> Dict[str, Any]:
+    """Run the bundled simultaneous benchmark CSV against the 4 compatible models.
+
+    Uses demo_data/simultaneous_test_selected_models.csv (7,952 flows, 104 captures).
+    Results are benchmark-only and do not affect firewall decisions.
+    """
+    try:
+        df = load_benchmark_csv()
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+    try:
+        result = run_benchmark(df)
+    except Exception as exc:  # noqa: BLE001
+        logger.exception("benchmark/bundled failed")
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+    result["source"] = "bundled:simultaneous_test_selected_models.csv"
+    return result
+
+
+@app.post("/benchmark/compatible-csv")
+async def benchmark_upload_csv(file: UploadFile = File(...)) -> Dict[str, Any]:
+    """Run an uploaded benchmark CSV against the 4 compatible models.
+
+    The uploaded CSV must contain the required features for each model.
+    Extra columns (session_id, flow_id, dataset, label, source_file) are
+    silently passed through. Missing features for a specific model cause only
+    that model to be skipped — the rest still run.
+
+    Compatible models:
+      - full_canonical__lgbm
+      - robust9_firewall
+      - balanced_bagging_3ds_reference
+      - balanced_bagging_baseline
+
+    NOT compatible (excluded automatically):
+      - balanced_bagging_xgb_baseline
+      - robust13_comparison
+
+    Results are benchmark-only and do not affect firewall decisions.
+    """
+    raw = await file.read()
+    if not raw:
+        raise HTTPException(status_code=400, detail="Uploaded file is empty.")
+
+    try:
+        df = parse_multimodel_csv(raw)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    try:
+        result = run_benchmark(df)
+    except Exception as exc:  # noqa: BLE001
+        logger.exception("benchmark/compatible-csv upload failed")
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+    result["source"] = f"uploaded:{file.filename or 'uploaded.csv'}"
+    return result
 
 
 

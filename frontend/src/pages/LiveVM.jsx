@@ -24,7 +24,9 @@ export default function LiveVM() {
         <div>
           <h1>Live VM</h1>
           <div className="subtitle">
-            Replay exported CSV flow features or monitor PCAP-derived batches
+            Replay exported CSV flow features through{' '}
+            <span className="mono">full_canonical__lgbm</span>{' '}
+            (34-feature full-canonical model analysis), or monitor PCAP-derived batches
             from the local ingest script. Simulation only &mdash; no packets
             are blocked.
           </div>

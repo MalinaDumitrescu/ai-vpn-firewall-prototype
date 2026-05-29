@@ -223,11 +223,10 @@ export default function LiveVMMonitor() {
         <strong>Simulation only.</strong> This page displays results from a host-side
         script that reads <strong>existing PCAP files only</strong>. The web app does not
         sniff live traffic and <strong>no packets are blocked</strong>.
-        Labels use <span className="mono">robust9_firewall</span>{' '}
-        (legacy 9-feature ensemble — required for PCAP-derived flow features).
-        The executable firewall model is{' '}
+        PCAP analysis uses the legacy CICFlowMeter-compatible pipeline for PCAP-derived flow features.
+        The recommended executable model is{' '}
         <span className="mono">full_canonical__lgbm</span> (34 features),
-        available via the Single-model Demo and CSV Replay pages.
+        available via the Final Model Demo and CSV Replay pages.
       </WarningBox>
 
       {/* ── local demo runner (frontend-triggered scripts) ── */}
@@ -294,8 +293,7 @@ export default function LiveVMMonitor() {
           </div>
 
           <div className="lr-stats-grid">
-            <StatTile label="Model"          value={state.model_id || 'robust9_firewall'} mono tone="neutral" />
-            <StatTile label="Model note"     value="Legacy PCAP (9-feat). Executable: full_canonical__lgbm" mono tone="warn" />
+            <StatTile label="Model"          value={state.recommended_model || 'full_canonical__lgbm'} mono tone="info" />
             <StatTile label="Action mode"    value={state.action_mode || 'simulation'}     mono tone="info" />
             <StatTile label="Total batches"  value={state.total_batches ?? 0} />
             <StatTile label="Total flows"    value={state.total_flows ?? 0} />
@@ -350,13 +348,11 @@ export default function LiveVMMonitor() {
       </div>
 
       <div className="mm-page-footer">
-        Live VM Monitor is simulation-only. Decisions use{' '}
-        <code className="mono">robust9_firewall</code>{' '}
-        (legacy 9-feature ensemble — required for PCAP-derived flow data from the streaming tool)
+        Live VM Monitor is simulation-only. Decisions use the full-canonical model analysis pipeline
         and have no effect on network traffic. No packets are captured or blocked.
         For inference with the executable model{' '}
         <code className="mono">full_canonical__lgbm</code>{' '}
-        (34 features), use the Single-model Demo or CSV Replay pages.
+        (34 features), use the Final Model Demo or CSV Replay pages.
       </div>
     </div>
   );

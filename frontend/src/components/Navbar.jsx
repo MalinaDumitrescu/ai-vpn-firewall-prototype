@@ -3,8 +3,8 @@ import React from 'react';
 const LINKS = [
   { id: 'dashboard',   label: 'Dashboard'             },
   { id: 'demorunner',  label: 'Demo Runner'           },
-  { id: 'firewall',    label: 'Single-model Demo'     },
-  { id: 'multimodel',  label: 'Multi-model Evaluation'},
+  { id: 'firewall',    label: 'Final Model Demo'     },
+  { id: 'multimodel',  label: 'Model Comparison'},
   { id: 'livevm',      label: 'Live VM'               },
   { id: 'models',      label: 'Models'                },
   { id: 'robustness',  label: 'Robustness'            },

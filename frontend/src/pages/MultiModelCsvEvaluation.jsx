@@ -1,7 +1,31 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { api } from '../api.js';
 import WarningBox from '../components/WarningBox.jsx';
-import StatusBadge from '../components/StatusBadge.jsx';
+
+// ─── constants ──────────────────────────────────────────────────────────────
+
+const EXECUTABLE_MODEL_ID = 'full_canonical__lgbm';
+
+const BENCHMARK_COMPATIBLE_IDS = [
+  'full_canonical__lgbm',
+  'robust9_firewall',
+  'balanced_bagging_3ds_reference',
+  'balanced_bagging_baseline',
+];
+
+function reasonNotSelectable(modelId, entry) {
+  if (BENCHMARK_COMPATIBLE_IDS.includes(modelId)) return null;
+  const status = entry?.status || '';
+  if (['balanced_bagging_xgb_baseline', 'robust13_comparison'].includes(modelId))
+    return 'Requires session-derived probability features absent from the raw-feature CSV.';
+  if (status === 'negative_control' || modelId.startsWith('lodo_'))
+    return 'Negative-control LODO model — not compatible with benchmark CSV.';
+  if (status === 'research_only' || modelId.includes('dann'))
+    return 'Research-only DANN model — not compatible with benchmark CSV.';
+  if (status === 'unsupported' || status === 'alias')
+    return 'Unsupported / documentation-only artifact.';
+  return 'Not compatible with the shared raw-feature benchmark CSV.';
+}
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
@@ -14,144 +38,172 @@ function fmt(v, d = 4) {
   return String(v);
 }
 
-function Bool({ value }) {
-  if (value === true)  return <span className="badge ok small-badge"><span className="dot" />yes</span>;
-  if (value === false) return <span className="badge neutral small-badge"><span className="dot" />no</span>;
-  return <span className="muted">—</span>;
-}
+// ─── Compatible model info card ───────────────────────────────────────────────
 
-/** Render an action label. BLOCK always says "SIMULATED BLOCK". */
-function ActionPill({ action }) {
-  const cls = action === 'BLOCK' ? 'BLOCK' : action;
-  const label = action === 'BLOCK' ? 'SIMULATED BLOCK' : action;
-  return <span className={`action-pill ${cls}`}>{label}</span>;
-}
+const COMPAT_BADGES = {
+  full_canonical__lgbm:          { label: 'EXECUTABLE · FINAL MODEL', tone: 'ok' },
+  robust9_firewall:              { label: 'LEGACY BASELINE',           tone: 'neutral' },
+  balanced_bagging_3ds_reference:{ label: 'BENCHMARK COMPARISON',      tone: 'info' },
+  balanced_bagging_baseline:     { label: 'BENCHMARK COMPARISON',      tone: 'info' },
+};
 
-/** Inline count tiles: PASS / FLAG_REVIEW / SIMULATED BLOCK */
-function CountTiles({ counts }) {
-  const p   = counts?.PASS        ?? 0;
-  const f   = counts?.FLAG_REVIEW ?? 0;
-  const b   = counts?.BLOCK       ?? 0;
-  return (
-    <div className="mm-count-row">
-      <div className="mm-count-tile ok">
-        <div className="mm-count-num">{p}</div>
-        <div className="mm-count-label">PASS</div>
-      </div>
-      <div className="mm-count-tile warn">
-        <div className="mm-count-num">{f}</div>
-        <div className="mm-count-label">FLAG_REVIEW</div>
-      </div>
-      <div className="mm-count-tile bad">
-        <div className="mm-count-num">{b}</div>
-        <div className="mm-count-label">SIM. BLOCK</div>
-      </div>
-    </div>
-  );
-}
-
-/** Per-session table for a single model result */
-function SessionTable({ sessions }) {
-  if (!sessions || sessions.length === 0) {
-    return <div className="muted" style={{ fontSize: 12 }}>No sessions.</div>;
-  }
-  return (
-    <div className="table-wrap">
-      <table className="dash" style={{ fontSize: 12 }}>
-        <thead>
-          <tr>
-            <th>Session ID</th>
-            <th>Flows</th>
-            <th>Score</th>
-            <th>Strict</th>
-            <th>Balanced</th>
-            <th>Action</th>
-            <th>Simulated</th>
-          </tr>
-        </thead>
-        <tbody>
-          {sessions.map((s) => (
-            <tr key={s.session_id}>
-              <td className="mono">{s.session_id}</td>
-              <td className="num">{s.n_flows}</td>
-              <td className="num"><strong>{fmt(s.session_score)}</strong></td>
-              <td><Bool value={s.strict_trigger} /></td>
-              <td><Bool value={s.balanced_trigger} /></td>
-              <td><ActionPill action={s.action} /></td>
-              <td><Bool value={s.simulated} /></td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-/** One result card for a single model */
-function ModelResultCard({ result }) {
-  const [expanded, setExpanded] = useState(true);
-  const isSkipped  = result.skipped;
-  const isDefault  = result.default_firewall;
-  const isCmpOnly  = result.comparison_only;
-
-  const cardBorder = isSkipped
-    ? 'var(--border)'
-    : isDefault
-      ? 'rgba(79,157,255,0.35)'
-      : 'var(--border)';
-
+function CompatibleModelCard({ modelId, entry }) {
+  const badge = COMPAT_BADGES[modelId] || { label: 'BENCHMARK COMPATIBLE', tone: 'info' };
+  const isExec = modelId === EXECUTABLE_MODEL_ID;
   return (
     <div
-      className="card mm-result-card"
-      style={{ borderColor: cardBorder }}
+      className="card mm-model-checkbox-card"
+      style={{ borderColor: isExec ? 'rgba(79,157,255,0.5)' : 'var(--border)', cursor: 'default' }}
     >
-      {/* ── header ── */}
+      <div className="mm-checkbox-row">
+        <span className="mono" style={{ fontWeight: 700, fontSize: 13 }}>{modelId}</span>
+        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', alignItems: 'center' }}>
+          <span className={`badge ${badge.tone} small-badge`}>
+            <span className="dot" />{badge.label}
+          </span>
+          <span className="badge ok small-badge">
+            <span className="dot" />benchmark compatible
+          </span>
+        </div>
+      </div>
+      <div className="mm-model-meta">
+        {entry?.n_features && <span>{entry.n_features} features</span>}
+        {entry?.feature_family && <span className="mono">{entry.feature_family}</span>}
+        {entry?.selected_probability_column && <span className="mono">{entry.selected_probability_column}</span>}
+        {entry?.selected_aggregation && <span className="mono">{entry.selected_aggregation}</span>}
+      </div>
+      {isExec ? (
+        <div className="mm-model-warning" style={{ color: 'var(--ok)', fontStyle: 'italic', fontSize: 12 }}>
+          Executable firewall model — also included in benchmark comparison.
+        </div>
+      ) : (
+        <div className="mm-model-warning" style={{ color: 'var(--text-dim)', fontStyle: 'italic', fontSize: 12 }}>
+          Comparison-only. Benchmark results do not affect firewall decisions.
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Non-compatible models collapsed section ──────────────────────────────────
+
+function NonCompatibleSection({ allModels }) {
+  const [open, setOpen] = useState(false);
+  const nonCompat = Object.entries(allModels || {}).filter(
+    ([id]) => !BENCHMARK_COMPATIBLE_IDS.includes(id)
+  );
+  if (nonCompat.length === 0) return null;
+  return (
+    <div className="card" style={{ padding: 0 }}>
+      <button
+        type="button"
+        onClick={() => setOpen(v => !v)}
+        style={{
+          width: '100%', textAlign: 'left', padding: '12px 16px',
+          background: 'transparent', color: 'var(--text)', border: 'none',
+          cursor: 'pointer', fontWeight: 600, fontSize: 13,
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        }}
+      >
+        <span>
+          {open ? '▾' : '▸'} Other registered models — not benchmark-compatible
+          <span className="dim" style={{ fontWeight: 400, marginLeft: 8 }}>({nonCompat.length})</span>
+        </span>
+        <span className="badge neutral small-badge"><span className="dot" />read-only</span>
+      </button>
+      {open && (
+        <div style={{ padding: '0 16px 16px' }}>
+          <div className="warning-box info" style={{ marginBottom: 12 }}>
+            <span className="icon">ℹ</span>
+            <div>
+              Only models proven compatible with the same raw-feature CSV are selectable here.
+              These models remain visible in the registry as comparison-only, research-only,
+              negative-control, or documentation-only entries, but <strong>cannot be run in this benchmark</strong>.
+            </div>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {nonCompat.map(([modelId, entry]) => {
+              const reason = reasonNotSelectable(modelId, entry);
+              const status = entry?.status || '';
+              const roleLabel =
+                status === 'negative_control' ? 'NEGATIVE CONTROL' :
+                status === 'research_only'    ? 'RESEARCH ONLY' :
+                status === 'unsupported'      ? 'UNSUPPORTED' :
+                status === 'alias'            ? 'ALIAS' :
+                status === 'legacy_baseline'  ? 'LEGACY BASELINE' :
+                                                'COMPARISON ONLY';
+              return (
+                <div key={modelId} style={{
+                  display: 'flex', alignItems: 'flex-start', gap: 10, padding: '8px 10px',
+                  borderRadius: 6, background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)',
+                  flexWrap: 'wrap',
+                }}>
+                  <span className="mono" style={{ fontSize: 12, fontWeight: 600, minWidth: 230 }}>{modelId}</span>
+                  <span className="badge neutral small-badge" style={{ flexShrink: 0 }}>
+                    <span className="dot" />{roleLabel}
+                  </span>
+                  <span className="badge warn small-badge" style={{ flexShrink: 0 }}>
+                    <span className="dot" />NOT SELECTABLE
+                  </span>
+                  <span className="dim" style={{ fontSize: 12, fontStyle: 'italic' }}>{reason}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Benchmark result card ───────────────────────────────────────────────────
+
+function BenchmarkResultCard({ result }) {
+  const [expanded, setExpanded] = useState(true);
+  const isExec    = result.executable;
+  const isSkipped = result.skipped;
+  const role      = result.role || (isExec ? 'recommended_firewall' : 'benchmark_comparison');
+  const counts    = result.action_counts || {};
+
+  const roleBadge =
+    isExec          ? { label: 'EXECUTABLE · FINAL MODEL', tone: 'ok' } :
+    role === 'legacy_baseline'
+                    ? { label: 'LEGACY BASELINE',           tone: 'neutral' } :
+                      { label: 'BENCHMARK COMPARISON',      tone: 'info' };
+
+  return (
+    <div className="card mm-result-card" style={{ borderColor: isExec ? 'rgba(79,157,255,0.4)' : 'var(--border)' }}>
       <div className="mm-result-header">
         <div className="mm-result-title-row">
-          <span className="mono" style={{ fontWeight: 700, fontSize: 14 }}>
-            {result.model_id}
-          </span>
+          <span className="mono" style={{ fontWeight: 700, fontSize: 14 }}>{result.model_id}</span>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 4 }}>
-            {isDefault && (
-              <span className="badge ok small-badge">
-                <span className="dot" />Default firewall
-              </span>
-            )}
-            {isCmpOnly && (
-              <span className="badge info small-badge">
-                <span className="dot" />Comparison-only
-              </span>
-            )}
-            {isSkipped && (
-              <span className="badge warn small-badge">
-                <span className="dot" />Skipped
-              </span>
-            )}
-            {result.status && <StatusBadge status={result.status} />}
-            <span className="badge neutral small-badge">
-              <span className="dot" />simulation
+            <span className={`badge ${roleBadge.tone} small-badge`}>
+              <span className="dot" />{roleBadge.label}
             </span>
+            {result.benchmark_compatible && !isSkipped && (
+              <span className="badge ok small-badge"><span className="dot" />benchmark compatible</span>
+            )}
+            {isSkipped && <span className="badge warn small-badge"><span className="dot" />skipped</span>}
+            <span className="badge neutral small-badge"><span className="dot" />benchmark-only</span>
           </div>
         </div>
         <button
-          type="button"
-          className="secondary"
+          type="button" className="secondary"
           style={{ padding: '4px 10px', fontSize: 12 }}
-          onClick={() => setExpanded((v) => !v)}
+          onClick={() => setExpanded(v => !v)}
         >
           {expanded ? '▾ Collapse' : '▸ Expand'}
         </button>
       </div>
 
-      {/* ── skipped state ── */}
       {isSkipped && (
         <div className="warning-box warn" style={{ margin: '10px 0 0' }}>
           <span className="icon">⚠</span>
           <div>
-            <strong>Skipped</strong> — CSV is missing required features for this model.
+            <strong>Skipped</strong> — {result.skipped_reason || 'Missing required features.'}
             {result.missing_features && result.missing_features.length > 0 && (
               <ul className="clean" style={{ marginTop: 4 }}>
-                {result.missing_features.map((f) => (
+                {result.missing_features.map(f => (
                   <li key={f} className="mono" style={{ fontSize: 12 }}>{f}</li>
                 ))}
               </ul>
@@ -160,10 +212,8 @@ function ModelResultCard({ result }) {
         </div>
       )}
 
-      {/* ── expanded body ── */}
       {expanded && !isSkipped && (
         <div className="mm-result-body">
-          {/* metrics row */}
           <div className="mm-meta-grid">
             <div className="mm-meta-item">
               <div className="mm-meta-label">Prob column</div>
@@ -174,205 +224,70 @@ function ModelResultCard({ result }) {
               <div className="mm-meta-val mono">{result.aggregation || '—'}</div>
             </div>
             <div className="mm-meta-item">
-              <div className="mm-meta-label">Strict thr</div>
-              <div className="mm-meta-val">{fmt(result.thresholds?.strict)}</div>
+              <div className="mm-meta-label">Block thr.</div>
+              <div className="mm-meta-val">{fmt(result.block_threshold_used, 6)}</div>
             </div>
             <div className="mm-meta-item">
-              <div className="mm-meta-label">Balanced thr</div>
-              <div className="mm-meta-val">{fmt(result.thresholds?.balanced)}</div>
+              <div className="mm-meta-label">Rows used</div>
+              <div className="mm-meta-val">{result.rows_used ?? '—'}</div>
             </div>
             <div className="mm-meta-item">
-              <div className="mm-meta-label">Flows</div>
-              <div className="mm-meta-val">{result.total_flows}</div>
+              <div className="mm-meta-label">Captures</div>
+              <div className="mm-meta-val">{result.captures_used ?? '—'}</div>
             </div>
+            {result.AUC !== undefined && (
+              <div className="mm-meta-item">
+                <div className="mm-meta-label">AUC</div>
+                <div className="mm-meta-val" style={{ color: 'var(--ok)', fontWeight: 700 }}>
+                  {fmt(result.AUC)}
+                </div>
+              </div>
+            )}
             <div className="mm-meta-item">
-              <div className="mm-meta-label">Sessions</div>
-              <div className="mm-meta-val">{result.total_sessions}</div>
-            </div>
-            <div className="mm-meta-item">
-              <div className="mm-meta-label">Action mode</div>
-              <div className="mm-meta-val mono">{result.action_mode}</div>
+              <div className="mm-meta-label">Benchmark</div>
+              <div className="mm-meta-val"><span className="badge info small-badge">result only</span></div>
             </div>
             <div className="mm-meta-item">
               <div className="mm-meta-label">Prod-ready</div>
-              <div className="mm-meta-val">
-                <span className="badge bad small-badge">false</span>
-              </div>
+              <div className="mm-meta-val"><span className="badge bad small-badge">false</span></div>
             </div>
           </div>
 
-          {/* count tiles */}
-          <CountTiles counts={result.counts} />
-
-          {/* comparison-only disclaimer */}
-          {isCmpOnly && (
-            <div className="warning-box info" style={{ margin: '10px 0' }}>
-              <span className="icon">ℹ</span>
-              Benchmark result only — not deployment-approved.
+          <div className="mm-count-row">
+            <div className="mm-count-tile ok">
+              <div className="mm-count-num">{counts.PASS ?? 0}</div>
+              <div className="mm-count-label">PASS</div>
             </div>
-          )}
-
-          {/* warnings from backend */}
-          {result.warnings && result.warnings.length > 0 && (
-            <div className="mm-warnings">
-              {result.warnings.map((w, i) => (
-                <div key={i} className="mm-warning-line">⚠ {w}</div>
-              ))}
+            <div className="mm-count-tile warn">
+              <div className="mm-count-num">{counts.FLAG_REVIEW ?? 0}</div>
+              <div className="mm-count-label">FLAG_REVIEW</div>
             </div>
-          )}
-
-          {/* session table */}
-          <div style={{ marginTop: 12 }}>
-            <div
-              style={{
-                fontSize: 12,
-                fontWeight: 600,
-                color: 'var(--text-dim)',
-                marginBottom: 6,
-                textTransform: 'uppercase',
-                letterSpacing: '0.06em',
-              }}
-            >
-              Per-session decisions (simulated)
-            </div>
-            <SessionTable sessions={result.sessions} />
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ─── model selector ───────────────────────────────────────────────────────────
-
-function ModelSelector({ runtimeModels, selected, onToggle }) {
-  if (!runtimeModels || runtimeModels.length === 0) return null;
-  return (
-    <div className="mm-model-selector">
-      {runtimeModels.map((m) => {
-        const checked = selected.has(m.model_id);
-        const isDefault = m.default_firewall;
-        return (
-          <label
-            key={m.model_id}
-            className={`mm-model-checkbox-card ${checked ? 'checked' : ''} ${isDefault ? 'default-fw' : ''}`}
-          >
-            <div className="mm-checkbox-row">
-              <input
-                type="checkbox"
-                checked={checked}
-                onChange={() => onToggle(m.model_id)}
-              />
-              <span className="mono" style={{ fontWeight: 600, fontSize: 13 }}>
-                {m.model_id}
-              </span>
-              <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                {isDefault && (
-                  <span className="badge ok small-badge">
-                    <span className="dot" />Default FW
-                  </span>
-                )}
-                {!isDefault && (
-                  <span className="badge info small-badge">
-                    <span className="dot" />Comparison
-                  </span>
-                )}
-              </div>
-            </div>
-            <div className="mm-model-meta">
-              <span>{m.feature_count} features</span>
-              <span className="mono">{m.selected_probability_column}</span>
-              <span className="mono">{m.selected_aggregation}</span>
-            </div>
-            {m.ui_warning && (
-              <div className="mm-model-warning">{m.ui_warning}</div>
-            )}
-          </label>
-        );
-      })}
-    </div>
-  );
-}
-
-// ─── required features section ───────────────────────────────────────────────
-
-function RequiredFeaturesSection({ featureInfo, runtimeModels }) {
-  const [show, setShow] = useState(false);
-  if (!featureInfo) return null;
-  return (
-    <div className="card" style={{ padding: 0 }}>
-      <button
-        type="button"
-        onClick={() => setShow((v) => !v)}
-        style={{
-          width: '100%',
-          textAlign: 'left',
-          padding: '12px 16px',
-          background: 'transparent',
-          color: 'var(--text)',
-          border: 'none',
-          cursor: 'pointer',
-          fontWeight: 600,
-          fontSize: 13,
-          display: 'flex',
-          justifyContent: 'space-between',
-        }}
-      >
-        <span>{show ? '▾' : '▸'} Required features ({featureInfo.union_feature_count} in union)</span>
-        <span className="badge neutral small-badge">
-          {(featureInfo.optional_columns || []).join(' · ')} optional
-        </span>
-      </button>
-      {show && (
-        <div style={{ padding: '0 16px 16px' }}>
-          <div className="warning-box info" style={{ marginBottom: 12 }}>
-            <span className="icon">ℹ</span>
-            <div>
-              A model is <strong>skipped</strong> if the uploaded CSV lacks its required columns —
-              other models in the same request still run.{' '}
-              Labels (<span className="mono">label</span>) are optional for prediction and
-              required only for evaluation metrics.
+            <div className="mm-count-tile bad">
+              <div className="mm-count-num">{counts.BLOCK ?? 0}</div>
+              <div className="mm-count-label">SIM. BLOCK</div>
             </div>
           </div>
 
-          <div style={{ marginBottom: 10 }}>
-            <div style={{ fontWeight: 600, fontSize: 12, color: 'var(--text-dim)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              Union of all required features ({featureInfo.union_feature_count})
-            </div>
-            <div className="mm-feature-chips">
-              {(featureInfo.union_required_features || []).map((f) => (
-                <span key={f} className="mm-feature-chip">{f}</span>
-              ))}
-            </div>
-          </div>
-
-          <div style={{ marginBottom: 10 }}>
-            <div style={{ fontWeight: 600, fontSize: 12, color: 'var(--text-dim)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              Optional pass-through columns
-            </div>
-            <div className="mm-feature-chips">
-              {(featureInfo.optional_columns || []).map((f) => (
-                <span key={f} className="mm-feature-chip optional">{f}</span>
-              ))}
-            </div>
-          </div>
-
-          {runtimeModels && runtimeModels.map((m) => {
-            const perModel = featureInfo.per_model_required_features?.[m.model_id] || [];
-            return (
-              <details key={m.model_id} className="mm-per-model-features">
-                <summary>
-                  <span className="mono">{m.model_id}</span>
-                  <span className="dim"> — {perModel.length} features</span>
-                </summary>
-                <div className="mm-feature-chips" style={{ marginTop: 6 }}>
-                  {perModel.map((f) => (
-                    <span key={f} className="mm-feature-chip">{f}</span>
-                  ))}
+          {(result.TP !== undefined || result.FP !== undefined) && (
+            <div className="mm-meta-grid" style={{ marginTop: 10 }}>
+              {[['TP', result.TP], ['FP', result.FP], ['TN', result.TN], ['FN', result.FN]].map(([k, v]) => (
+                <div className="mm-meta-item" key={k}>
+                  <div className="mm-meta-label">{k}</div>
+                  <div className="mm-meta-val">{v ?? '—'}</div>
                 </div>
-              </details>
-            );
-          })}
+              ))}
+            </div>
+          )}
+
+          <div className="warning-box info" style={{ margin: '10px 0 0' }}>
+            <span className="icon">ℹ</span>
+            Benchmark result only — does not affect firewall decisions.
+          </div>
+          {result.warning && (
+            <div className="mm-warnings" style={{ marginTop: 6 }}>
+              <div className="mm-warning-line">⚠ {result.warning}</div>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -382,38 +297,23 @@ function RequiredFeaturesSection({ featureInfo, runtimeModels }) {
 // ─── main page ────────────────────────────────────────────────────────────────
 
 export default function MultiModelCsvEvaluation() {
-  const [runtimeModels,  setRuntimeModels]  = useState(null);
-  const [featureInfo,    setFeatureInfo]     = useState(null);
-  const [loadError,      setLoadError]       = useState(null);
-  const [loading,        setLoading]         = useState(true);
+  const [allModels, setAllModels] = useState(null);
+  const [loadError, setLoadError] = useState(null);
+  const [loading,   setLoading]   = useState(true);
 
-  // Selected model IDs (Set).
-  const [selected, setSelected] = useState(new Set());
-
-  // Results state.
-  const [results,   setResults]   = useState(null);  // { input_summary, model_results, ... }
+  const [results,   setResults]   = useState(null);
   const [running,   setRunning]   = useState(false);
   const [runError,  setRunError]  = useState(null);
 
-  // File input.
   const fileRef = useRef(null);
-  const [fileName, setFileName] = useState('');
+  const [fileName,         setFileName]         = useState('');
+  const [validationError,  setValidationError]  = useState('');
 
-  // Validation errors.
-  const [validationError, setValidationError] = useState('');
-
-  // ── load runtime models on mount ──
   useEffect(() => {
     (async () => {
       try {
-        const [models, feats] = await Promise.all([
-          api.runtimeModels(),
-          api.runtimeRequiredFeatures(),
-        ]);
-        setRuntimeModels(models);
-        setFeatureInfo(feats);
-        // Default: all models checked.
-        setSelected(new Set(models.map((m) => m.model_id)));
+        const models = await api.models();
+        setAllModels(models);
       } catch (e) {
         setLoadError(e.message);
       } finally {
@@ -422,251 +322,186 @@ export default function MultiModelCsvEvaluation() {
     })();
   }, []);
 
-  function toggleModel(id) {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
+  const compatibleEntries = BENCHMARK_COMPATIBLE_IDS.map(id => ({
+    id, entry: allModels?.[id] || {},
+  }));
+
+  async function runBundled() {
+    setRunError(null); setResults(null); setRunning(true);
+    try { setResults(await api.benchmarkBundled()); }
+    catch (e) { setRunError(e.message); }
+    finally { setRunning(false); }
   }
 
-  // ── run demo ──
-  async function runDemo() {
-    setRunError(null);
-    setResults(null);
-    setRunning(true);
-    try {
-      const data = await api.multimodelDemo();
-      setResults(data);
-    } catch (e) {
-      setRunError(e.message);
-    } finally {
-      setRunning(false);
-    }
-  }
-
-  // ── upload & analyze ──
-  async function analyzeFile() {
+  async function runUpload() {
     setValidationError('');
     const file = fileRef.current?.files?.[0];
-    if (!file) {
-      setValidationError('Please select a CSV file before clicking Analyze.');
-      return;
-    }
-    if (selected.size === 0) {
-      setValidationError('Select at least one model before analyzing.');
-      return;
-    }
-    setRunError(null);
-    setResults(null);
-    setRunning(true);
-    try {
-      const ids = [...selected].join(',');
-      const data = await api.analyzeMultimodelCsv(file, ids);
-      setResults(data);
-    } catch (e) {
-      setRunError(e.message);
-    } finally {
-      setRunning(false);
-    }
+    if (!file) { setValidationError('Please select a CSV file before clicking Analyze.'); return; }
+    setRunError(null); setResults(null); setRunning(true);
+    try { setResults(await api.benchmarkUploadCsv(file)); }
+    catch (e) { setRunError(e.message); }
+    finally { setRunning(false); }
   }
 
-  // ── derived ──
-  const totalRun     = results?.model_results?.filter((r) => !r.skipped).length ?? 0;
-  const totalSkipped = results?.model_results?.filter((r) =>  r.skipped).length ?? 0;
+  const modelsRun     = results?.models_run?.length ?? 0;
+  const modelsSkipped = results?.models_skipped?.length ?? 0;
 
-  // ── render ──
   return (
     <div>
-      {/* ── page header ── */}
       <div className="page-header">
         <div>
-          <h1>Multi-model evaluation</h1>
+          <h1>Compatible model benchmark</h1>
           <div className="subtitle">
-            Compare selected runtime models on the same uploaded CSV.
-            Benchmarking only &mdash; firewall decisions remain{' '}
-            <strong>simulated</strong>.
+            Simultaneous benchmark of <strong>4 audit-approved compatible models</strong> against the same
+            raw-feature CSV. Only audit-approved compatible models are selectable here —
+            all other models remain visible in the registry for comparison/documentation only.
+            Benchmark results are <strong>read-only</strong> and do not affect firewall decisions.
           </div>
         </div>
       </div>
 
       <WarningBox tone="warn">
-        <strong>Simulation only.</strong> This compares selected runtime models on the same
-        uploaded CSV. It does not deploy or block traffic. BLOCK decisions are simulated and
-        have no effect on any network.
+        <strong>Simulation only.</strong>{' '}
+        Only <span className="mono">full_canonical__lgbm</span> is the executable firewall model.{' '}
+        <span className="mono">robust9_firewall</span>, <span className="mono">balanced_bagging_3ds_reference</span>,
+        and <span className="mono">balanced_bagging_baseline</span> are benchmark-compatible but comparison-only —
+        their results do not constitute firewall decisions. No real packets are examined or blocked.
       </WarningBox>
 
-      {/* ── loading / error ── */}
-      {loading && (
-        <div className="loading-line">
-          <span className="spinner" />Loading runtime model list…
-        </div>
-      )}
-      {loadError && (
-        <div className="error-box">
-          Failed to load runtime models: {loadError}
-        </div>
-      )}
+      {loading && <div className="loading-line"><span className="spinner" />Loading registry…</div>}
+      {loadError && <div className="error-box">Failed to load: {loadError}</div>}
 
       {!loading && !loadError && (
         <>
-          {/* ── model selector ── */}
+          {/* compatible models */}
           <div className="section">
-            <div
-              style={{
-                fontSize: 12,
-                fontWeight: 600,
-                color: 'var(--text-dim)',
-                textTransform: 'uppercase',
-                letterSpacing: '0.06em',
-                marginBottom: 10,
-              }}
-            >
-              Select runtime models ({selected.size} / {runtimeModels?.length ?? 0} selected)
+            <div style={{
+              fontSize: 12, fontWeight: 600, color: 'var(--text-dim)',
+              textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8,
+            }}>
+              Audit-approved benchmark-compatible models
+              <span className="badge ok small-badge" style={{ marginLeft: 10 }}>
+                <span className="dot" />{BENCHMARK_COMPATIBLE_IDS.length} selectable
+              </span>
             </div>
-            <ModelSelector
-              runtimeModels={runtimeModels}
-              selected={selected}
-              onToggle={toggleModel}
-            />
+            <div className="mm-model-selector">
+              {compatibleEntries.map(({ id, entry }) => (
+                <CompatibleModelCard key={id} modelId={id} entry={entry} />
+              ))}
+            </div>
           </div>
 
-          {/* ── required features (collapsible) ── */}
+          {/* non-compatible section (collapsed) */}
           <div className="section">
-            <RequiredFeaturesSection
-              featureInfo={featureInfo}
-              runtimeModels={runtimeModels}
-            />
+            <NonCompatibleSection allModels={allModels} />
           </div>
 
-          {/* ── demo button ── */}
+          {/* bundled benchmark */}
           <div className="section card">
             <h2 style={{ marginTop: 0 }}>Bundled benchmark</h2>
-            <p className="dim" style={{ marginTop: 0, marginBottom: 12 }}>
-              Uses <span className="mono">demo_multimodel_flows.csv</span> (50 flows, 4 sessions)
-              and runs <strong>all 5 runtime allowlist models</strong> regardless of
-              checkbox selection above.
+            <p className="dim" style={{ marginTop: 0, marginBottom: 8 }}>
+              Uses <span className="mono">simultaneous_test_selected_models.csv</span> (7,952 flows, 104 captures).
+              Runs all 4 compatible models simultaneously.
             </p>
-            <button type="button" onClick={runDemo} disabled={running}>
-              {running ? <><span className="spinner" /> Running…</> : '▶ Run multi-model demo'}
+            <div className="warning-box info" style={{ marginBottom: 12 }}>
+              <span className="icon">ℹ</span>
+              <strong>Static simultaneous benchmark — not runtime firewall inference.</strong>{' '}
+              Only <span className="mono">full_canonical__lgbm</span> results represent executable inference.
+              All others are benchmark comparison only.
+            </div>
+            <button type="button" onClick={runBundled} disabled={running}>
+              {running ? <><span className="spinner" /> Running…</> : '▶ Run compatible benchmark'}
             </button>
           </div>
 
-          {/* ── CSV upload ── */}
+          {/* CSV upload */}
           <div className="section card">
-            <h2 style={{ marginTop: 0 }}>Uploaded CSV benchmark</h2>
+            <h2 style={{ marginTop: 0 }}>Analyze CSV with benchmark-compatible models</h2>
             <p className="dim" style={{ marginTop: 0, marginBottom: 12 }}>
-              Models whose required features are absent in your CSV will be gracefully
-              skipped — other selected models still run.
+              Upload a CSV containing the union of required features for the 4 compatible models.
+              Each model selects its own required subset — missing features cause only that model to be skipped.
             </p>
-
             <div className="mm-file-row">
               <label className="mm-file-label">
                 <input
-                  ref={fileRef}
-                  type="file"
-                  accept=".csv"
+                  ref={fileRef} type="file" accept=".csv"
                   onChange={(e) => setFileName(e.target.files?.[0]?.name || '')}
                   style={{ display: 'none' }}
                 />
-                <span className="button secondary"> Choose CSV file</span>
+                <span className="button secondary">Choose CSV file</span>
                 {fileName
                   ? <span className="mono" style={{ fontSize: 12 }}>{fileName}</span>
                   : <span className="muted" style={{ fontSize: 12 }}>No file selected</span>
                 }
               </label>
-              <button
-                type="button"
-                onClick={analyzeFile}
-                disabled={running || selected.size === 0}
-              >
-                {running
-                  ? <><span className="spinner" /> Analyzing…</>
-                  : `Analyze CSV (${selected.size} model${selected.size !== 1 ? 's' : ''})`
-                }
+              <button type="button" onClick={runUpload} disabled={running}>
+                {running ? <><span className="spinner" /> Analyzing…</> : 'Analyze CSV with benchmark-compatible models'}
               </button>
             </div>
-
             {validationError && (
-              <div className="error-box" style={{ marginTop: 10 }}>
-                {validationError}
-              </div>
-            )}
-            {selected.size === 0 && (
-              <div className="warning-box warn" style={{ marginTop: 10 }}>
-                <span className="icon">⚠</span>
-                Select at least one model to analyze.
-              </div>
+              <div className="error-box" style={{ marginTop: 10 }}>{validationError}</div>
             )}
           </div>
         </>
       )}
 
-      {/* ── run error ── */}
       {runError && (
         <div className="error-box" style={{ marginBottom: 16 }}>
           <strong>Error:</strong> {runError}
         </div>
       )}
 
-      {/* ── results ── */}
       {running && !results && (
-        <div className="loading-line">
-          <span className="spinner" />Running inference across selected models…
-        </div>
+        <div className="loading-line"><span className="spinner" />Running benchmark…</div>
       )}
 
       {results && (
         <div className="section">
-          {/* input summary banner */}
           <div className="mm-input-summary">
             <span>
-              <strong>{results.input_summary?.total_flows ?? '?'}</strong> flows
+              <strong>{results.benchmark_csv_info?.rows ?? '?'}</strong> flows
             </span>
             <span className="dim">·</span>
             <span>
-              <strong>{results.input_summary?.total_sessions ?? '?'}</strong> sessions
+              <strong>{results.benchmark_csv_info?.captures ?? '?'}</strong> captures
             </span>
             <span className="dim">·</span>
             <span>
-              <strong>{totalRun}</strong> model{totalRun !== 1 ? 's' : ''} scored
+              <strong>{modelsRun}</strong> model{modelsRun !== 1 ? 's' : ''} run
             </span>
-            {totalSkipped > 0 && (
+            {modelsSkipped > 0 && (
               <>
                 <span className="dim">·</span>
                 <span className="badge warn small-badge">
-                  <span className="dot" />{totalSkipped} skipped
+                  <span className="dot" />{modelsSkipped} skipped
                 </span>
               </>
             )}
-            <span className="badge neutral small-badge">
-              <span className="dot" />simulation
-            </span>
+            <span className="badge neutral small-badge"><span className="dot" />benchmark-only</span>
+            {results.source && (
+              <span className="badge info small-badge"><span className="dot" />{results.source}</span>
+            )}
           </div>
 
-          {/* global warnings */}
           {results.warnings && results.warnings.length > 0 && (
             <WarningBox tone="info">
-              {results.warnings.map((w, i) => (
-                <div key={i}>{w}</div>
-              ))}
+              {results.warnings.map((w, i) => <div key={i}>{w}</div>)}
             </WarningBox>
           )}
 
-          {/* per-model result cards */}
           <div className="mm-results-grid">
-            {(results.model_results || []).map((r) => (
-              <ModelResultCard key={r.model_id} result={r} />
+            {(results.per_model_results || []).map(r => (
+              <BenchmarkResultCard key={r.model_id} result={r} />
             ))}
           </div>
         </div>
       )}
 
-      {/* ── footer ── */}
       <div className="mm-page-footer">
-        Multi-model CSV evaluation is for benchmarking only. Firewall decisions
-        remain simulation-only. No real packets are examined or blocked.
+        Compatible model benchmark — only audit-approved models are selectable.{' '}
+        Only <code className="mono">full_canonical__lgbm</code> is executable as the firewall prototype.
+        All benchmark results are read-only. No real packets are examined or blocked.
+        Prototype is not production-ready.
       </div>
     </div>
   );

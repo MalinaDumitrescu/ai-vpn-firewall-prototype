@@ -134,7 +134,13 @@ class RuntimeModelEngine:
         if not rel:
             return None
         path = BUNDLE_ROOT / rel
-        return joblib.load(path) if path.exists() else None
+        if not path.exists():
+            return None
+        obj = joblib.load(path)
+        # Handle wrapped calibrator dict: {'method': ..., 'model': <calibrator>, ...}
+        if isinstance(obj, dict) and "model" in obj:
+            return obj["model"]
+        return obj
 
     @staticmethod
     def _proba(model: Any, X: np.ndarray) -> np.ndarray:

@@ -11,6 +11,7 @@ from .registry_loader import BUNDLE_ROOT, COMPARISON_CSV_PATH, DEMO_FLOWS_PATH, 
 from .robust9_inference import REQUIRED_FEATURES as ROBUST9_REQUIRED_FEATURES
 
 DEMO_MULTIMODEL_FLOWS_PATH = BUNDLE_ROOT / "demo_data" / "demo_multimodel_flows.csv"
+BENCHMARK_CSV_PATH = BUNDLE_ROOT / "demo_data" / "simultaneous_test_selected_models.csv"
 
 
 def load_demo_flows() -> pd.DataFrame:
@@ -31,6 +32,21 @@ def load_multimodel_demo_flows() -> pd.DataFrame:
     if not DEMO_MULTIMODEL_FLOWS_PATH.exists():
         raise FileNotFoundError(f"Multimodel demo CSV missing: {DEMO_MULTIMODEL_FLOWS_PATH}")
     return pd.read_csv(DEMO_MULTIMODEL_FLOWS_PATH)
+
+
+def load_benchmark_csv() -> pd.DataFrame:
+    """Load the simultaneous benchmark CSV (7,952 flows, 104 captures).
+
+    This is the audit-generated benchmark CSV compatible with the 4 selected models:
+    full_canonical__lgbm, robust9_firewall, balanced_bagging_3ds_reference,
+    balanced_bagging_baseline.
+    """
+    if not BENCHMARK_CSV_PATH.exists():
+        raise FileNotFoundError(
+            f"Benchmark CSV missing: {BENCHMARK_CSV_PATH}. "
+            "Expected: demo_data/simultaneous_test_selected_models.csv"
+        )
+    return pd.read_csv(BENCHMARK_CSV_PATH)
 
 
 def parse_uploaded_csv(raw_bytes: bytes) -> pd.DataFrame:

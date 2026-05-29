@@ -1,0 +1,11 @@
+Rank,Configuration,Type,Calibration,Aggregation,Session AUC,Session PR-AUC,Block Recall,Block FPR,Block Precision,Flag Recall,Block Threshold,Rank Score
+1,LightGBM (3 bags),single_family,raw,p90,0.9902,0.9815,0.7059,0.0,1.0,1.0,0.968,1081.5784
+2,Ensemble (isotonic),ensemble_9,isotonic,p90,0.9902,0.9775,0.7059,0.0,1.0,1.0,0.9588,1081.5784
+3,XGBoost (3 bags),single_family,raw,p90,0.9941,0.9896,0.6471,0.0,1.0,1.0,0.981,1075.7
+4,Ensemble (platt),ensemble_9,platt,p90,0.9922,0.9867,0.6471,0.0,1.0,1.0,0.9522,1075.698
+5,ensemble_3 (isotonic),ensemble_3,isotonic,p90,0.9902,0.9775,0.7059,0.0,,,0.9588,1071.5784
+6,ensemble_9 (isotonic),ensemble_9,isotonic,p90,0.9902,0.9775,0.7059,0.0,,,0.9588,1071.5784
+7,Ensemble (raw),ensemble_9,raw,p90,0.9922,0.9867,0.5882,0.0,1.0,1.0,0.9694,1069.8157
+8,CatBoost (3 bags),single_family,raw,p90,0.9902,0.9836,0.5882,0.0,1.0,0.8235,0.9591,1068.049
+9,ensemble_9 (raw),ensemble_9,raw,p90,0.9922,0.9867,0.5882,0.0,,,0.9694,1059.8157
+10,ensemble_3 (raw),ensemble_3,raw,p90,0.9922,0.9867,0.5882,0.0,,,0.9694,1059.8157

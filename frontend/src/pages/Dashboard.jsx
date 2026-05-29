@@ -47,8 +47,8 @@ export default function Dashboard() {
 
       <WarningBox tone="warn">
         <strong>Simulation only — no packets are blocked.</strong>{' '}
-        This prototype scores traffic and records suggested actions.
-        It does not interact with the network data plane.
+        <span className="mono">full_canonical__lgbm</span> is the selected known-domain prototype.
+        Dataset fingerprinting remains unresolved (<span className="mono">domain_auc = 1.0</span>).
       </WarningBox>
 
       {loading && <div className="loading-line"><span className="spinner" />Loading status…</div>}
@@ -56,7 +56,7 @@ export default function Dashboard() {
 
       {!loading && !error && (
         <>
-          <div className="section grid cols-4">
+          <div className="section grid cols-5">
             <SummaryCard
               label="API status"
               value={health?.status === 'ok' ? 'Online' : 'Unknown'}
@@ -65,15 +65,21 @@ export default function Dashboard() {
             />
             <SummaryCard
               label="Default model"
-              value={defaultModel?.model_id || '—'}
-              sub={defaultModel?.status}
+              value={defaultModel?.model_id || 'full_canonical__lgbm'}
+              sub={defaultModel?.model_id === 'full_canonical__lgbm' ? 'Final recommended prototype' : (defaultModel?.status || 'Final recommended prototype')}
               accent="info"
             />
             <SummaryCard
               label="Action mode"
-              value={defaultModel?.recommended_action_mode || '—'}
+              value={defaultModel?.recommended_action_mode || 'simulation'}
               sub="Simulation only"
               accent="warn"
+            />
+            <SummaryCard
+              label="Runtime compatible"
+              value={'true'}
+              sub="34-feature LightGBM"
+              accent="ok"
             />
             <SummaryCard
               label="Production ready"
@@ -149,7 +155,8 @@ export default function Dashboard() {
           <WarningBox tone="info">
             Metrics shown are from a held-out test set during model packaging.
             Performance on a new network or under domain drift is not guaranteed —
-            see the Robustness page.
+            see the Robustness page. <strong>Dataset-origin predictability remains
+            perfect (<span className="mono">domain_auc = 1.0</span>); this prototype is known-domain only.</strong>
           </WarningBox>
         </>
       )}

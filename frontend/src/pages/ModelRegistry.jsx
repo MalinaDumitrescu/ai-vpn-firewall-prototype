@@ -5,27 +5,42 @@ import WarningBox from '../components/WarningBox.jsx';
 
 const GROUP_META = {
   main_demo_comparison: {
-    title: 'Main demo comparison',
+    title: 'Main demo & comparison',
     subtitle:
-      'The curated set used by the Model Comparison page. One default model plus five policy_computed baselines.',
+      'full_canonical__lgbm — EXECUTABLE · FINAL MODEL / deployment-eligible / simulation-only. ' +
+      'robust9_firewall — LEGACY BASELINE / benchmark-compatible / comparison-only. ' +
+      'timing_shape__lgbm — BENCHMARK COMPARISON / diagnostic / comparison-only. ' +
+      'balanced_bagging_* — BENCHMARK COMPARISON / comparison-only. ' +
+      'robust13_comparison — COMPARISON ONLY / not benchmark-selectable (requires session-derived features).',
     tone: 'info',
+  },
+  research_only: {
+    title: 'Research-only (DANN v2)',
+    subtitle:
+      'RESEARCH ONLY. Adversarial domain-adaptation research candidates. DANN v2 did not meaningfully reduce ' +
+      'embedding-domain fingerprinting (domain_reduction ≈ 0.0003) and was not selected for deployment. ' +
+      'Not runtime-compatible. Not benchmark-selectable.',
+    tone: 'warn',
   },
   advanced_unsafe_benchmark: {
     title: 'Advanced unsafe benchmarks',
     subtitle:
-      'Reference benchmarks with nonzero strict FPR. Visible to admins so reviewers can see what we rejected. Never used for firewall actions.',
+      'COMPARISON ONLY. Reference benchmarks with nonzero strict FPR. Never used for firewall actions. ' +
+      'Not benchmark-selectable.',
     tone: 'warn',
   },
   robustness_negative_control: {
     title: 'Robustness negative controls (LODO)',
     subtitle:
-      'Leave-one-dataset-out stress tests. They demonstrate the unseen-domain failure mode and are not deployable.',
+      'NEGATIVE CONTROL. Leave-one-dataset-out stress tests — they demonstrate the unseen-domain failure mode and ' +
+      'are NOT deployable. Not benchmark-selectable. Report-only.',
     tone: 'bad',
   },
   hidden_alias_or_unsupported: {
     title: 'Hidden: aliases & unsupported',
     subtitle:
-      'Aliases of other models and documentation-only stubs. Hidden from normal users; shown here only for registry auditing.',
+      'UNSUPPORTED / ALIAS / DOCUMENTATION-ONLY. Aliases of other models and documentation-only stubs. ' +
+      'Not benchmark-selectable. Hidden from normal users — shown here only for registry auditing.',
     tone: 'neutral',
   },
   _ungrouped: {
@@ -37,6 +52,7 @@ const GROUP_META = {
 
 const GROUP_ORDER = [
   'main_demo_comparison',
+  'research_only',
   'advanced_unsafe_benchmark',
   'robustness_negative_control',
   'hidden_alias_or_unsupported',
@@ -95,9 +111,12 @@ export default function ModelRegistry() {
       </div>
 
       <WarningBox tone="info">
-        <strong>One default model.</strong> Every other entry is comparison-only,
-        a negative control, or unsupported — they are shown so reviewers can
-        audit the registry, not so they can be deployed.
+        <strong>Permission summary:</strong>{' '}
+        <span className="mono">full_canonical__lgbm</span> — <strong>EXECUTABLE · FINAL MODEL</strong> / deployment-eligible / benchmark-compatible.{' '}
+        <span className="mono">robust9_firewall</span>, <span className="mono">balanced_bagging_3ds_reference</span>,{' '}
+        <span className="mono">balanced_bagging_baseline</span> — <strong>BENCHMARK COMPATIBLE</strong> / comparison-only.{' '}
+        All other models — <strong>NOT SELECTABLE</strong> in benchmark / comparison-only / research-only / negative-control / unsupported.
+        No model except <span className="mono">full_canonical__lgbm</span> runs firewall inference.
       </WarningBox>
 
       {loading && <div className="loading-line"><span className="spinner" />Loading registry…</div>}

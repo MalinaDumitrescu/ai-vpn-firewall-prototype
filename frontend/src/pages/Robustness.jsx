@@ -42,11 +42,36 @@ export default function Robustness() {
         datasets. Treat the default model as a <em>known-domain</em> prototype only.
       </WarningBox>
 
+      <WarningBox tone="info">
+        The executable prototype model is <span className="mono">full_canonical__lgbm</span>.
+        Other models are shown only for comparison, negative-control, or research documentation.
+        Unseen-domain robustness is not solved, and the prototype remains simulation-only.
+      </WarningBox>
+
+      <div className="section">
+        <div className="card">
+          <h2>Final research outcome</h2>
+          <p style={{ lineHeight: 1.7, marginTop: 8, marginBottom: 0 }}>
+            The final selected model is <span className="mono">full_canonical__lgbm</span>.
+            It achieved the best deployment score among runtime-compatible and
+            LODO-evaluated models. However, dataset-origin predictability remains
+            perfect (<span className="mono">domain_auc = 1.0</span>), and DANN v2 did
+            not meaningfully reduce embedding fingerprinting
+            (<span className="mono">domain_reduction ≈ 0.0003</span>).
+            Therefore, the prototype remains <strong>known-domain and simulation-only</strong>.
+          </p>
+        </div>
+      </div>
+
       <div className="section grid cols-2">
         <div className="card">
           <h2>Honest scope of this prototype</h2>
           <ul className="clean">
-            <li>The default model works only as a <strong>known-domain</strong> prototype.</li>
+            <li>
+              <span className="mono">full_canonical__lgbm</span> is the final selected model —
+              the <strong>best known-domain simulation prototype</strong>.
+            </li>
+            <li><span className="mono">robust9_firewall</span> is a <strong>legacy baseline</strong> kept for comparison only — not the recommended model.</li>
             <li>LODO models are <strong>negative controls</strong>, not deployable.</li>
             <li><strong>Unseen-domain robustness is not solved.</strong></li>
             <li>
@@ -62,7 +87,7 @@ export default function Robustness() {
             <li>Collect labelled traffic from the target network.</li>
             <li>Re-run validation and recompute strict/balanced thresholds on local data.</li>
             <li>Refit isotonic calibration on local scores.</li>
-            <li>Stand up drift monitoring on the 9 input features and on score distributions.</li>
+            <li>Stand up drift monitoring on the 34 input features and on score distributions.</li>
             <li>Keep <span className="mono">action_mode = simulation</span> until reviewers approve live mode.</li>
           </ul>
         </div>

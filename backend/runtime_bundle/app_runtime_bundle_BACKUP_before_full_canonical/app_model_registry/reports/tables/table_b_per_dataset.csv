@@ -1,0 +1,4 @@
+Dataset,Sessions,VPN Sessions,Benign Sessions,Session AUC,Block Recall,Block FPR,Flag Recall,Flag FPR
+ALL,47,17,30,0.9902,0.7059,0.0,1.0,0.0667
+iscx,21,4,17,1.0,1.0,0.0,1.0,0.0588
+vnat,26,13,13,0.9793,0.6154,0.0,1.0,0.0769

@@ -53,9 +53,9 @@ export default function FirewallDemo() {
     <div>
       <div className="page-header">
         <div>
-          <h1>Single-model demo</h1>
+          <h1>Final model demo</h1>
           <div className="subtitle">
-            Run the default <span className="mono">full_canonical__lgbm</span>{' '}
+            Run the final selected <span className="mono">full_canonical__lgbm</span>{' '}
             model on bundled flows or an uploaded CSV. All actions are{' '}
             <strong>simulated</strong>.
           </div>
@@ -171,9 +171,8 @@ export default function FirewallDemo() {
           <div className="dim">
             Click <strong>Run bundled demo</strong> to score the sample flows shipped
             with the runtime bundle using <span className="mono">full_canonical__lgbm</span>{' '}
-            (34 features), or upload a CSV containing the full-canonical feature set
-            (<span className="mono">sz_coef_variation, sz_all_mean, iat_all_mean, …</span> — 34 total).
-            For the legacy 9-feature robust9 schema use the multi-model evaluation page.
+            (34 full-canonical features), or upload a CSV containing the full-canonical feature set
+            (<span className="mono">sz_coef_variation, sz_all_mean, iat_all_mean, …</span> — 34 features total).
           </div>
         </div>
       )}

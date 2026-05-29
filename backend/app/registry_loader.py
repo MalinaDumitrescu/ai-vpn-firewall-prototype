@@ -9,6 +9,25 @@ from typing import Any, Dict, List, Optional  # noqa: F401 – List used by call
 # Only this model may run inference.  All others are comparison/documentation.
 EXECUTABLE_FIREWALL_MODEL_ID = "full_canonical__lgbm"
 
+# ── Audit-approved benchmark-compatible models ─────────────────────────────
+# These four models share the same raw-feature CSV schema and may be selected
+# simultaneously in benchmark tests. All others are excluded from the benchmark
+# page (they remain visible in the registry for comparison/documentation only).
+BENCHMARK_COMPATIBLE_MODEL_IDS: List[str] = [
+    "full_canonical__lgbm",
+    "robust9_firewall",
+    "balanced_bagging_3ds_reference",
+    "balanced_bagging_baseline",
+]
+
+# ── Explicitly incompatible benchmark models ───────────────────────────────
+# These require session-derived probability features absent from the raw-feature
+# simultaneous benchmark CSV and must never appear in the benchmark page.
+BENCHMARK_INCOMPATIBLE_MODEL_IDS: List[str] = [
+    "balanced_bagging_xgb_baseline",
+    "robust13_comparison",
+]
+
 # Bundle root: backend/runtime_bundle/app_runtime_bundle/
 BUNDLE_ROOT = Path(__file__).resolve().parent.parent / "runtime_bundle" / "app_runtime_bundle"
 

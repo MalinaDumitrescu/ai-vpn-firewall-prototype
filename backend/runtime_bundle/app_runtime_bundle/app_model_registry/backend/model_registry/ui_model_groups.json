@@ -1,15 +1,19 @@
 {
-  "generated_utc": "2026-05-28T22:04:33.103285+00:00",
+  "generated_utc": "2026-05-29T00:00:00.000000+00:00",
   "default_firewall_model": "full_canonical__lgbm",
   "groups": {
     "main_demo_comparison": [
       "full_canonical__lgbm",
       "robust9_firewall",
+      "timing_shape__lgbm",
       "balanced_bagging_3ds_reference",
       "balanced_bagging_xgb_baseline",
       "balanced_bagging_baseline",
       "robust13_comparison",
       "balanced_bagging_tuned_baseline"
+    ],
+    "research_only": [
+      "dann_v2_adversarial"
     ],
     "advanced_unsafe_benchmark": [
       "clean_pooled_benchmark",
@@ -27,5 +31,7 @@
     ]
   },
   "recommended_firewall": "full_canonical__lgbm",
-  "legacy_baseline": "robust9_firewall"
+  "legacy_baseline": "robust9_firewall",
+  "diagnostic_low_fingerprint": "timing_shape__lgbm",
+  "research_only_dann_v2": "dann_v2_adversarial"
 }
