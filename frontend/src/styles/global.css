@@ -959,4 +959,119 @@ ul.clean li { margin-bottom: 4px; }
   text-align: center;
 }
 
+/* ── Metric chip row (Dashboard active model summary) ───────────────── */
+
+.metric-chips-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.metric-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 7px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-2);
+  min-width: 80px;
+  text-align: center;
+}
+.metric-chip__label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-mute);
+}
+.metric-chip__value {
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.metric-chip--ok    { border-color: rgba(46,204,113,0.3); }
+.metric-chip--ok .metric-chip__value { color: var(--ok); }
+.metric-chip--warn  { border-color: rgba(245,180,0,0.3); }
+.metric-chip--warn .metric-chip__value { color: var(--warn); }
+.metric-chip--bad   { border-color: rgba(239,68,68,0.3); }
+.metric-chip--bad .metric-chip__value { color: var(--bad); }
+.metric-chip--info  { border-color: rgba(56,189,248,0.3); }
+.metric-chip--info .metric-chip__value { color: var(--info); }
+.metric-chip--neutral {}
+
+/* ── Feature formula table ──────────────────────────────────────────── */
+.feature-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  margin-top: 8px;
+}
+.feature-table th {
+  text-align: left;
+  padding: 5px 8px;
+  background: var(--bg-3);
+  border-bottom: 1px solid var(--border);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--text-dim);
+}
+.feature-table td {
+  padding: 5px 8px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+.feature-table tr:last-child td { border-bottom: none; }
+.feature-table tr:hover td { background: var(--bg-2); }
+.formula-code {
+  font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+  font-size: 11px;
+  color: var(--info);
+}
+.fp-warning { color: var(--warn); font-size: 10px; }
+
+/* ── Deployment checklist ────────────────────────────────────────────── */
+.deploy-checklist { list-style: none; padding: 0; margin: 0; }
+.deploy-checklist li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+.deploy-checklist li:last-child { border-bottom: none; }
+.check-done    { color: var(--ok);   font-size: 15px; }
+.check-pending { color: var(--warn); font-size: 15px; }
+
+/* ── Domain fingerprinting progress bar ─────────────────────────────── */
+.domain-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 4px 0;
+  font-size: 12px;
+}
+.domain-bar-label { width: 260px; flex-shrink: 0; color: var(--text-dim); }
+.domain-bar-track {
+  flex: 1;
+  height: 8px;
+  background: var(--bg-3);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.domain-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  background: var(--bad);
+  transition: width 0.4s ease;
+}
+.domain-bar-fill--improved { background: var(--warn); }
+.domain-bar-fill--best     { background: var(--ok); }
+.domain-bar-value { width: 50px; text-align: right; font-variant-numeric: tabular-nums; font-size: 12px; }
+
+
 

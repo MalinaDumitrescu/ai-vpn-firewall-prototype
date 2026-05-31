@@ -1,0 +1,128 @@
+/* ──────────────────────────────────────────────────────────────────────────
+   GooseMascot — animations & layout utilities
+   Subtle, slow, non-distracting. The goose is a guardian, not a clown.
+────────────────────────────────────────────────────────────────────────── */
+
+.goose-mascot {
+  overflow: visible;   /* beak/shield may extend slightly past viewBox */
+  flex-shrink: 0;
+  display: block;
+}
+
+/* ── Whole-body bob (applied to the SVG element) ────────────────────────── */
+
+.goose-idle     { animation: goose-bob      2.8s ease-in-out infinite alternate; }
+.goose-watching { animation: goose-bob      3.2s ease-in-out infinite alternate; }
+.goose-alert    { animation: goose-bob-fast 1.5s ease-in-out infinite alternate; }
+.goose-blocking { animation: goose-bob      4.2s ease-in-out infinite alternate; }
+
+@keyframes goose-bob {
+  from { transform: translateY(0px); }
+  to   { transform: translateY(-3px); }
+}
+@keyframes goose-bob-fast {
+  from { transform: translateY(0px); }
+  to   { transform: translateY(-4px); }
+}
+
+/* ── Eye blink ──────────────────────────────────────────────────────────── */
+
+.goose-eye-g {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: goose-blink 5.5s ease-in-out infinite;
+}
+@keyframes goose-blink {
+  /* stays open most of the time; quick double-blink every ~5.5 s */
+  0%,  80%, 86%, 92%, 100% { transform: scaleY(1);    }
+  83%, 89%                  { transform: scaleY(0.07); }
+}
+
+/* ── Head tilt — watching (slow ambient scan) ───────────────────────────── */
+
+.goose-watching .goose-head-g {
+  transform-box: fill-box;
+  transform-origin: center bottom;
+  animation: goose-head-scan 5.5s ease-in-out infinite alternate;
+}
+@keyframes goose-head-scan {
+  from { transform: rotate(-6deg); }
+  to   { transform: rotate( 6deg); }
+}
+
+/* ── Head lean — alert (forward-leaning, urgent) ────────────────────────── */
+
+.goose-alert .goose-head-g {
+  transform-box: fill-box;
+  transform-origin: center bottom;
+  animation: goose-head-alert 2s ease-in-out infinite alternate;
+}
+@keyframes goose-head-alert {
+  from { transform: rotate(-4deg);  }
+  to   { transform: rotate(-16deg); }
+}
+
+/* ── Head proud — blocking (upright guardian stance) ───────────────────── */
+
+.goose-blocking .goose-head-g {
+  transform-box: fill-box;
+  transform-origin: center bottom;
+  animation: goose-head-proud 3.8s ease-in-out infinite alternate;
+}
+@keyframes goose-head-proud {
+  from { transform: rotate( 4deg); }
+  to   { transform: rotate(-2deg); }
+}
+
+/* ── Shield glow — blocking ─────────────────────────────────────────────── */
+
+.goose-shield {
+  animation: goose-shield-glow 1.8s ease-in-out infinite alternate;
+}
+@keyframes goose-shield-glow {
+  from { opacity: 0.5; }
+  to   { opacity: 1.0; }
+}
+
+/* ── Size-specific tweaks ────────────────────────────────────────────────── */
+
+.goose-sz-tiny {
+  opacity: 0.85;
+  /* slightly slower bob so it's even more subtle in the navbar */
+  animation-duration: 3.8s !important;
+}
+
+/* ── Empty-state container ───────────────────────────────────────────────── */
+
+.goose-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 40px 20px 32px;
+  color: var(--text-dim);
+  font-size: 13px;
+  text-align: center;
+}
+
+/* ── Dashboard header decoration ────────────────────────────────────────── */
+
+.dash-goose-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.dash-goose-row h1 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+}
+.dash-goose-row .subtitle {
+  margin-top: 3px;
+  color: var(--text-dim);
+  font-size: 12px;
+}
+

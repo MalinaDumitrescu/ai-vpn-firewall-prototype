@@ -1,14 +1,25 @@
 {
-  "generated_utc": "2026-05-29T00:00:00.000000+00:00",
-  "_note": "Only full_canonical__lgbm is executable. All other allowlisted models are comparison/documentation only.",
-  "default_firewall": "full_canonical__lgbm",
+  "generated_utc": "2026-05-30T00:00:00.000000+00:00",
+  "default_firewall": "unified_relative_shape_v2__lgbm",
   "allowlist": {
-    "full_canonical__lgbm": {
+    "unified_relative_shape_v2__lgbm": {
       "runtime_binary_exported": true,
       "role": "recommended_firewall",
       "inference_permitted": true,
       "executable": true,
+      "default": true,
       "comparison_only": false,
+      "action_mode": "simulation",
+      "feature_family": "unified_relative_shape_v2",
+      "n_features": 12
+    },
+    "full_canonical__lgbm": {
+      "runtime_binary_exported": true,
+      "role": "legacy_baseline",
+      "inference_permitted": false,
+      "executable": false,
+      "default": false,
+      "comparison_only": true,
       "action_mode": "simulation"
     },
     "robust9_firewall": {
@@ -16,40 +27,45 @@
       "role": "legacy_baseline",
       "inference_permitted": false,
       "executable": false,
+      "default": false,
       "comparison_only": true,
-      "action_mode": "report_only"
+      "action_mode": "simulation"
     },
     "balanced_bagging_3ds_reference": {
       "runtime_binary_exported": true,
       "role": "benchmark_comparison",
       "inference_permitted": false,
       "executable": false,
+      "default": false,
       "comparison_only": true,
-      "action_mode": "report_only"
+      "action_mode": "simulation"
     },
     "balanced_bagging_xgb_baseline": {
       "runtime_binary_exported": true,
       "role": "benchmark_comparison",
       "inference_permitted": false,
       "executable": false,
+      "default": false,
       "comparison_only": true,
-      "action_mode": "report_only"
+      "action_mode": "simulation"
     },
     "balanced_bagging_baseline": {
       "runtime_binary_exported": true,
       "role": "benchmark_comparison",
       "inference_permitted": false,
       "executable": false,
+      "default": false,
       "comparison_only": true,
-      "action_mode": "report_only"
+      "action_mode": "simulation"
     },
     "robust13_comparison": {
       "runtime_binary_exported": true,
       "role": "benchmark_comparison",
       "inference_permitted": false,
       "executable": false,
+      "default": false,
       "comparison_only": true,
-      "action_mode": "report_only"
+      "action_mode": "simulation"
     }
   },
   "blocked": {
@@ -62,5 +78,6 @@
     "historical_3ds_degraded": "historical/degraded alias",
     "twentyone_feature_experimental": "unsupported \u2014 no recoverable artifact",
     "balanced_bagging_tuned_baseline": "metadata only \u2014 no runtime binary"
-  }
+  },
+  "note": "Only unified_relative_shape_v2__lgbm is executable. All other models are legacy/comparison/benchmark only."
 }

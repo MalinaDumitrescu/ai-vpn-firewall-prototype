@@ -1,4 +1,5 @@
 import React from 'react';
+import GooseMascot from './GooseMascot.jsx';
 
 const LINKS = [
   { id: 'dashboard',  label: 'Dashboard'        },
@@ -9,6 +10,8 @@ const LINKS = [
 ];
 
 export default function Navbar({ current, onNavigate, apiStatus }) {
+  const gooseVariant = apiStatus === 'down' ? 'alert' : apiStatus === 'ok' ? 'idle' : 'watching';
+
   return (
     <nav className="navbar">
       <div className="navbar-brand">
@@ -17,6 +20,11 @@ export default function Navbar({ current, onNavigate, apiStatus }) {
         <span className="muted" style={{ fontWeight: 400, fontSize: 12 }}>
           &nbsp;/ prototype
         </span>
+        <GooseMascot
+          size="tiny"
+          variant={gooseVariant}
+          style={{ marginLeft: 6, marginTop: 1 }}
+        />
       </div>
       <div className="navbar-links">
         {LINKS.map((link) => (

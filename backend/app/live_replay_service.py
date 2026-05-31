@@ -1,18 +1,18 @@
 """Live replay simulation service — CSV-row-based only.
 
 Consumes a user-uploaded flow-feature CSV and replays rows in batches,
-labelling sessions using full_canonical__lgbm (34-feature single LightGBM)
+labelling sessions using unified_relative_shape_v2__lgbm (12-feature single LightGBM)
 in simulation mode.
 
 This is the EXECUTABLE firewall model for all inference tasks.
-The legacy robust9_firewall is no longer used for replay inference.
+Feature family: unified_relative_shape_v2 (12 unified relative-shape features).
 
 SAFETY CONSTRAINTS (enforced in this module):
   - No packet capture.
   - No shell commands.
   - No OS firewall modification.
   - All decisions are simulated=True, action_mode="simulation".
-  - Only full_canonical__lgbm (EXECUTABLE_FIREWALL_MODEL_ID) is used.
+  - Only unified_relative_shape_v2__lgbm (EXECUTABLE_FIREWALL_MODEL_ID) is used.
 """
 from __future__ import annotations
 
@@ -30,7 +30,7 @@ from .policy_service import decide_action
 
 # ─── constants ────────────────────────────────────────────────────────────────
 
-MODEL_ID       = EXECUTABLE_FIREWALL_MODEL_ID   # "full_canonical__lgbm"
+MODEL_ID       = EXECUTABLE_FIREWALL_MODEL_ID   # "unified_relative_shape_v2__lgbm"
 ACTION_MODE    = "simulation"
 MAX_EVENTS     = 200        # ring buffer limit
 
@@ -45,29 +45,28 @@ LABEL_MAP = {
     "BLOCK":       "VPN_LIKE_SIMULATED_BLOCK",
 }
 
-# 34 full_canonical features (must match feature_order.json)
-_FULL_CANONICAL_FEATURES: List[str] = [
-    "sz_coef_variation", "sz_p25_median_ratio", "sz_p75_median_ratio",
-    "sz_iqr_norm_median", "dispersion_symmetry", "direction_balance_bytes",
-    "direction_balance_packets", "sz_mean_max", "sz_mean_min",
-    "sz_std_max", "sz_std_min", "iat_all_mean", "iat_all_std",
-    "iat_all_p25", "iat_all_median", "iat_all_p75", "iat_mean_max",
-    "iat_mean_min", "iat_std_max", "iat_std_min", "sz_all_mean",
-    "sz_all_std", "sz_all_median", "sz_all_p25", "sz_all_p75",
+# 12 unified_relative_shape_v2 features (must match feature_order.json)
+_UNIFIED_FEATURES: List[str] = [
     "sz_cv", "sz_iqr", "sz_qratio", "sz_median_to_mean",
-    "iat_iqr", "iat_cv", "iat_median", "iat_p25", "iat_p75",
+    "sz_p25_median_ratio", "sz_p75_median_ratio", "sz_iqr_norm_median",
+    "iat_cv", "iat_iqr",
+    "direction_balance_bytes", "direction_balance_packets", "dispersion_symmetry",
 ]
+
+# Backward-compat alias
+_FULL_CANONICAL_FEATURES = _UNIFIED_FEATURES
 
 TEMPLATE_HEADER = (
     "capture_id,session_id,flow_id,timestamp,src_ip,dst_ip,protocol,dst_port,scenario,"
-    + ",".join(_FULL_CANONICAL_FEATURES)
+    + ",".join(_UNIFIED_FEATURES)
 )
 
 WARNINGS = [
     "Simulation only — no real packets are blocked.",
     "Live replay consumes uploaded flow-feature CSV rows, not raw packets.",
-    f"'{MODEL_ID}' (34-feature single LightGBM) is the executable firewall model.",
-    "Upload a CSV with the 34 full_canonical features. See /firewall/live-replay/template.",
+    f"'{MODEL_ID}' (12-feature unified LightGBM, unified_relative_shape_v2) is the executable firewall model.",
+    "Upload a CSV with the 12 unified_relative_shape_v2 features. See /firewall/live-replay/template.",
+    "Feature schema comes from unified feature contract v2 (unified_feature_contract_v2).",
 ]
 
 # ─── state ────────────────────────────────────────────────────────────────────
@@ -127,8 +126,8 @@ class LiveReplayState:
         missing = [c for c in required if c not in df.columns]
         if missing:
             raise ValueError(
-                f"Missing required full_canonical features: {missing}. "
-                f"Expected {len(required)} features. Download the template from "
+                f"Missing required {MODEL_ID} features: {missing}. "
+                f"Expected {len(required)} unified_relative_shape_v2 features. Download the template from "
                 "/firewall/live-replay/template."
             )
 
@@ -309,6 +308,8 @@ class LiveReplayState:
             "running":                  self.running,
             "finished":                 self.finished,
             "model_id":                 self.model_id,
+            "feature_schema":           "unified_relative_shape_v2",
+            "feature_count":            len(_UNIFIED_FEATURES),
             "executable":               True,
             "comparison_only":          False,
             "action_mode":              ACTION_MODE,

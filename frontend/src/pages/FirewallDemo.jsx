@@ -53,9 +53,9 @@ export default function FirewallDemo() {
     <div>
       <div className="page-header">
         <div>
-          <h1>Final model demo</h1>
+          <h1>Unified model demo</h1>
           <div className="subtitle">
-            Run the final selected <span className="mono">full_canonical__lgbm</span>{' '}
+            Run the current <span className="mono">unified_relative_shape_v2__lgbm</span>{' '}
             model on bundled flows or an uploaded CSV. All actions are{' '}
             <strong>simulated</strong>.
           </div>
@@ -170,9 +170,9 @@ export default function FirewallDemo() {
           <h2>Get started</h2>
           <div className="dim">
             Click <strong>Run bundled demo</strong> to score the sample flows shipped
-            with the runtime bundle using <span className="mono">full_canonical__lgbm</span>{' '}
-            (34 full-canonical features), or upload a CSV containing the full-canonical feature set
-            (<span className="mono">sz_coef_variation, sz_all_mean, iat_all_mean, …</span> — 34 features total).
+            with the runtime bundle using <span className="mono">unified_relative_shape_v2__lgbm</span>{' '}
+            (12 unified relative-shape features, unified_feature_contract_v2).
+            Or upload a CSV containing the unified_relative_shape_v2 feature set.
           </div>
         </div>
       )}

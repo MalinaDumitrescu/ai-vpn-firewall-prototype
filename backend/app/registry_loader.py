@@ -7,13 +7,17 @@ from typing import Any, Dict, List, Optional  # noqa: F401 – List used by call
 
 # ── Executable firewall model (single source of truth) ───────────────────────
 # Only this model may run inference.  All others are comparison/documentation.
-EXECUTABLE_FIREWALL_MODEL_ID = "full_canonical__lgbm"
+EXECUTABLE_FIREWALL_MODEL_ID = "unified_relative_shape_v2__lgbm"
 
 # ── Audit-approved benchmark-compatible models ─────────────────────────────
-# These four models share the same raw-feature CSV schema and may be selected
-# simultaneously in benchmark tests. All others are excluded from the benchmark
-# page (they remain visible in the registry for comparison/documentation only).
+# The unified model is now the primary firewall. Legacy models are kept as
+# comparison references only — not executable.
 BENCHMARK_COMPATIBLE_MODEL_IDS: List[str] = [
+    "unified_relative_shape_v2__lgbm",
+]
+
+# ── Legacy models (comparison/documentation only, not executable) ───────────
+LEGACY_MODEL_IDS: List[str] = [
     "full_canonical__lgbm",
     "robust9_firewall",
     "balanced_bagging_3ds_reference",
@@ -36,6 +40,9 @@ REGISTRY_PACKAGES_DIR = BUNDLE_ROOT / "app_model_registry" / "backend" / "model_
 UI_GROUPS_PATH = BUNDLE_ROOT / "app_model_registry" / "backend" / "model_registry" / "ui_model_groups.json"
 ALLOWLIST_PATH = BUNDLE_ROOT / "app_model_registry" / "backend" / "model_registry" / "runtime_inference_allowlist.json"
 RUNTIME_MODELS_DIR = BUNDLE_ROOT / "runtime_models"
+# Unified v2 demo CSV (primary demo data for the new default model)
+DEMO_FLOWS_UNIFIED_PATH = BUNDLE_ROOT / "demo_data" / "unified_model_demo_flows.csv"
+# Legacy demo CSVs (kept for backward compatibility)
 DEMO_FLOWS_PATH = BUNDLE_ROOT / "demo_data" / "demo_flows.csv"
 DEMO_FLOWS_FULL_CANONICAL_PATH = BUNDLE_ROOT / "demo_data" / "demo_flows_full_canonical.csv"
 COMPARISON_CSV_PATH = (

@@ -208,6 +208,8 @@ export default function LiveVMMonitor() {
             Near-real-time view of PCAP-derived flow features streamed by
             <code className="mono" style={{ margin: '0 4px' }}>tools/pcap_to_live_stream.py</code>
             into <code className="mono">POST /firewall/live-ingest</code>.
+            PCAPs are converted using the <strong>unified feature contract v2 extractor</strong> for{' '}
+            <code className="mono">unified_relative_shape_v2__lgbm</code>.
             Use the <strong>Local demo scripts</strong> section below to launch
             bundled VirtualBox / SSH scenarios.
           </div>
@@ -224,12 +226,27 @@ export default function LiveVMMonitor() {
       <WarningBox tone="warn">
         <strong>Simulation only.</strong> This page displays results from a host-side
         script that reads <strong>existing PCAP files only</strong>. The web app does not
-        sniff live traffic and <strong>no packets are blocked</strong>.
-        PCAP analysis uses the legacy CICFlowMeter-compatible pipeline for PCAP-derived flow features.
-        The recommended executable model is{' '}
-        <span className="mono">full_canonical__lgbm</span> (34 features),
-        available in the CSV Replay tab.
+        sniff live traffic and <strong>no packets are blocked</strong>.{' '}
+        PCAPs are converted using the <strong>unified feature contract v2 extractor</strong> for{' '}
+        <span className="mono">unified_relative_shape_v2__lgbm</span>.
+        Packet size = IP total length; IAT features computed per-flow and per-direction.
       </WarningBox>
+
+      {/* ── OpenVPN lab OOD notice ── */}
+      {state?.active_sessions?.every(s => s.action === 'PASS') && (state?.total_flows ?? 0) > 0 && (
+        <WarningBox tone="info">
+          <strong>OpenVPN lab — out-of-distribution scenario.</strong>{' '}
+          All flows are classified <strong>PASS / BENIGN_LIKE</strong>.
+          This is <em>expected behaviour</em>, not a pipeline bug.{' '}
+          <code className="mono">unified_relative_shape_v2__lgbm</code> was trained on academic VPN datasets
+          (ISCX, USBVPN, VNAT). The OpenVPN lab generates fast LAN-speed HTTP bulk transfers whose feature profile
+          does not match any training VPN class.{' '}
+          <strong>This demonstrates a known model limitation: high offline accuracy does not
+          guarantee live detection under domain shift.</strong>{' '}
+          See <code className="mono">artifacts/runtime_schema_audit/openvpn_lab_diagnosis.md</code>{' '}
+          for the full analysis.
+        </WarningBox>
+      )}
 
       {/* ── local demo scripts (frontend-triggered scripts) ── */}
       <div className="section card">
@@ -295,7 +312,8 @@ export default function LiveVMMonitor() {
           </div>
 
           <div className="lr-stats-grid">
-            <StatTile label="Model"          value={state.recommended_model || 'full_canonical__lgbm'} mono tone="info" />
+            <StatTile label="Model"          value={state.model_id || 'unified_relative_shape_v2__lgbm'} mono tone="info" />
+            <StatTile label="Feature schema" value={state.feature_schema || 'unified_relative_shape_v2'} mono tone="info" />
             <StatTile label="Action mode"    value={state.action_mode || 'simulation'}     mono tone="info" />
             <StatTile label="Total batches"  value={state.total_batches ?? 0} />
             <StatTile label="Total flows"    value={state.total_flows ?? 0} />
@@ -350,11 +368,10 @@ export default function LiveVMMonitor() {
       </div>
 
       <div className="mm-page-footer">
-        Live VM PCAP Monitor is simulation-only. Decisions use the full-canonical model analysis pipeline
-        and have no effect on network traffic. No packets are captured or blocked.
-        For inference with the executable model{' '}
-        <code className="mono">full_canonical__lgbm</code>{' '}
-        (34 features), use the CSV Replay tab.
+        Live VM PCAP Monitor is simulation-only. No packets are captured or blocked.
+        PCAPs are converted using the unified feature contract v2 extractor
+        and streamed to <code className="mono">unified_relative_shape_v2__lgbm</code> for inference.
+        All decisions are simulated.
       </div>
     </div>
   );

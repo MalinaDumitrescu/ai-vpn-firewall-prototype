@@ -22,8 +22,10 @@ export default function ModelCard({ modelId, entry, variant = 'full' }) {
 
   // Benchmark-compat fields (may come from enriched registry or permissions endpoint)
   const isBenchCompat = entry?.benchmark_compatible === true
-    || ['robust9_firewall', 'balanced_bagging_3ds_reference', 'balanced_bagging_baseline', 'full_canonical__lgbm'].includes(modelId);
-  const isExecutable  = entry?.executable === true || modelId === 'full_canonical__lgbm';
+    || ['unified_relative_shape_v2__lgbm'].includes(modelId);
+  const isExecutable  = entry?.executable === true || modelId === 'unified_relative_shape_v2__lgbm';
+  const isLegacyModel = ['full_canonical__lgbm', 'robust9_firewall', 'balanced_bagging_3ds_reference', 'balanced_bagging_baseline'].includes(modelId);
+  const isCurrentModel = modelId === 'unified_relative_shape_v2__lgbm';
 
   const isMetadata = variant === 'metadata';
 
@@ -48,9 +50,34 @@ export default function ModelCard({ modelId, entry, variant = 'full' }) {
         </div>
         <div className="badges">
           <StatusBadge status={status} />
+          {isCurrentModel && (
+            <span className="badge ok small-badge" title="Current recommended model">
+              <span className="dot" />CURRENT MODEL
+            </span>
+          )}
+          {isCurrentModel && (
+            <span className="badge info small-badge" title="Unified feature contract v2">
+              <span className="dot" />UNIFIED V2
+            </span>
+          )}
           {isExecutable && (
             <span className="badge ok small-badge" title="Executable firewall model">
               <span className="dot" />executable
+            </span>
+          )}
+          {isCurrentModel && (
+            <span className="badge warn small-badge" title="Simulation only">
+              <span className="dot" />SIMULATION ONLY
+            </span>
+          )}
+          {isCurrentModel && (
+            <span className="badge bad small-badge" title="Not production ready">
+              <span className="dot" />NOT PROD READY
+            </span>
+          )}
+          {isLegacyModel && !isCurrentModel && (
+            <span className="badge neutral small-badge" title="Legacy comparison model">
+              <span className="dot" />legacy
             </span>
           )}
           {isBenchCompat && !isExecutable && (
@@ -58,7 +85,7 @@ export default function ModelCard({ modelId, entry, variant = 'full' }) {
               <span className="dot" />benchmark compat
             </span>
           )}
-          {!isBenchCompat && (
+          {!isBenchCompat && !isLegacyModel && (
             <span className="badge neutral small-badge" title="Not selectable in benchmark">
               <span className="dot" />not selectable
             </span>
@@ -177,7 +204,17 @@ export default function ModelCard({ modelId, entry, variant = 'full' }) {
         )}
       </div>
 
-      {!isDefault && !isLegacy && !isResearch && (
+      {isCurrentModel && (
+        <div className="warning-box ok" style={{ marginBottom: 0 }}>
+          <span className="icon">✓</span>
+          <div>
+            <strong>Current model.</strong> Selected as the best methodologically clean model under{' '}
+            <span className="mono">unified_feature_contract_v2</span>. Uses 12 ratio/relative features.
+            Simulation-only — not production-ready.
+          </div>
+        </div>
+      )}
+      {!isCurrentModel && !isLegacy && !isResearch && !isPolicyOnly && !isNegative && !isUnsupp && !isAlias && (
         <div className="warning-box warn" style={{ marginBottom: 0 }}>
           <span className="icon">⚠</span>
           <div>Not deployment-approved.</div>
@@ -186,7 +223,13 @@ export default function ModelCard({ modelId, entry, variant = 'full' }) {
       {isLegacy && (
         <div className="warning-box info" style={{ marginBottom: 0 }}>
           <span className="icon">ℹ</span>
-          <div>Legacy baseline — kept for comparison. <strong>Not the recommended model.</strong></div>
+          <div>Legacy baseline — kept for comparison. <strong>Not the current recommended model.</strong></div>
+        </div>
+      )}
+      {!isCurrentModel && isLegacyModel && !isLegacy && (
+        <div className="warning-box info" style={{ marginBottom: 0 }}>
+          <span className="icon">ℹ</span>
+          <div>Legacy model — retained for comparison only. <strong>Not the current model.</strong></div>
         </div>
       )}
       {isResearch && (

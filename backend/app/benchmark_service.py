@@ -1,13 +1,17 @@
-"""Benchmark service for the 4 audit-approved compatible models.
+"""Benchmark service for the unified and legacy comparison models.
 
-Runs compatible models against the simultaneous benchmark CSV.
+Runs legacy comparison models against uploaded benchmark CSVs.
 This is strictly read-only / benchmark-only and must NOT affect firewall decisions.
 
-Compatible models (raw-feature simultaneous benchmarking):
-  - full_canonical__lgbm       (34 features, executable firewall model)
-  - robust9_firewall           (9 features, legacy baseline)
+Executable model (v2) — NOT part of this benchmark page:
+  - unified_relative_shape_v2__lgbm  (12 features, unified feature contract v2)
+    → Tested in Live VM / Dashboard only.
+
+Raw-feature benchmark-compatible legacy models (4 selectable):
+  - full_canonical__lgbm            (34 features, legacy mixed-feature baseline)
+  - robust9_firewall                (9 features, legacy baseline)
   - balanced_bagging_3ds_reference  (7 features, 3-dataset reference)
-  - balanced_bagging_baseline  (7 features, 2-dataset baseline)
+  - balanced_bagging_baseline       (7 features, 2-dataset baseline)
 
 Incompatible models (require session-derived probability features):
   - balanced_bagging_xgb_baseline   (needs session_mean_prob, etc.)
@@ -22,20 +26,38 @@ from typing import Any, Dict, List, Optional
 import numpy as np
 import pandas as pd
 
-from .registry_loader import (
-    EXECUTABLE_FIREWALL_MODEL_ID,
-    BENCHMARK_COMPATIBLE_MODEL_IDS,
-    BENCHMARK_INCOMPATIBLE_MODEL_IDS,
-    get_model_entry,
-)
+from .registry_loader import EXECUTABLE_FIREWALL_MODEL_ID, get_model_entry
 from .runtime_model_inference import RuntimeModelEngine, _aggregate, get_engine
-from .policy_service import decide_action
 
 logger = logging.getLogger("ai_vpn_firewall.benchmark")
 
-# ── aliases for backward compatibility ────────────────────────────────────────
-COMPATIBLE_BENCHMARK_MODEL_IDS: List[str] = BENCHMARK_COMPATIBLE_MODEL_IDS
-INCOMPATIBLE_MODEL_IDS: List[str] = BENCHMARK_INCOMPATIBLE_MODEL_IDS
+# ── executable + benchmark-compatible models ──────────────────────────────────
+COMPATIBLE_BENCHMARK_MODEL_IDS: List[str] = [
+    "unified_relative_shape_v2__lgbm",
+]
+
+# ── legacy benchmark models (comparison-only, not executable) ─────────────────
+# These 4 models run against the simultaneous raw-feature benchmark CSV.
+# full_canonical__lgbm is included as a legacy comparison baseline (domain_auc=1.0 — not the recommended model).
+LEGACY_BENCHMARK_MODEL_IDS: List[str] = [
+    "full_canonical__lgbm",
+    "robust9_firewall",
+    "balanced_bagging_3ds_reference",
+    "balanced_bagging_baseline",
+]
+
+# Disabled: active runtime model — must never be run on the benchmark page.
+BENCHMARK_DISABLED_RUNTIME_MODEL_ID: str = EXECUTABLE_FIREWALL_MODEL_ID  # "unified_relative_shape_v2__lgbm"
+BENCHMARK_DISABLED_RUNTIME_REASON: str = (
+    "Current final runtime model — tested in Live VM and Dashboard, "
+    "not part of legacy benchmark comparison."
+)
+
+# These require session-derived prior-stage features and cannot run raw-feature benchmark.
+INCOMPATIBLE_MODEL_IDS: List[str] = [
+    "balanced_bagging_xgb_baseline",
+    "robust13_comparison",
+]
 
 INCOMPATIBLE_MISSING_FEATURES: List[str] = [
     "session_mean_prob",
@@ -109,7 +131,11 @@ def _compute_confusion(
     labels: List[int],
     threshold: float,
 ) -> Dict[str, int]:
-    """TP/FP/TN/FN using `threshold` as the BLOCK decision boundary."""
+    """TP/FP/TN/FN using `threshold` as the BLOCK decision boundary.
+
+    Positive = score >= threshold (session would be BLOCK).
+    Negative = score < threshold  (session is PASS or FLAG_REVIEW).
+    """
     tp = fp = tn = fn = 0
     for score, label in zip(scores, labels):
         if label < 0:
@@ -131,62 +157,33 @@ def _get_block_threshold(engine: RuntimeModelEngine) -> float:
     th = engine.thresholds
     if not isinstance(th, dict):
         return 0.5
+    # Nested format: {"strict": {"threshold": ...}}
     strict = th.get("strict", {})
     if isinstance(strict, dict) and "threshold" in strict:
         return float(strict["threshold"])
+    # Flat format (full_canonical__lgbm): {"block_threshold": ...}
     if "block_threshold" in th:
         return float(th["block_threshold"])
     return 0.5
 
 
-def _parse_label(v: Any) -> Optional[int]:
-    """Parse a single label value, returning int (0/1) or None."""
-    try:
-        if pd.isna(v):
-            return None
-        return int(float(v))
-    except (ValueError, TypeError):
-        return None
-
-
 # ── main benchmark runner ─────────────────────────────────────────────────────
 
-def run_benchmark(
-    df: pd.DataFrame,
-    selected_model_ids: Optional[List[str]] = None,
-) -> Dict[str, Any]:
-    """Score compatible models against `df` and return structured results.
+def run_benchmark(df: pd.DataFrame) -> Dict[str, Any]:
+    """Score the 4 compatible models against `df` and return structured results.
 
-    Parameters:
-        df: DataFrame of flow features.
-        selected_model_ids: If provided, only run these model IDs (must all be in
-            COMPATIBLE_BENCHMARK_MODEL_IDS). If None, run all 4 compatible models.
-
-    Returns dict with:
-        per_model_results / results  — model-level performance
-        per_flow_predictions         — per-flow scored rows
-        per_session_predictions      — per-session aggregated decisions
+    - Each model selects its own feature_order.
+    - Extra columns in `df` are silently ignored.
+    - Missing required features for a model cause that model to be skipped.
+    - AUC, TP/FP/TN/FN are computed if `label` column is present.
+    - Results are marked benchmark-only and do NOT affect firewall decisions.
     """
-    # Validate / resolve model list
-    if selected_model_ids is not None:
-        invalid = [m for m in selected_model_ids if m not in COMPATIBLE_BENCHMARK_MODEL_IDS]
-        if invalid:
-            raise ValueError(
-                f"The following model IDs are not benchmark-compatible: {invalid}. "
-                f"Only {COMPATIBLE_BENCHMARK_MODEL_IDS} are allowed."
-            )
-        model_ids_to_run = [m for m in COMPATIBLE_BENCHMARK_MODEL_IDS if m in set(selected_model_ids)]
-    else:
-        model_ids_to_run = list(COMPATIBLE_BENCHMARK_MODEL_IDS)
-
     has_labels = "label" in df.columns
     models_run: List[str] = []
     models_skipped: List[str] = []
     per_model_results: List[Dict[str, Any]] = []
-    per_flow_predictions: List[Dict[str, Any]] = []
-    per_session_predictions: List[Dict[str, Any]] = []
 
-    for model_id in model_ids_to_run:
+    for model_id in COMPATIBLE_BENCHMARK_MODEL_IDS:
         is_firewall = model_id == EXECUTABLE_FIREWALL_MODEL_ID
         entry = get_model_entry(model_id) or {}
         role = entry.get("role", "benchmark_comparison" if not is_firewall else "recommended_firewall")
@@ -243,188 +240,81 @@ def run_benchmark(
             if engine.probability_column in scored.columns
             else "prob_raw"
         )
-        block_thr = _get_block_threshold(engine)
 
-        # ── Per-flow predictions ──────────────────────────────────────────────
-        n_rows = len(scored)
-        prob_scores_arr = scored[prob_col].to_numpy(dtype=float)
-        pred_labels_arr = (prob_scores_arr >= block_thr).astype(int)
-
-        # Passthrough metadata columns
-        dataset_vals = scored["dataset"].fillna("").astype(str).tolist() if "dataset" in scored.columns else [""] * n_rows
-        capture_vals = scored["capture_id"].astype(str).tolist() if "capture_id" in scored.columns else [None] * n_rows
-        session_vals = scored["session_id"].astype(str).tolist() if "session_id" in scored.columns else [None] * n_rows
-        flow_vals    = scored["flow_id"].astype(str).tolist() if "flow_id" in scored.columns else [None] * n_rows
-
-        # True labels (flow level)
-        true_labels_flow: List[Optional[int]] = []
-        if has_labels and "label" in scored.columns:
-            for v in scored["label"]:
-                true_labels_flow.append(_parse_label(v))
-        else:
-            true_labels_flow = [None] * n_rows
-
-        for i, (row_idx, prob_score, pred_label, true_label) in enumerate(
-            zip(scored.index, prob_scores_arr, pred_labels_arr, true_labels_flow)
-        ):
-            if true_label is None:
-                error_type = "unknown_label"
-                correct: Optional[bool] = None
-            elif pred_label == 1 and true_label == 1:
-                error_type = "TP"; correct = True
-            elif pred_label == 1 and true_label == 0:
-                error_type = "FP"; correct = False
-            elif pred_label == 0 and true_label == 0:
-                error_type = "TN"; correct = True
-            else:
-                error_type = "FN"; correct = False
-
-            per_flow_predictions.append({
-                "row_index":          int(row_idx),
-                "model_id":           model_id,
-                "dataset":            dataset_vals[i],
-                "capture_id":         capture_vals[i],
-                "session_id":         session_vals[i],
-                "flow_id":            flow_vals[i],
-                "true_label":         true_label,
-                "true_class_text":    "VPN" if true_label == 1 else ("nonVPN" if true_label == 0 else "unknown"),
-                "probability_score":  round(float(prob_score), 6),
-                "predicted_label":    int(pred_label),
-                "predicted_class_text": "VPN" if pred_label == 1 else "nonVPN",
-                "threshold_used":     round(block_thr, 6),
-                "correct":            correct,
-                "error_type":         error_type,
-            })
-
-        # ── Per-session / per-capture predictions ─────────────────────────────
-        session_scores_list: List[float] = []
-        session_labels_list: List[int] = []
+        # Build per-session scores and labels
+        session_scores: List[float] = []
+        session_labels: List[int] = []
+        session_ids: List[str] = []
 
         for sid, grp in scored.groupby(session_col, sort=False):
-            flow_scores_grp = grp[prob_col].to_numpy(dtype=float)
-            sess_score = _aggregate(flow_scores_grp, engine.session_aggregation)
-            session_scores_list.append(sess_score)
+            flow_scores = grp[prob_col].to_numpy(dtype=float)
+            sess_score = _aggregate(flow_scores, engine.session_aggregation)
+            session_scores.append(sess_score)
+            session_labels.append(_capture_label(grp))
+            session_ids.append(str(sid))
 
-            pred_positive = sess_score >= block_thr
-            pred_lbl = 1 if pred_positive else 0
-
-            sess_true_label = _capture_label(grp)
-            session_labels_list.append(sess_true_label)
-
-            if sess_true_label < 0:
-                s_error_type = "unknown_label"
-                s_correct: Optional[bool] = None
-            elif pred_lbl == 1 and sess_true_label == 1:
-                s_error_type = "TP"; s_correct = True
-            elif pred_lbl == 1 and sess_true_label == 0:
-                s_error_type = "FP"; s_correct = False
-            elif pred_lbl == 0 and sess_true_label == 0:
-                s_error_type = "TN"; s_correct = True
-            else:
-                s_error_type = "FN"; s_correct = False
-
-            action, _, _ = decide_action(sess_score, engine.thresholds)
-
-            ds_val  = str(grp["dataset"].iloc[0]) if "dataset" in grp.columns and len(grp) > 0 else ""
-            cap_val = str(grp["capture_id"].iloc[0]) if "capture_id" in grp.columns and len(grp) > 0 else str(sid)
-            ses_val = str(grp["session_id"].iloc[0]) if "session_id" in grp.columns and len(grp) > 0 else str(sid)
-
-            per_session_predictions.append({
-                "model_id":            model_id,
-                "dataset":             ds_val,
-                "capture_id":          cap_val,
-                "session_id":          ses_val,
-                "n_flows":             int(len(grp)),
-                "aggregation":         engine.session_aggregation,
-                "aggregated_score":    round(float(sess_score), 6),
-                "threshold_used":      round(block_thr, 6),
-                "true_label":          sess_true_label if sess_true_label >= 0 else None,
-                "true_class_text":     "VPN" if sess_true_label == 1 else ("nonVPN" if sess_true_label == 0 else "unknown"),
-                "predicted_label":     pred_lbl,
-                "predicted_class_text": "VPN" if pred_lbl == 1 else "nonVPN",
-                "correct":             s_correct,
-                "error_type":          s_error_type,
-                "action":              action,
-                "simulated":           True,
-            })
-
-        # ── Action counts ─────────────────────────────────────────────────────
+        # Action counts using engine thresholds
+        from .policy_service import decide_action  # local import to avoid circular
         counts: Dict[str, int] = {"PASS": 0, "FLAG_REVIEW": 0, "BLOCK": 0}
-        for score in session_scores_list:
-            action_name, _, _ = decide_action(score, engine.thresholds)
-            counts[action_name] = counts.get(action_name, 0) + 1
+        for score in session_scores:
+            action, _, _ = decide_action(score, engine.thresholds)
+            counts[action] = counts.get(action, 0) + 1
 
-        # ── AUC + confusion matrix ────────────────────────────────────────────
+        # AUC + confusion matrix
         auc: Optional[float] = None
         confusion: Dict[str, int] = {}
-        if has_labels and any(l >= 0 for l in session_labels_list):
-            auc = _compute_auc(session_scores_list, session_labels_list)
-            confusion = _compute_confusion(session_scores_list, session_labels_list, block_thr)
+        block_thr = _get_block_threshold(engine)
+        if has_labels and any(l >= 0 for l in session_labels):
+            auc = _compute_auc(session_scores, session_labels)
+            confusion = _compute_confusion(session_scores, session_labels, block_thr)
 
         models_run.append(model_id)
         result: Dict[str, Any] = {
-            "model_id":            model_id,
-            "role":                role,
-            "executable":          is_firewall,
-            "comparison_only":     not is_firewall,
+            "model_id": model_id,
+            "role": role,
+            "executable": is_firewall,
+            "comparison_only": not is_firewall,
             "benchmark_compatible": True,
-            "skipped":             False,
-            "probability_column":  prob_col,
-            "aggregation":         engine.session_aggregation,
+            "skipped": False,
+            "probability_column": prob_col,
+            "aggregation": engine.session_aggregation,
+            "rows_used": int(len(scored)),
+            "captures_used": int(len(session_scores)),
+            "missing_features": [],
+            "skipped_rows": 0,
+            "action_counts": counts,
             "block_threshold_used": round(block_thr, 6),
-            "feature_count":       len(engine.feature_order),
-            "rows_used":           int(len(scored)),
-            "captures_used":       int(len(session_scores_list)),
-            "missing_features":    [],
-            "skipped_rows":        0,
-            "action_counts":       counts,
-            "warning":             BENCHMARK_WARNING,
+            "warning": BENCHMARK_WARNING,
         }
         if auc is not None:
             result["AUC"] = round(auc, 4)
-            result["auc"] = round(auc, 4)
         if confusion:
-            result.update(confusion)  # TP, FP, TN, FN (uppercase)
-            tp_v = confusion.get("TP", 0)
-            fp_v = confusion.get("FP", 0)
-            tn_v = confusion.get("TN", 0)
-            fn_v = confusion.get("FN", 0)
-            result["tp"] = tp_v
-            result["fp"] = fp_v
-            result["tn"] = tn_v
-            result["fn"] = fn_v
-            # Extended derived metrics
-            result["precision"] = round(tp_v / (tp_v + fp_v), 4) if (tp_v + fp_v) > 0 else None
-            result["recall"]    = round(tp_v / (tp_v + fn_v), 4) if (tp_v + fn_v) > 0 else None
-            result["fpr"]       = round(fp_v / (fp_v + tn_v), 4) if (fp_v + tn_v) > 0 else None
-            result["accuracy"]  = round((tp_v + tn_v) / (tp_v + fp_v + tn_v + fn_v), 4) if (tp_v + fp_v + tn_v + fn_v) > 0 else None
+            result.update(confusion)
 
         per_model_results.append(result)
 
     # Mark incompatible models as excluded (read-only, never run)
-    # Only append these when running all models (not a user selection)
-    if selected_model_ids is None:
-        for model_id in INCOMPATIBLE_MODEL_IDS:
-            entry = get_model_entry(model_id) or {}
-            per_model_results.append({
-                "model_id": model_id,
-                "role": entry.get("role", "benchmark_comparison"),
-                "executable": False,
-                "comparison_only": True,
-                "benchmark_compatible": False,
-                "skipped": True,
-                "skipped_reason": (
-                    "Requires session-derived probability features not present in "
-                    "the raw-feature simultaneous benchmark CSV."
-                ),
-                "missing_features": INCOMPATIBLE_MISSING_FEATURES,
-                "rows_used": 0,
-                "captures_used": 0,
-                "warning": (
-                    "Not compatible with raw-feature simultaneous benchmark CSV. "
-                    "Never included in simultaneous benchmark."
-                ),
-            })
+    for model_id in INCOMPATIBLE_MODEL_IDS:
+        entry = get_model_entry(model_id) or {}
+        per_model_results.append({
+            "model_id": model_id,
+            "role": entry.get("role", "benchmark_comparison"),
+            "executable": False,
+            "comparison_only": True,
+            "benchmark_compatible": False,
+            "skipped": True,
+            "skipped_reason": (
+                "Requires session-derived probability features not present in "
+                "the raw-feature simultaneous benchmark CSV."
+            ),
+            "missing_features": INCOMPATIBLE_MISSING_FEATURES,
+            "rows_used": 0,
+            "captures_used": 0,
+            "warning": (
+                "Not compatible with raw-feature simultaneous benchmark CSV. "
+                "Never included in simultaneous benchmark."
+            ),
+        })
 
     total_captures = (
         int(df["capture_id"].nunique())
@@ -436,20 +326,15 @@ def run_benchmark(
         "benchmark_only": True,
         "firewall_model": EXECUTABLE_FIREWALL_MODEL_ID,
         "executable_firewall_model_only": True,
-        "selected_model_ids": model_ids_to_run,
         "benchmark_csv_info": {
             "rows": int(len(df)),
             "captures": total_captures,
             "has_labels": has_labels,
             "note": "simultaneous_test_selected_models.csv — 7,952 flows, 104 captures",
         },
-        "models_run":          models_run,
-        "models_skipped":      models_skipped,
-        "per_model_results":   per_model_results,
-        # `results` alias — only benchmark_compatible (run + skipped-compat) entries
-        "results": [r for r in per_model_results if r.get("benchmark_compatible", False)],
-        "per_flow_predictions":    per_flow_predictions,
-        "per_session_predictions": per_session_predictions,
+        "models_run": models_run,
+        "models_skipped": models_skipped,
+        "per_model_results": per_model_results,
         "warnings": [
             BENCHMARK_WARNING,
             f"Only '{EXECUTABLE_FIREWALL_MODEL_ID}' is executable as the firewall prototype.",
@@ -457,6 +342,381 @@ def run_benchmark(
                 "balanced_bagging_xgb_baseline and robust13_comparison are excluded from "
                 "raw-feature simultaneous benchmarking (require session-derived features)."
             ),
+            "Legacy models (full_canonical__lgbm, robust9_firewall, etc.) are not executable — comparison/documentation only.",
         ],
     }
 
+
+# ── legacy benchmark runner ───────────────────────────────────────────────────
+
+def _score_model_for_legacy_benchmark(
+    engine: RuntimeModelEngine,
+    df: pd.DataFrame,
+    has_labels: bool,
+) -> Dict[str, Any]:
+    """Score df with engine and return per-session + per-flow results."""
+    from .policy_service import decide_action  # local import to avoid circular
+
+    entry = get_model_entry(engine.model_id) or {}
+    role = entry.get("role", "benchmark_comparison")
+
+    scored, session_col, missing = engine.score_dataframe(df)
+    if missing:
+        return {
+            "model_id": engine.model_id,
+            "role": role,
+            "executable": False,
+            "comparison_only": True,
+            "benchmark_compatible": False,
+            "skipped": True,
+            "skipped_reason": f"CSV missing {len(missing)} required feature(s)",
+            "missing_features": missing,
+            "rows_used": 0,
+            "captures_used": 0,
+            "sessions": [],
+            "warning": BENCHMARK_WARNING,
+        }
+
+    # Prefer capture_id as session column
+    if "capture_id" in scored.columns:
+        session_col = "capture_id"
+
+    prob_col = (
+        engine.probability_column
+        if engine.probability_column in scored.columns
+        else "prob_raw"
+    )
+
+    block_thr = _get_block_threshold(engine)
+    session_scores: List[float] = []
+    session_labels: List[int] = []
+    sessions_out: List[Dict[str, Any]] = []
+
+    for sid, grp in scored.groupby(session_col, sort=False):
+        flow_scores = grp[prob_col].to_numpy(dtype=float)
+        sess_score = _aggregate(flow_scores, engine.session_aggregation)
+        action, strict_trig, bal_trig = decide_action(sess_score, engine.thresholds)
+        sess_label = _capture_label(grp)
+        session_scores.append(sess_score)
+        session_labels.append(sess_label)
+        sessions_out.append({
+            "session_id": str(sid),
+            "n_flows": int(len(grp)),
+            "session_score": round(float(sess_score), 4),
+            "action": action,
+            "strict_trigger": bool(strict_trig),
+            "balanced_trigger": bool(bal_trig),
+            "label": int(sess_label) if sess_label >= 0 else None,
+            "correct": (
+                int((action == "BLOCK") == bool(sess_label == 1))
+                if sess_label >= 0 else None
+            ),
+        })
+
+    counts: Dict[str, int] = {"PASS": 0, "FLAG_REVIEW": 0, "BLOCK": 0}
+    for s in sessions_out:
+        counts[s["action"]] = counts.get(s["action"], 0) + 1
+
+    auc: Optional[float] = None
+    confusion: Dict[str, int] = {}
+    if has_labels and any(l >= 0 for l in session_labels):
+        auc = _compute_auc(session_scores, session_labels)
+        confusion = _compute_confusion(session_scores, session_labels, block_thr)
+
+    result: Dict[str, Any] = {
+        "model_id": engine.model_id,
+        "role": role,
+        "executable": False,
+        "comparison_only": True,
+        "benchmark_compatible": True,
+        "skipped": False,
+        "probability_column": prob_col,
+        "aggregation": engine.session_aggregation,
+        "block_threshold_used": round(block_thr, 6),
+        "rows_used": int(len(scored)),
+        "captures_used": int(len(sessions_out)),
+        "missing_features": [],
+        "action_counts": counts,
+        "sessions": sessions_out,
+        "warning": BENCHMARK_WARNING,
+    }
+    if auc is not None:
+        result["AUC"] = round(auc, 4)
+    if confusion:
+        result.update(confusion)
+    return result
+
+
+def run_legacy_benchmark(
+    df: pd.DataFrame,
+    selected_ids: Optional[List[str]] = None,
+) -> Dict[str, Any]:
+    """Run selected legacy comparison models against df.
+
+    selected_ids: subset of LEGACY_BENCHMARK_MODEL_IDS to run.
+                  If None/empty, all compatible legacy models are attempted.
+    Never runs unified_relative_shape_v2__lgbm — that belongs to Live VM / Dashboard.
+    Results are benchmark-only and do NOT affect firewall decisions.
+    """
+    has_labels = "label" in df.columns
+
+    # Validate selection — never allow the executable firewall model here
+    safe_ids: List[str] = []
+    if selected_ids:
+        for mid in selected_ids:
+            if mid == EXECUTABLE_FIREWALL_MODEL_ID:
+                logger.warning("Legacy benchmark: rejected %s — this is the runtime firewall model", mid)
+                continue
+            if mid not in LEGACY_BENCHMARK_MODEL_IDS:
+                logger.warning("Legacy benchmark: unknown/not-allowed model %s, skipping", mid)
+                continue
+            safe_ids.append(mid)
+    if not safe_ids:
+        safe_ids = list(LEGACY_BENCHMARK_MODEL_IDS)
+
+    models_run: List[str] = []
+    models_skipped: List[str] = []
+    per_model_results: List[Dict[str, Any]] = []
+
+    for model_id in safe_ids:
+        try:
+            engine = get_engine(model_id)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("Legacy benchmark: engine load failed for %s: %s", model_id, exc)
+            models_skipped.append(model_id)
+            entry = get_model_entry(model_id) or {}
+            per_model_results.append({
+                "model_id": model_id,
+                "role": entry.get("role", "benchmark_comparison"),
+                "executable": False,
+                "comparison_only": True,
+                "benchmark_compatible": True,
+                "skipped": True,
+                "skipped_reason": f"Engine load error: {exc}",
+                "missing_features": [],
+                "rows_used": 0,
+                "captures_used": 0,
+                "sessions": [],
+                "warning": BENCHMARK_WARNING,
+            })
+            continue
+
+        result = _score_model_for_legacy_benchmark(engine, df, has_labels)
+        per_model_results.append(result)
+        if result["skipped"]:
+            models_skipped.append(model_id)
+        else:
+            models_run.append(model_id)
+
+    # Append incompatible models as always-disabled info entries
+    not_selected_compatible = [
+        mid for mid in LEGACY_BENCHMARK_MODEL_IDS if mid not in safe_ids
+    ]
+    for model_id in not_selected_compatible:
+        entry = get_model_entry(model_id) or {}
+        per_model_results.append({
+            "model_id": model_id,
+            "role": entry.get("role", "benchmark_comparison"),
+            "executable": False,
+            "comparison_only": True,
+            "benchmark_compatible": True,
+            "skipped": True,
+            "skipped_reason": "Not selected for this benchmark run.",
+            "missing_features": [],
+            "rows_used": 0,
+            "captures_used": 0,
+            "sessions": [],
+            "warning": BENCHMARK_WARNING,
+        })
+
+    for model_id in INCOMPATIBLE_MODEL_IDS:
+        entry = get_model_entry(model_id) or {}
+        per_model_results.append({
+            "model_id": model_id,
+            "role": entry.get("role", "benchmark_comparison"),
+            "executable": False,
+            "comparison_only": True,
+            "benchmark_compatible": False,
+            "skipped": True,
+            "skipped_reason": (
+                "Requires session-derived probability features not present in "
+                "the raw-feature benchmark CSV."
+            ),
+            "missing_features": INCOMPATIBLE_MISSING_FEATURES,
+            "rows_used": 0,
+            "captures_used": 0,
+            "sessions": [],
+            "warning": (
+                "Not benchmark-compatible. Requires session-derived probability features."
+            ),
+        })
+
+    total_sessions = (
+        int(df["capture_id"].nunique())
+        if "capture_id" in df.columns
+        else int(df["session_id"].nunique())
+        if "session_id" in df.columns
+        else int(len(df))
+    )
+
+    # Build per-flow comparison table: each row = one flow, columns = per-model scores
+    per_flow_rows: List[Dict[str, Any]] = []
+    if models_run:
+        # Only include columns that exist in df
+        id_cols = [c for c in ["flow_id", "session_id", "capture_id", "dataset", "label"] if c in df.columns]
+        base = df[id_cols].copy() if id_cols else pd.DataFrame(index=df.index)
+        base = base.reset_index(drop=True)
+        for i, row in base.iterrows():
+            flow_row: Dict[str, Any] = {k: (None if pd.isna(v) else v) for k, v in row.items()}
+            per_flow_rows.append(flow_row)
+
+        for model_id in models_run:
+            engine = get_engine(model_id)
+            scored, _, _ = engine.score_dataframe(df)
+            if scored is None:
+                continue
+            prob_col = (
+                engine.probability_column
+                if engine.probability_column in scored.columns
+                else "prob_raw"
+            )
+            from .policy_service import decide_action
+            scores = scored[prob_col].to_numpy(dtype=float)
+            has_lbl = "label" in df.columns
+            for i, (score, flow_row) in enumerate(zip(scores, per_flow_rows)):
+                action, _, _ = decide_action(float(score), engine.thresholds)
+                flow_row[f"{model_id}__score"] = round(float(score), 4)
+                flow_row[f"{model_id}__action"] = action
+                if has_lbl and flow_row.get("label") is not None:
+                    try:
+                        lbl = float(flow_row["label"])
+                        pred_pos = action == "BLOCK"
+                        flow_row[f"{model_id}__correct"] = bool(pred_pos == (lbl == 1.0))
+                    except (TypeError, ValueError):
+                        pass
+
+    return {
+        "benchmark_only": True,
+        "runtime_model_note": (
+            f"'{EXECUTABLE_FIREWALL_MODEL_ID}' is the active runtime firewall model "
+            "and is NOT included in this legacy benchmark. "
+            "See Dashboard and Live VM for runtime inference."
+        ),
+        "benchmark_csv_info": {
+            "rows": int(len(df)),
+            "sessions": total_sessions,
+            "has_labels": has_labels,
+        },
+        "models_run": models_run,
+        "models_skipped": models_skipped,
+        "per_model_results": per_model_results,
+        "per_flow_predictions": per_flow_rows,
+        "per_flow_model_columns": [mid for mid in models_run],
+        "warnings": [
+            BENCHMARK_WARNING,
+            "These are legacy comparison models — not the active runtime firewall model.",
+            (
+                "balanced_bagging_xgb_baseline and robust13_comparison require "
+                "session-derived probability features and are excluded."
+            ),
+        ],
+    }
+
+
+def get_legacy_benchmark_model_info() -> Dict[str, Any]:
+    """Return metadata for all legacy benchmark models (compatible + incompatible + disabled)."""
+    from .registry_loader import RUNTIME_MODELS_DIR, _read_json
+
+    def _feature_order(model_id: str) -> List[str]:
+        model_dir = RUNTIME_MODELS_DIR / model_id
+        try:
+            fo = _read_json(model_dir / "feature_order.json")
+            if fo:
+                return fo.get("feature_order", fo.get("features", []))
+        except Exception:
+            pass
+        return []
+
+    compatible = []
+    for model_id in LEGACY_BENCHMARK_MODEL_IDS:
+        entry = get_model_entry(model_id) or {}
+        fo = _feature_order(model_id)
+        compatible.append({
+            "model_id": model_id,
+            "benchmark_compatible": True,
+            "selectable": True,
+            "executable": False,
+            "comparison_only": True,
+            "role": entry.get("role", "benchmark_comparison"),
+            "ui_badge": entry.get("ui_badge", ""),
+            "ui_warning": entry.get("ui_warning", ""),
+            "feature_count": len(fo),
+            "feature_order": fo,
+            "status": entry.get("status", "policy_computed"),
+        })
+
+    # Incompatible: require session-derived features
+    incompatible_reasons: Dict[str, str] = {
+        "balanced_bagging_xgb_baseline": (
+            "Requires session-derived features not present in the raw benchmark CSV."
+        ),
+        "robust13_comparison": (
+            "Requires session-derived features not present in the raw benchmark CSV."
+        ),
+    }
+    incompatible = []
+    for model_id in INCOMPATIBLE_MODEL_IDS:
+        entry = get_model_entry(model_id) or {}
+        incompatible.append({
+            "model_id": model_id,
+            "benchmark_compatible": False,
+            "selectable": False,
+            "executable": False,
+            "comparison_only": True,
+            "role": entry.get("role", "benchmark_comparison"),
+            "ui_badge": entry.get("ui_badge", ""),
+            "ui_warning": entry.get("ui_warning", ""),
+            "disabled_reason": incompatible_reasons.get(
+                model_id,
+                "Requires session-derived/extra features; not compatible with raw benchmark CSV.",
+            ),
+            "missing_features": INCOMPATIBLE_MISSING_FEATURES,
+            "status": entry.get("status", "comparison_only"),
+        })
+
+    # Explicitly disabled: the active runtime firewall model
+    disabled_runtime = []
+    runtime_entry = get_model_entry(EXECUTABLE_FIREWALL_MODEL_ID) or {}
+    runtime_fo = _feature_order(EXECUTABLE_FIREWALL_MODEL_ID)
+    disabled_runtime.append({
+        "model_id": EXECUTABLE_FIREWALL_MODEL_ID,
+        "benchmark_compatible": False,
+        "selectable": False,
+        "executable": True,
+        "comparison_only": False,
+        "role": runtime_entry.get("role", "recommended_firewall"),
+        "ui_badge": runtime_entry.get("ui_badge", ""),
+        "ui_warning": runtime_entry.get("ui_warning", ""),
+        "disabled_reason": BENCHMARK_DISABLED_RUNTIME_REASON,
+        "feature_count": len(runtime_fo),
+        "feature_order": runtime_fo,
+        "status": runtime_entry.get("status", "recommended_firewall"),
+    })
+
+    union_features: set = set()
+    for m in compatible:
+        union_features.update(m["feature_order"])
+
+    return {
+        "compatible_models": compatible,
+        "incompatible_models": incompatible,
+        "disabled_runtime_models": disabled_runtime,
+        "union_required_features": sorted(union_features),
+        "union_feature_count": len(union_features),
+        "optional_columns": ["session_id", "capture_id", "flow_id", "dataset", "label"],
+        "runtime_model_note": (
+            f"'{EXECUTABLE_FIREWALL_MODEL_ID}' is the active runtime model "
+            "and cannot be selected on this benchmark page. "
+            "Use Live VM or Dashboard for runtime inference."
+        ),
+    }

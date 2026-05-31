@@ -1,190 +1,197 @@
-# AI-VPN-Firewall — Standalone Runtime Bundle
+    # Runtime Export — unified_feature_contract_v2
 
-**Updated:** 2026-05-29  
-**Default recommended model:** `full_canonical__lgbm`  
-**Legacy baseline:** `robust9_firewall`
+    **Generated**: 2026-05-30  
+    **Experiment**: `unified_feature_contract_v2`  
+    **Selected model**: `unified_relative_shape_v2__lgbm`  
 
----
+    ---
 
-## ⚠️ Safety Notice
+    ## ⚠️ SIMULATION ONLY — NOT PRODUCTION-READY
 
-**This is a simulation-only research prototype.**
+    This model is a **research prototype**. It operates in **simulation mode only**.
+    - No network packets are blocked or modified.
+    - Outputs are scored decisions for academic evaluation.
+    - Must NOT be deployed to production without live PCAP validation.
 
-- **No packets are ever blocked.** All SIMULATED_BLOCK decisions are log/audit only.
-- `production_ready = false` for every model in this bundle.
-- **Dataset fingerprinting is unresolved** (`domain_auc = 1.0` for all models).
-  The models can predict dataset origin with perfect accuracy, making them unsuitable
-  for deployment to unseen network environments.
-- DANN v2 adversarial training did not reduce fingerprinting (`domain_reduction ≈ 0.0003`).
-- All actions are labelled: `PASS`, `FLAG_REVIEW`, or `SIMULATED_BLOCK`.
+    ---
 
----
+    ## Selected Model
 
-## What this is
+    | Property | Value |
+    |----------|-------|
+    | model_id | `unified_relative_shape_v2__lgbm` |
+    | feature_family | `unified_relative_shape_v2` |
+    | n_features | 12 |
+    | model_type | LightGBM + isotonic calibration |
+    | test_auc | 0.9826 |
+    | lodo_min_auc | 0.6366 |
+    | domain_auc | 0.9591 |
+    | deployment_score | 0.4691 (highest among 30 trained models) |
+    | runtime_compatible | Yes |
+    | live_extractor_compatible | Yes — `unified_extractor.py` v2.0 |
+    | production_ready | **No** |
+    | action_mode | simulation |
 
-A self-contained bundle that lets the FastAPI + React demo app run on any machine
-without re-training and without the original datasets. It contains:
+    ---
 
-- `app_model_registry/` — validated metadata registry
-- `runtime_models/full_canonical__lgbm/` — **final recommended** model binaries
-- `runtime_models/robust9_firewall/` — legacy baseline binaries (still deployable)
-- `demo_data/` — sample CSVs for smoke-testing
-- `scripts/` — smoke test and utilities
-- `reports/` — evaluation reports
-- `requirements_runtime.txt` — runtime-only dependencies
+    ## Feature Family: `unified_relative_shape_v2`
 
----
+    **12 ratio/relative-shape features** (scale-invariant, anti-fingerprinting):
 
-## Default model: `full_canonical__lgbm`
+    - `sz_cv`
+- `sz_iqr`
+- `sz_qratio`
+- `sz_median_to_mean`
+- `sz_p25_median_ratio`
+- `sz_p75_median_ratio`
+- `sz_iqr_norm_median`
+- `iat_cv`
+- `iat_iqr`
+- `direction_balance_bytes`
+- `direction_balance_packets`
+- `dispersion_symmetry`
 
-The default recommended firewall model from the `final_transfer` experiment.
+    ### Feature conventions (from `extractor_config.json`)
 
-| Property | Value |
-|---|---|
-| **Algorithm** | LightGBM (single model) |
-| **Feature family** | `full_canonical` (34 features) |
-| **Pooled AUC** | 0.9994 |
-| **LODO-min AUC** | 0.6164 |
-| **Domain AUC** | 1.0 (fingerprinting unresolved) |
-| **FPR @ 0.5** | 0.0025 |
-| **ECE** | 0.0026 |
-| **Deployment score** | 0.6836 |
-| **Policy** | Open-set three-tier |
-| **Probability column** | `prob` (raw LightGBM output) |
-| **Session aggregation** | mean per `capture_id` |
+    - **Packet size**: IP total length (bytes)
+    - **Timestamps**: seconds
+    - **Direction**: `1 = upload / client-to-server`, `0 = download / server-to-client`
+    - **Window**: first `100` packets per flow
+    - **Min packets**: `3`
+    - **eps**: `1e-06`
+    - **Extractor version**: `unified_v2.0`
 
-### Three-tier policy thresholds
+    ---
 
-```
-Score range                   Action
-─────────────────────────────────────────────────────────────
-0.000000 – 0.027089   →   PASS              (confident benign)
-0.027090 – 0.165364   →   FLAG_REVIEW       (uncertain — route to analyst)
-0.165365 – 1.000000   →   SIMULATED_BLOCK   (confident VPN — log only)
-```
+    ## Policy Thresholds
 
-Thresholds derived from **validation split only** (p95 benign = review threshold,
-max benign = block threshold). No test-set contamination.
+    | Action | Threshold |
+    |--------|-----------|
+    | `PASS` | calibrated score < 0.0367 |
+    | `FLAG_REVIEW` | 0.0367 ≤ score < 0.4250 |
+    | `SIMULATED_BLOCK` | score ≥ 0.4250 |
 
-### Runtime feature contract (34 features)
+    ---
 
-```
-sz_coef_variation, sz_p25_median_ratio, sz_p75_median_ratio, sz_iqr_norm_median,
-dispersion_symmetry, direction_balance_bytes, direction_balance_packets,
-sz_mean_max, sz_mean_min, sz_std_max, sz_std_min,
-iat_all_mean, iat_all_std, iat_all_p25, iat_all_median, iat_all_p75,
-iat_mean_max, iat_mean_min, iat_std_max, iat_std_min,
-sz_all_mean, sz_all_std, sz_all_median, sz_all_p25, sz_all_p75,
-sz_cv, sz_iqr, sz_qratio, sz_median_to_mean,
-iat_iqr, iat_cv, iat_median, iat_p25, iat_p75
-```
+    ## Directory Structure
 
-Exact order is in `runtime_models/full_canonical__lgbm/feature_order.json`.
+    ```
+    runtime_export/
+    ├── runtime_models/
+    │   └── unified_relative_shape_v2__lgbm/
+    │       ├── model.pkl                  # trained LightGBM classifier
+    │       ├── calibrator.pkl             # isotonic regression calibrator
+    │       ├── feature_order.json         # required input columns (12)
+    │       ├── thresholds.json            # review + block thresholds
+    │       ├── feature_family.json        # feature family metadata
+    │       ├── feature_contract.json      # full extractor contract
+    │       ├── extractor_config.json      # extractor conventions
+    │       └── model_card.md              # model card
+    ├── app_model_registry/
+    │   ├── unified_firewall_candidate.json  # full registry entry
+    │   └── model_registry.csv              # summary CSV
+    ├── reports/
+    │   ├── final_report.md
+    │   ├── thesis_summary.md
+    │   ├── unified_formula_report.md
+    │   ├── feature_contract.json
+    │   ├── model_comparison.csv
+    │   ├── lodo_results.csv
+    │   ├── domain_fingerprint_results.csv
+    │   ├── calibration_results.csv
+    │   ├── anti_fingerprint_feature_scores.csv
+    │   └── recommended_models.json
+    ├── demo_data/
+    │   └── (demo CSV to be generated in next phase)
+    ├── scripts/
+    │   └── smoke_test_unified_model.py
+    ├── requirements_runtime.txt
+    ├── RUNTIME_README.md
+    └── smoke_test_output.txt
+    ```
 
----
+    ---
 
-## Legacy model: `robust9_firewall`
+    ## How to Validate a CSV
 
-The previous default firewall. Still loadable. Status: `legacy_baseline`.
+    Your input CSV must contain these columns (in any order):
 
-- Diverse-bagging ensemble (3 XGB + 3 LGBM + 3 CatBoost bags)
-- 9 features (robust9 feature set)
-- Uses `prob_iso` (isotonic-calibrated) with p80 session aggregation
-- Binary policy (BLOCK/FLAG_REVIEW/PASS)
+    ```
+    sz_cv, sz_iqr, sz_qratio, sz_median_to_mean, sz_p25_median_ratio, sz_p75_median_ratio, sz_iqr_norm_median, iat_cv, iat_iqr, direction_balance_bytes, direction_balance_packets, dispersion_symmetry
+    ```
 
----
+    Load and score:
 
-## Inference scope
+    ```python
+    import joblib, json, pandas as pd
+    from pathlib import Path
 
-| Model | Binaries | Role | CSV inference |
-|---|---|---|---|
-| `full_canonical__lgbm` | ✅ Yes | **recommended_firewall** | ✅ Yes |
-| `robust9_firewall` | ✅ Yes | legacy_baseline | ✅ Yes |
-| `balanced_bagging_3ds_reference` | ✅ Yes | benchmark/comparison | ✅ Yes |
-| `balanced_bagging_xgb_baseline` | ✅ Yes | benchmark/comparison | ✅ Yes |
-| `balanced_bagging_baseline` | ✅ Yes | benchmark/comparison | ✅ Yes |
-| `robust13_comparison` | ✅ Yes | benchmark/comparison | ✅ Yes |
-| `lodo_hold_*` | ❌ No | negative_control | ❌ — not deployable |
-| All others | ❌ No | metadata/comparison | ❌ |
+    BASE = Path("runtime_export/runtime_models/unified_relative_shape_v2__lgbm")
+    clf  = joblib.load(BASE / "model.pkl")
+    iso  = joblib.load(BASE / "calibrator.pkl")
+    feat = json.load(open(BASE / "feature_order.json"))["features"]
+    thr  = json.load(open(BASE / "thresholds.json"))
 
----
+    df = pd.read_csv("your_flows.csv")
+    X  = df[feat].values
+    p_raw = clf.predict_proba(X)[:, 1]
+    p_cal = iso.predict(p_raw)
 
-## How to install this bundle
+    def action(p):
+        if p >= thr["block_threshold"]:  return "SIMULATED_BLOCK"
+        if p >= thr["review_threshold"]: return "FLAG_REVIEW"
+        return "PASS"
 
-```bash
-# 1) Copy the bundle into the backend folder of the new app
-cp -r app_model_registry  ../ai-vpn-firewall-prototype/backend/
-cp -r runtime_models      ../ai-vpn-firewall-prototype/backend/
-cp -r demo_data           ../ai-vpn-firewall-prototype/backend/
-cp requirements_runtime.txt ../ai-vpn-firewall-prototype/backend/
+    df["vpn_score"]  = p_cal
+    df["decision"]   = [action(p) for p in p_cal]
+    print(df[["vpn_score", "decision"]].value_counts())
+    ```
 
-# 2) Install runtime dependencies
-cd ../ai-vpn-firewall-prototype/backend
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements_runtime.txt
+    ---
 
-# 3) Point the FastAPI loader at the runtime config
-#    backend/runtime_models/full_canonical__lgbm/runtime_loader_config.json
+    ## How to Run Smoke Test
 
-# 4) Run smoke test from bundle root
-python scripts/smoke_test_full_canonical.py
-```
+    ```bash
+    python runtime_export/scripts/smoke_test_unified_model.py
+    ```
 
----
+    Expected output (artifact-load check):
+    ```
+    [smoke_test] Model artifacts loaded OK
+    [smoke_test] Features (12): sz_cv, sz_iqr, ...
+    [smoke_test] Zero-vector inference: score=X.XXXX  action=PASS|FLAG_REVIEW|SIMULATED_BLOCK
+    [smoke_test] production_ready = False
+    [smoke_test] action_mode      = simulation
+    [smoke_test] PASSED
+    ```
 
-## Smoke test
+    ---
 
-```bash
-# From bundle root:
-python scripts/smoke_test_full_canonical.py
-```
+    ## Should this replace the legacy model?
 
-Expected output: `53/53 checks passed — bundle is valid and ready to copy.`
+    **Not automatically.** Required steps before replacing `full_canonical__lgbm`:
 
-The smoke test verifies:
-- All required files present
-- Registry marks `full_canonical__lgbm` as recommended firewall
-- `robust9_firewall` is legacy/baseline
-- Model loads and runs inference
-- Demo CSV contains all 34 features
-- All actions are simulation-only (`PASS` / `FLAG_REVIEW` / `SIMULATED_BLOCK`)
-- `action_mode = simulation`, `production_ready = False`
+    1. ✅ Unified model bundle exported (this folder)
+    2. ⬜ Live PCAP validation: run unified extractor on known VPN traffic (Warp, OpenVPN)
+    3. ⬜ Confirm FPR acceptable on live benign traffic
+    4. ⬜ Side-by-side comparison in prototype with both models running in parallel
+    5. ⬜ Threshold re-calibration on live traffic distribution
 
----
+    **For scientific reporting**: use the unified model as the methodologically correct result.
+    Present the legacy model's AUC=0.9994 with the dataset-fingerprinting caveat (domain AUC=1.0).
 
-## Path rewriting
+    ---
 
-All paths in `runtime_loader_config.json` files are **relative to this bundle root**.
-The backend should resolve all model paths from the registry `runtime_loader_config` field.
+    ## Key metrics vs legacy
 
----
+    | Metric | Legacy `full_canonical__lgbm` | Unified `unified_relative_shape_v2__lgbm` | Δ |
+    |--------|-------------------------------|----------------------|---|
+    | Test AUC | 0.9994 | 0.9826 | −0.0168 |
+    | LODO-min AUC | 0.6164 | **0.6366** | **+0.0202** |
+    | Domain AUC | 1.0000 | **0.9591** | **−0.0409** |
+    | n_features | ~33 | 12 | −21 |
 
-## Demo data
+    ---
 
-| File | Description |
-|---|---|
-| `demo_data/demo_flows_full_canonical.csv` | 20 flows (15 benign + 5 VPN), all 34 canonical features |
-| `demo_data/demo_flows.csv` | Legacy robust9 demo CSV (9 features) |
-
----
-
-## Domain fingerprinting — known limitation
-
-All models in this bundle have `domain_auc ≈ 1.0`. A separate classifier can identify
-whether a flow came from the ISCX-VPN-2016, USBVPN, or VNAT dataset with perfect
-accuracy. This means the models have memorised dataset-specific feature distributions.
-
-**Consequence:** The models perform well on the known training domains but will have
-unpredictable performance on unseen network environments.
-
-DANN v2 adversarial training was evaluated and did not reduce fingerprinting
-(`domain_reduction ≈ 0.0003`). New capture environments are the proven path forward.
-
----
-
-## Files not included (by design)
-
-- `notebooks/`, `data/raw/` (PCAPs), training data
-- `artifacts/` heavyweight experiment contents
-- Model binaries for metadata-only registry entries
-- `_logs/`, ablations, window-sensitivity experiments
+    *This bundle was generated by `scripts/build_runtime_export_candidate.py`.*
+    *No models were retrained. No production bundles were overwritten.*

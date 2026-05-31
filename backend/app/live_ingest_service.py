@@ -1,40 +1,37 @@
 """Live ingest service for PCAP-derived flow batches.
 
-Receives batches of robust9-formatted flow rows posted by
-tools/pcap_to_live_stream.py, runs robust9_firewall inference,
+Receives batches of unified_relative_shape_v2 flow rows posted by
+tools/pcap_to_live_stream.py, runs unified_relative_shape_v2__lgbm inference,
 and maintains a rolling session state for the frontend Live VM Monitor.
 
-NOTE: This service uses the legacy robust9_firewall ensemble (9 sz_* features)
-for feature-set compatibility with the PCAP streaming tool.  The PCAP tool
-generates only 9 flow-size features; full_canonical__lgbm (34 features)
-cannot be applied here without regenerating the PCAP features.
-
-For full_canonical__lgbm inference, use:
-  - GET  /firewall/demo              (bundled demo CSV, 34 features)
-  - POST /firewall/analyze-csv       (uploaded 34-feature CSV)
-  - POST /firewall/live-replay/upload + step  (CSV replay, 34 features)
+Feature schema: unified_relative_shape_v2__lgbm/feature_order.json (12 features)
+Feature family: unified_relative_shape_v2
+Packet size: IP total length (ip.len)
+IAT units: seconds
 
 SAFETY CONSTRAINTS (enforced in this module):
   - No packet capture.
   - No shell commands.
   - No OS firewall modification.
   - All decisions are simulated=True, action_mode="simulation".
-  - Only robust9_firewall is used here due to PCAP feature-set compatibility.
 """
 from __future__ import annotations
 
+import json
 import threading
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 import pandas as pd
 
-from .robust9_inference import REQUIRED_FEATURES, Robust9Engine
+from .runtime_model_inference import get_engine, _aggregate as _agg_fn
 from .policy_service import decide_action
+from .registry_loader import RUNTIME_MODELS_DIR
 
 # ─── constants ────────────────────────────────────────────────────────────────
 
-MODEL_ID    = "robust9_firewall"
+MODEL_ID    = "unified_relative_shape_v2__lgbm"
+FEATURE_SCHEMA = "unified_relative_shape_v2"
 ACTION_MODE = "simulation"
 MAX_EVENTS  = 200   # ring-buffer limit
 
@@ -52,9 +49,30 @@ OPTIONAL_META_COLS = [
 WARNINGS = [
     "Simulation only — no real packets are blocked.",
     "Live ingest consumes PCAP-derived flow features, not raw packets.",
-    "robust9_firewall (legacy 9-feature ensemble) is used here for PCAP feature-set compatibility.",
-    "The executable firewall model is full_canonical__lgbm (34 features) — use /firewall/demo or /firewall/live-replay/upload for full_canonical inference.",
+    "unified_relative_shape_v2__lgbm is used for inference.",
+    "Feature schema: unified_relative_shape_v2 (12 features). Packet size: IP total length (ip.len). IAT: seconds.",
 ]
+
+
+def _load_feature_order() -> List[str]:
+    """Load the canonical feature order from unified_relative_shape_v2__lgbm/feature_order.json."""
+    path = RUNTIME_MODELS_DIR / MODEL_ID / "feature_order.json"
+    try:
+        with path.open("r", encoding="utf-8") as fh:
+            data = json.load(fh)
+            # feature_order.json uses "features" key for unified model
+            return data.get("features") or data.get("feature_order") or []
+    except Exception:
+        # Fallback — hard-coded from unified_relative_shape_v2 feature family
+        return [
+            "sz_cv", "sz_iqr", "sz_qratio", "sz_median_to_mean",
+            "sz_p25_median_ratio", "sz_p75_median_ratio", "sz_iqr_norm_median",
+            "iat_cv", "iat_iqr",
+            "direction_balance_bytes", "direction_balance_packets", "dispersion_symmetry",
+        ]
+
+
+REQUIRED_FEATURES: List[str] = _load_feature_order()
 
 
 # ─── state ────────────────────────────────────────────────────────────────────
@@ -90,7 +108,7 @@ class LiveIngestState:
         batch_id: str,
         flows: List[Dict[str, Any]],
     ) -> Dict[str, Any]:
-        """Accept a batch of flow-feature dicts, score them, return summary."""
+        """Accept a batch of unified_relative_shape_v2 flow-feature dicts, score them, return summary."""
         if not flows:
             with self._lock:
                 return self._build_response(batch_id, source, received=0)
@@ -100,11 +118,13 @@ class LiveIngestState:
         except Exception as exc:
             raise ValueError(f"Cannot convert flows to DataFrame: {exc}") from exc
 
-        # Validate required features
+        # Validate required unified_relative_shape_v2 features
         missing = [c for c in REQUIRED_FEATURES if c not in batch_df.columns]
         if missing:
             raise ValueError(
-                f"Batch '{batch_id}' is missing required robust9 features: {missing}"
+                f"Live PCAP features are not valid for {MODEL_ID}. "
+                f"Batch '{batch_id}' is missing {len(missing)} required feature(s): {missing}. "
+                f"Ensure pcap_to_live_stream.py uses --model-id {MODEL_ID} (unified_relative_shape_v2 schema)."
             )
 
         with self._lock:
@@ -135,7 +155,7 @@ class LiveIngestState:
         new_batch: pd.DataFrame,
         batch_index: int,
     ) -> None:
-        """Score the entire accumulated dataset; update active_sessions and events.
+        """Score the accumulated dataset; update active_sessions and events.
 
         Called inside lock.
         """
@@ -143,13 +163,20 @@ class LiveIngestState:
         if df is None or len(df) == 0:
             return
 
-        engine = Robust9Engine.get()
+        try:
+            engine = get_engine(MODEL_ID)
+        except Exception:
+            return  # model not loaded yet; skip silently
+
+        # Enforce feature order — use only the 34 required features
         feature_cols = [c for c in engine.feature_order if c in df.columns]
+        if len(feature_cols) < len(engine.feature_order):
+            return  # not enough features; skip
 
         try:
             X   = df[feature_cols].to_numpy(dtype=float)
             raw = engine._ensemble_raw(X)
-            cal = engine._apply_calibration(raw)
+            cal = engine._calibrate(raw)
         except Exception:
             return
 
@@ -164,11 +191,15 @@ class LiveIngestState:
         new_sessions: Dict[str, Any] = {}
         new_events:   List[Dict]     = []
 
-        groups = df.groupby(session_col, sort=False) if session_col else [(str(i), df.iloc[[i]]) for i in range(len(df))]
+        groups = (
+            df.groupby(session_col, sort=False)
+            if session_col
+            else [(str(i), df.iloc[[i]]) for i in range(len(df))]
+        )
 
         for sid, grp in groups:
             scores     = grp["_prob"].to_numpy()
-            sess_score = engine._aggregate(scores, engine.session_aggregation)
+            sess_score = _agg_fn(scores, engine.session_aggregation)
             action, strict_trig, bal_trig = decide_action(sess_score, engine.thresholds)
             label = LABEL_MAP.get(action, action)
             counts[action] = counts.get(action, 0) + 1
@@ -184,6 +215,8 @@ class LiveIngestState:
                 "label":            label,
                 "simulated":        True,
                 "action_mode":      ACTION_MODE,
+                "model_id":         MODEL_ID,
+                "feature_schema":   FEATURE_SCHEMA,
             }
 
             # Attach optional metadata from most-recent row in this session
@@ -192,7 +225,9 @@ class LiveIngestState:
                 if col in grp.columns:
                     val = last_row.get(col)
                     if val is not None and str(val) not in ("nan", ""):
-                        session_entry[col] = str(val) if not isinstance(val, (int, float)) else val
+                        session_entry[col] = (
+                            str(val) if not isinstance(val, (int, float)) else val
+                        )
 
             new_sessions[str(sid)] = session_entry
 
@@ -207,12 +242,15 @@ class LiveIngestState:
                 "action":           action,
                 "action_label":     label,
                 "simulated":        True,
+                "model_id":         MODEL_ID,
             }
             for col in OPTIONAL_META_COLS:
                 if col in grp.columns:
                     val = last_row.get(col)
                     if val is not None and str(val) not in ("nan", ""):
-                        event[col] = str(val) if not isinstance(val, (int, float)) else val
+                        event[col] = (
+                            str(val) if not isinstance(val, (int, float)) else val
+                        )
             new_events.append(event)
 
         self.active_sessions = new_sessions
@@ -246,8 +284,9 @@ class LiveIngestState:
             "active_sessions":   list(self.active_sessions.values()),
             "recent_events":     list(self.recent_events[-20:]),  # last 20 for response
             "model_id":          MODEL_ID,
-            "model_note":        "Legacy 9-feature PCAP ensemble. Executable model is full_canonical__lgbm (34 features) — see /firewall/demo.",
-            "recommended_model": "full_canonical__lgbm",
+            "feature_schema":    FEATURE_SCHEMA,
+            "feature_count":     len(REQUIRED_FEATURES),
+            "recommended_model": MODEL_ID,
             "action_mode":       ACTION_MODE,
             "production_readiness": False,
             "warnings":          WARNINGS,

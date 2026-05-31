@@ -34,4 +34,3 @@
 | `balanced_bagging_baseline` | ~0.931 | — | — | 0.0 | — | benchmark_comparison |
 | `balanced_bagging_xgb_baseline` | ~0.971 | — | — | 0.0 | — | benchmark_comparison |
 | `robust13_comparison` | ~0.939 | — | — | 0.0 | — | benchmark_comparison |
-

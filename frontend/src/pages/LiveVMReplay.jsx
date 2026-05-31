@@ -74,9 +74,9 @@ function ProgressBar({ pct }) {
 function PipelineDiagram() {
   const steps = [
     { icon: '🖥', label: 'VM traffic' },
-    { icon: '📄', label: 'Feature CSV (34 features)' },
+    { icon: '📄', label: 'Feature CSV (12 unified features)' },
     { icon: '▶', label: 'Replay batches' },
-    { icon: '🔍', label: 'full_canonical__lgbm' },
+    { icon: '🔍', label: 'unified_relative_shape_v2__lgbm' },
     { icon: '🏷', label: 'Simulated labels' },
   ];
   return (
@@ -373,9 +373,9 @@ export default function LiveVMReplay() {
     <div>
       {/* ── safety warning ── */}
       <WarningBox tone="warn">
-        <strong>Simulation only.</strong> Replay exported CSV flow features through{' '}
-        <span className="mono">full_canonical__lgbm</span>{' '}
-        (34-feature single LightGBM — the executable firewall model).
+        <strong>Simulation only.</strong> Replay CSVs compatible with the unified model through{' '}
+        <span className="mono">unified_relative_shape_v2__lgbm</span>{' '}
+        (12 ratio/relative feature unified LightGBM — the current executable firewall model).
         <strong> No packets are captured or blocked.</strong> All results are
         labelled <em>simulated</em> and have no effect on any network.
       </WarningBox>
@@ -385,31 +385,31 @@ export default function LiveVMReplay() {
         <PipelineDiagram />
       </div>
 
-      {/* ── model explanation ── */}
       <div className="section card">
         <h2 style={{ marginTop: 0 }}>
-          About <span className="mono">full_canonical__lgbm</span>
+          About <span className="mono">unified_relative_shape_v2__lgbm</span>
         </h2>
         <div className="dim" style={{ fontSize: 13, lineHeight: 1.6 }}>
-          <strong>full_canonical__lgbm</strong> is the final recommended prototype model.
-          It is a single LightGBM classifier trained on a 34-feature full-canonical
-          feature set extracted from VM traffic captures.
+          <strong>unified_relative_shape_v2__lgbm</strong> is the current recommended prototype model.
+          It is a single LightGBM classifier trained on a 12 ratio/relative feature set
+          under the <strong>unified_feature_contract_v2</strong> feature contract.
           It is the <em>only</em> executable firewall model in this prototype.
           All runtime inference uses this model regardless of which CSV you upload.
+          It is methodologically cleaner than the legacy mixed-feature model, but is still not production-ready.
         </div>
         <div style={{ marginTop: 10, fontSize: 12, color: 'var(--text-dim)' }}>
-          <strong>Required:</strong> CSV must contain all 34 full_canonical features
-          (<span className="mono">sz_coef_variation, sz_all_mean, iat_all_mean, …</span>).
+          <strong>Required:</strong> CSV must contain all unified_relative_shape_v2 features
+          (<span className="mono">sz_ratio_fwd_bwd, iat_ratio_fwd_bwd, …</span>).
           Download the template below to see the exact column list.
         </div>
       </div>
 
       {/* ── bundled demo / one-shot CSV analysis ── */}
       <div className="section card">
-        <h2 style={{ marginTop: 0 }}>Run bundled full-canonical demo</h2>
+        <h2 style={{ marginTop: 0 }}>Run bundled unified model demo</h2>
         <div className="dim" style={{ fontSize: 13, marginBottom: 12 }}>
           Run the bundled sample flows (shipped with the runtime bundle) through{' '}
-          <span className="mono">full_canonical__lgbm</span> for a one-shot result,
+          <span className="mono">unified_relative_shape_v2__lgbm</span> for a one-shot result,
           or upload your own CSV for instant one-shot analysis (not step-by-step replay).
         </div>
 
@@ -507,7 +507,7 @@ export default function LiveVMReplay() {
         {!demoResult && !demoError && !demoLoading && (
           <div className="dim" style={{ fontSize: 12, marginTop: 10 }}>
             Click <strong>Run bundled demo</strong> to score the sample flows shipped with the
-            runtime bundle, or upload a CSV with the 34 full_canonical features for a one-shot analysis.
+            runtime bundle, or upload a CSV with the unified_relative_shape_v2 features for a one-shot analysis.
           </div>
         )}
       </div>
@@ -525,7 +525,7 @@ export default function LiveVMReplay() {
           {finished && <span className="badge neutral"><span className="dot" />FINISHED</span>}
         </div>
         <div className="dim" style={{ fontSize: 12, marginBottom: 10 }}>
-          Upload a CSV with the 34 full_canonical features and step through batches manually
+          Upload a CSV with the unified_relative_shape_v2 features and step through batches manually
           or via auto-play. Download the template for the required column list.
         </div>
 
@@ -726,9 +726,9 @@ export default function LiveVMReplay() {
       {/* ── footer ── */}
       <div className="mm-page-footer">
         Live VM CSV Replay is simulation-only.{' '}
-        <code className="mono">full_canonical__lgbm</code> (34-feature single LightGBM)
+        <code className="mono">unified_relative_shape_v2__lgbm</code> (12 ratio/relative feature unified LightGBM)
         labels are simulated and have no effect on network traffic.
-        No packets are captured or blocked. Upload a CSV with the 34 full_canonical
+        No packets are captured or blocked. Upload a CSV with the unified_relative_shape_v2
         features — see <code className="mono">/firewall/live-replay/template</code>.
       </div>
     </div>

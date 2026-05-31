@@ -65,6 +65,13 @@ class LiveIngestRequest(BaseModel):
     """Payload for POST /firewall/live-ingest (sent by tools/pcap_to_live_stream.py)."""
     source: str = Field(default="vm-pcap", description="Source label, e.g. 'vm-pcap'.")
     batch_id: str = Field(..., description="Unique batch identifier, e.g. 'pcap_batch_0001'.")
-    flows: List[Dict[str, Any]] = Field(..., description="List of robust9-compatible flow feature dicts.")
+    feature_schema: Optional[str] = Field(
+        default=None,
+        description="Feature schema used to generate this batch, e.g. 'full_canonical_34'.",
+    )
+    flows: List[Dict[str, Any]] = Field(
+        ...,
+        description="List of full_canonical_34-compatible flow feature dicts (34 features).",
+    )
 
 

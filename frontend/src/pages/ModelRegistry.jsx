@@ -7,9 +7,10 @@ const GROUP_META = {
   main_demo_comparison: {
     title: 'Main demo & comparison',
     subtitle:
-      'full_canonical__lgbm — EXECUTABLE · FINAL MODEL / deployment-eligible / simulation-only. ' +
-      'robust9_firewall — LEGACY BASELINE / benchmark-compatible / comparison-only. ' +
-      'timing_shape__lgbm — BENCHMARK COMPARISON / diagnostic / comparison-only. ' +
+      'unified_relative_shape_v2__lgbm — CURRENT MODEL · EXECUTABLE · UNIFIED FEATURE CONTRACT V2 / simulation-only / not production-ready. ' +
+      'full_canonical__lgbm — LEGACY MIXED-FEATURE BASELINE / comparison-only. ' +
+      'robust9_firewall — LEGACY ROBUST9 BASELINE / comparison-only. ' +
+      'timing_shape__lgbm — DIAGNOSTIC / old experiment / comparison-only. ' +
       'balanced_bagging_* — BENCHMARK COMPARISON / comparison-only. ' +
       'robust13_comparison — COMPARISON ONLY / not benchmark-selectable (requires session-derived features).',
     tone: 'info',
@@ -112,11 +113,12 @@ export default function ModelRegistry() {
 
       <WarningBox tone="info">
         <strong>Permission summary:</strong>{' '}
-        <span className="mono">full_canonical__lgbm</span> — <strong>EXECUTABLE · FINAL MODEL</strong> / deployment-eligible / benchmark-compatible.{' '}
+        <span className="mono">unified_relative_shape_v2__lgbm</span> — <strong>CURRENT MODEL · EXECUTABLE · UNIFIED FEATURE CONTRACT V2</strong> / simulation-only / not production-ready.{' '}
+        <span className="mono">full_canonical__lgbm</span> — <strong>LEGACY MIXED-FEATURE BASELINE</strong> / comparison-only — not the recommended model.{' '}
         <span className="mono">robust9_firewall</span>, <span className="mono">balanced_bagging_3ds_reference</span>,{' '}
-        <span className="mono">balanced_bagging_baseline</span> — <strong>BENCHMARK COMPATIBLE</strong> / comparison-only.{' '}
+        <span className="mono">balanced_bagging_baseline</span> — <strong>LEGACY / BENCHMARK COMPARISON ONLY</strong> / not executable.{' '}
         All other models — <strong>NOT SELECTABLE</strong> in benchmark / comparison-only / research-only / negative-control / unsupported.
-        No model except <span className="mono">full_canonical__lgbm</span> runs firewall inference.
+        Only <span className="mono">unified_relative_shape_v2__lgbm</span> runs firewall inference.
       </WarningBox>
 
       {loading && <div className="loading-line"><span className="spinner" />Loading registry…</div>}

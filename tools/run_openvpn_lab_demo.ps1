@@ -6,8 +6,9 @@
     Coordinates a client VM (OpenVPN client + tcpdump + traffic generator) and
     a server VM (OpenVPN server + Python HTTP server on the tunnel IP). Records
     a PCAP of real OpenVPN tunnel traffic inside the client VM, samples it if
-    necessary, copies it to the Windows host, and streams robust9 features
-    into the FastAPI backend at /firewall/live-ingest.
+    necessary, copies it to the Windows host, and streams full_canonical_34
+    features into the FastAPI backend at /firewall/live-ingest using the
+    full_canonical__lgbm model.
 
     SAFETY
     ------
@@ -26,7 +27,9 @@
       Server (VPNServer2):
         scoti ALL=(root) NOPASSWD: /usr/bin/systemctl, /usr/sbin/openvpn,
                                     /usr/bin/kill, /usr/bin/cat, /usr/bin/rm,
-                                    /usr/bin/dd, /usr/bin/pkill
+                                    /usr/bin/dd, /usr/bin/pkill,
+                                    /usr/sbin/iptables, /sbin/iptables,
+                                    /usr/sbin/ufw
 #>
 
 [CmdletBinding()]
@@ -81,6 +84,7 @@ $ServerSshTarget = "$SshUser@$ServerSshHost"
 $ClientSshOpts = @('-o','BatchMode=yes','-o','StrictHostKeyChecking=accept-new','-o','ConnectTimeout=10','-p',$ClientSshPort)
 $ServerSshOpts = @('-o','BatchMode=yes','-o','StrictHostKeyChecking=accept-new','-o','ConnectTimeout=10','-p',$ServerSshPort)
 $ClientScpOpts = @('-o','BatchMode=yes','-o','StrictHostKeyChecking=accept-new','-o','ConnectTimeout=10','-P',$ClientSshPort)
+$ServerScpOpts = @('-o','BatchMode=yes','-o','StrictHostKeyChecking=accept-new','-o','ConnectTimeout=10','-P',$ServerSshPort)
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -102,7 +106,11 @@ function ConvertTo-SshBashB64 {
     # command by base64-encoding it. PowerShell + Start-Job + ssh otherwise
     # collapse embedded newlines into spaces on the remote shell, which
     # breaks for-loops and `set +e`.
+    # IMPORTANT: normalize to LF-only before encoding so that Windows CRLF
+    # line endings don't reach Linux bash as stray \r characters.
     param([Parameter(Mandatory)] [string] $Script)
+    $Script = $Script -replace "`r`n", "`n"
+    $Script = $Script -replace "`r", "`n"
     $bytes = [System.Text.Encoding]::UTF8.GetBytes($Script)
     $b64   = [Convert]::ToBase64String($bytes)
     return "echo $b64 | base64 -d | bash"
@@ -255,36 +263,144 @@ if ($r.Out -notmatch '10\.8\.0\.1') { throw 'Tunnel IP 10.8.0.1 not present on s
 Write-Ok 'Tunnel IP 10.8.0.1 present on server.'
 
 Write-Section 'Server: HTTP file server on 10.8.0.1:8000'
-$prep = @'
-set -e
-mkdir -p ~/vpn-http
-[ -f ~/vpn-http/small.bin ]  || dd if=/dev/urandom of=~/vpn-http/small.bin  bs=100K count=1 status=none
-[ -f ~/vpn-http/medium.bin ] || dd if=/dev/urandom of=~/vpn-http/medium.bin bs=1M  count=5 status=none
-[ -f ~/vpn-http/large.bin ]  || dd if=/dev/urandom of=~/vpn-http/large.bin  bs=1M  count=30 status=none
-ls -lh ~/vpn-http/
-'@
-$r = Invoke-ServerSsh -RemoteCmd $prep -TimeoutSec 60
-Write-Host $r.Out
-if (-not $r.Ok) { throw 'Failed to prepare ~/vpn-http on server.' }
 
-$startHttp = @'
+# Build the server-side Bash script.  We write it to a local temp file with
+# LF-only endings (no BOM), scp it to the server, then execute it there.
+# This avoids any CRLF / stray-\r problems that occur when embedding multi-
+# line Bash in a PowerShell here-string sent over SSH.
+$TmpShLocal = Join-Path $env:TEMP 'start_openvpn_http_server.sh'
+$httpServerBash = @'
+#!/usr/bin/env bash
+# NOTE: CRLF-safe — this file is written with LF-only endings by the PS1 script.
+set -uo pipefail
+
+DEMO_DIR=/home/scoti/openvpn_http_demo
+mkdir -p "$DEMO_DIR"
+cd "$DEMO_DIR"
+
+# ── ensure demo files exist ──────────────────────────────────────────────────
+test -f small.bin  || dd if=/dev/urandom of=small.bin  bs=100K count=1  status=none
+test -f medium.bin || dd if=/dev/urandom of=medium.bin bs=1M   count=5  status=none
+test -f large.bin  || dd if=/dev/urandom of=large.bin  bs=1M   count=30 status=none
+echo "=== Demo files in $DEMO_DIR ==="
+ls -lh .
+
+# ── open firewall port 8000 on tun interface (non-fatal) ─────────────────────
+echo "=== iptables: allow port 8000 on tun interfaces ==="
+sudo -n iptables -C INPUT -i tun0 -p tcp --dport 8000 -j ACCEPT 2>/dev/null \
+  || sudo -n iptables -I INPUT -i tun0 -p tcp --dport 8000 -j ACCEPT 2>/dev/null || true
+sudo -n iptables -C INPUT -i tun1 -p tcp --dport 8000 -j ACCEPT 2>/dev/null \
+  || sudo -n iptables -I INPUT -i tun1 -p tcp --dport 8000 -j ACCEPT 2>/dev/null || true
+
+# ── kill any leftover HTTP server ─────────────────────────────────────────────
 pkill -f "python3 -m http.server 8000" 2>/dev/null || true
-rm -f /tmp/openvpn_lab_http.pid /tmp/openvpn_lab_http.log
-cd ~/vpn-http
-setsid python3 -m http.server 8000 --bind 10.8.0.1 > /tmp/openvpn_lab_http.log 2>&1 < /dev/null &
-echo $! > /tmp/openvpn_lab_http.pid
-sleep 2
-if ps -p "$(cat /tmp/openvpn_lab_http.pid)" >/dev/null 2>&1; then
-  echo "HTTP_READY pid=$(cat /tmp/openvpn_lab_http.pid)"
-else
-  echo "HTTP_FAILED"
-  cat /tmp/openvpn_lab_http.log
-  exit 31
+sleep 1
+
+# ── start HTTP server bound to tunnel IP ─────────────────────────────────────
+echo "=== Starting HTTP server on 10.8.0.1:8000 ==="
+nohup python3 -m http.server 8000 --bind 10.8.0.1 > /tmp/openvpn_http_server.log 2>&1 &
+HTTP_PID=$!
+echo "$HTTP_PID" > /tmp/openvpn_http_server.pid
+sleep 3
+
+# ── check if port is actually listening ──────────────────────────────────────
+LISTENING=0
+ss -ltn 2>/dev/null | grep -q ':8000' && LISTENING=1
+[ "$LISTENING" -eq 0 ] && netstat -ltn 2>/dev/null | grep -q ':8000' && LISTENING=1
+
+if [ "$LISTENING" -eq 0 ]; then
+  echo "=== Port 8000 not listening on 10.8.0.1; retrying with 0.0.0.0 fallback ==="
+  echo "=== Log so far ==="
+  cat /tmp/openvpn_http_server.log || true
+  pkill -f "python3 -m http.server 8000" 2>/dev/null || true
+  sleep 1
+  nohup python3 -m http.server 8000 --bind 0.0.0.0 > /tmp/openvpn_http_server.log 2>&1 &
+  HTTP_PID=$!
+  echo "$HTTP_PID" > /tmp/openvpn_http_server.pid
+  sleep 3
+  ss -ltn 2>/dev/null | grep -q ':8000' && LISTENING=1
+  [ "$LISTENING" -eq 0 ] && netstat -ltn 2>/dev/null | grep -q ':8000' && LISTENING=1
 fi
+
+echo "=== Listening sockets on :8000 ==="
+ss -ltnp 2>/dev/null | grep 8000 || netstat -ltnp 2>/dev/null | grep 8000 || echo "(none)"
+
+if [ "$LISTENING" -eq 0 ]; then
+  echo "HTTP_NOT_READY — port 8000 not listening after fallback"
+  echo "=== HTTP server log ==="
+  cat /tmp/openvpn_http_server.log || true
+  exit 1
+fi
+
+# ── server-side curl verification ────────────────────────────────────────────
+echo "=== Server-side curl test: http://10.8.0.1:8000/small.bin ==="
+SERVER_CURL_OK=0
+if curl -fsS --max-time 8 http://10.8.0.1:8000/small.bin -o /dev/null 2>&1; then
+  echo "SERVER_CURL_OK — file reachable via tunnel IP"
+  SERVER_CURL_OK=1
+elif curl -fsS --max-time 8 http://127.0.0.1:8000/small.bin -o /dev/null 2>&1; then
+  echo "SERVER_CURL_OK_LOOPBACK — reachable via loopback (bound to 0.0.0.0)"
+  SERVER_CURL_OK=1
+fi
+
+if [ "$SERVER_CURL_OK" -eq 0 ]; then
+  echo "SERVER_CURL_FAIL — server cannot reach its own HTTP server"
+  echo "=== ip addr ==="
+  ip addr show
+  echo "=== ip route ==="
+  ip route show
+  echo "=== ss :8000 ==="
+  ss -ltnp 2>/dev/null | grep 8000 || echo "(none)"
+  echo "=== http.server process ==="
+  ps aux | grep http.server | grep -v grep || echo "(not running)"
+  echo "=== HTTP server log ==="
+  cat /tmp/openvpn_http_server.log || true
+  echo "=== iptables INPUT chain ==="
+  sudo -n iptables -S INPUT 2>/dev/null | head -30 || true
+  echo "HTTP_NOT_READY"
+  exit 1
+fi
+
+echo "HTTP_READY pid=$HTTP_PID"
 '@
-$r = Invoke-ServerSsh -RemoteCmd $startHttp -TimeoutSec 30
+# Normalise to LF and write UTF-8 without BOM
+$httpServerBash = $httpServerBash -replace "`r`n", "`n"
+$httpServerBash = $httpServerBash -replace "`r", "`n"
+[System.IO.File]::WriteAllText($TmpShLocal, $httpServerBash,
+    [System.Text.UTF8Encoding]::new($false))
+
+Write-Info "Copying HTTP server script to server VM..."
+$scpServerArgs = @($ServerScpOpts + @($TmpShLocal, ('{0}:/tmp/start_openvpn_http_server.sh' -f $ServerSshTarget)))
+& scp @scpServerArgs
+if ($LASTEXITCODE -ne 0) { throw "scp of HTTP server script to server VM failed (exit $LASTEXITCODE)." }
+
+Write-Info "Running HTTP server script on server VM..."
+$r = Invoke-ServerSsh -RemoteCmd 'chmod +x /tmp/start_openvpn_http_server.sh && bash /tmp/start_openvpn_http_server.sh' -TimeoutSec 60
 Write-Host $r.Out
-if ($r.Out -notmatch 'HTTP_READY') { throw 'HTTP server failed to start on the server VM.' }
+if ($r.Out -notmatch 'HTTP_READY') {
+    Write-Err2 "HTTP server start script did not print HTTP_READY. Full diagnostics:"
+    $diagScript = @'
+echo "=== ip addr ==="
+ip addr show
+echo "=== ip route ==="
+ip route show
+echo "=== ss :8000 ==="
+ss -ltnp 2>/dev/null | grep 8000 || netstat -ltnp 2>/dev/null | grep 8000 || echo "(none)"
+echo "=== http.server process ==="
+ps aux | grep http.server | grep -v grep || echo "(not running)"
+echo "=== iptables INPUT ==="
+sudo -n iptables -S INPUT 2>/dev/null | head -30 || true
+echo "=== ufw status ==="
+sudo -n ufw status verbose 2>/dev/null || true
+echo "=== HTTP server log ==="
+cat /tmp/openvpn_http_server.log 2>/dev/null || echo "(log not found)"
+echo "=== demo dir ==="
+ls -lh /home/scoti/openvpn_http_demo/ 2>/dev/null || echo "(dir not found)"
+'@
+    $diag = Invoke-ServerSsh -RemoteCmd $diagScript -TimeoutSec 30
+    Write-Host $diag.Out
+    throw 'HTTP server failed to start on the server VM.'
+}
 Write-Ok 'HTTP server is up on 10.8.0.1:8000.'
 
 # ---------------------------------------------------------------------------
@@ -317,14 +433,160 @@ if (-not $tun) {
 }
 Write-Ok 'OpenVPN tun interface is up on the client.'
 
-$r = Invoke-ClientSsh -RemoteCmd 'ping -c 4 10.8.0.1 || true' -TimeoutSec 20
+# ---------------------------------------------------------------------------
+# Preflight: verify HTTP server is reachable from inside the VPN tunnel
+# ---------------------------------------------------------------------------
+
+Write-Section 'Preflight: client tunnel IP + ping 10.8.0.1'
+$r = Invoke-ClientSsh -RemoteCmd 'ip addr show; ip route show' -TimeoutSec 15
 Write-Host $r.Out
-if ($r.Out -notmatch '0% packet loss|1 received|2 received|3 received|4 received') {
-    $log = Invoke-ClientSsh -RemoteCmd 'sudo -n cat /tmp/openvpn_lab_client.log 2>/dev/null || true' -TimeoutSec 10
-    Write-Host $log.Out
-    throw 'Client cannot ping VPN gateway 10.8.0.1.'
+
+# Ping — use exit code, not text matching.  ICMP may be blocked; treat failure
+# as a warning only and let the curl test be the authoritative gate.
+$pingR = Invoke-ClientSsh -RemoteCmd 'ping -c 4 10.8.0.1' -TimeoutSec 25
+Write-Host $pingR.Out
+if ($pingR.Ok) {
+    Write-Ok 'ICMP ping to 10.8.0.1 succeeded.'
+} else {
+    Write-Warn2 'ICMP ping to 10.8.0.1 failed; ICMP may be blocked on the tun interface.'
+    Write-Warn2 'Continuing to curl reachability test (ping failure is not fatal).'
 }
-Write-Ok 'Client reaches 10.8.0.1 over the tunnel.'
+
+Write-Section 'Preflight: client curl -> http://10.8.0.1:8000/small.bin'
+
+# ── First curl attempt ────────────────────────────────────────────────────────
+# Use -fsS so curl exits non-zero on HTTP errors (4xx/5xx).
+# Do NOT append || true — we need the real exit code via $r.Ok / $r.Code.
+$ClientHttpReady = $false
+
+$curlR = Invoke-ClientSsh `
+    -RemoteCmd 'curl -fsS --connect-timeout 10 --max-time 15 -o /tmp/small_preflight.bin http://10.8.0.1:8000/small.bin' `
+    -TimeoutSec 30
+Write-Host $curlR.Out
+if ($curlR.Ok) {
+    $ClientHttpReady = $true
+    Write-Ok 'Client can reach HTTP file server through the VPN tunnel.'
+} else {
+    Write-Warn2 "First curl failed (ssh/curl exit code $($curlR.Code)). Attempting server-side iptables fix and retrying..."
+}
+
+# ── Server-side iptables fix + retry ─────────────────────────────────────────
+if (-not $ClientHttpReady) {
+    $fixScript = @'
+echo "=== Attempting iptables rules for tun0/tun1 port 8000 ==="
+sudo -n iptables -C INPUT -i tun0 -p tcp --dport 8000 -j ACCEPT 2>/dev/null \
+  || sudo -n iptables -I INPUT -i tun0 -p tcp --dport 8000 -j ACCEPT 2>/dev/null \
+  || echo "iptables tun0 rule skipped: sudo unavailable or rule already present"
+sudo -n iptables -C INPUT -i tun1 -p tcp --dport 8000 -j ACCEPT 2>/dev/null \
+  || sudo -n iptables -I INPUT -i tun1 -p tcp --dport 8000 -j ACCEPT 2>/dev/null \
+  || echo "iptables tun1 rule skipped: sudo unavailable or rule already present"
+echo "=== iptables INPUT ==="
+sudo -n iptables -S INPUT 2>/dev/null | head -30 || echo "iptables not readable without sudo"
+echo "=== ufw status ==="
+sudo -n ufw status verbose 2>/dev/null || echo "ufw not readable without sudo"
+echo "=== ss :8000 ==="
+ss -ltnp 2>/dev/null | grep 8000 || netstat -ltnp 2>/dev/null | grep 8000 || echo "not listening on port 8000"
+echo "=== http.server process ==="
+ps aux | grep http.server | grep -v grep || echo "http.server not running"
+'@
+    $fix = Invoke-ServerSsh -RemoteCmd $fixScript -TimeoutSec 30
+    Write-Host '--- SERVER FIX OUTPUT ---'
+    Write-Host $fix.Out
+
+    Start-Sleep -Seconds 2
+
+    Write-Info 'Retrying client curl after server fix...'
+    $curlR2 = Invoke-ClientSsh `
+        -RemoteCmd 'curl -fsS --connect-timeout 10 --max-time 15 -o /tmp/small_preflight.bin http://10.8.0.1:8000/small.bin' `
+        -TimeoutSec 30
+    Write-Host $curlR2.Out
+    if ($curlR2.Ok) {
+        $ClientHttpReady = $true
+        Write-Ok 'Client reached HTTP server after iptables fix + retry.'
+    } else {
+        Write-Warn2 "Retry curl also failed (exit code $($curlR2.Code)). Collecting full diagnostics..."
+    }
+}
+
+# ── Final diagnostics + authoritative verbose curl ───────────────────────────
+if (-not $ClientHttpReady) {
+    Write-Err2 '============================================================'
+    Write-Err2 'PREFLIGHT FAILURE: client cannot reach http://10.8.0.1:8000/small.bin'
+    Write-Err2 '============================================================'
+
+    Write-Host ''
+    Write-Host '--- [SERVER] ip addr / ip route ---'
+    $sd1 = Invoke-ServerSsh -RemoteCmd 'ip addr show; ip route show' -TimeoutSec 15
+    Write-Host $sd1.Out
+
+    Write-Host ''
+    Write-Host '--- [SERVER] ss :8000 / http.server process ---'
+    $sd2 = Invoke-ServerSsh -RemoteCmd @'
+ss -ltnp 2>/dev/null | grep 8000 || netstat -ltnp 2>/dev/null | grep 8000 || echo "not listening on port 8000"
+ps aux | grep http.server | grep -v grep || echo "http.server not running"
+'@ -TimeoutSec 15
+    Write-Host $sd2.Out
+
+    Write-Host ''
+    Write-Host '--- [SERVER] HTTP server log ---'
+    $sd3 = Invoke-ServerSsh -RemoteCmd 'cat /tmp/openvpn_http_server.log 2>/dev/null || echo "log not found"' -TimeoutSec 10
+    Write-Host $sd3.Out
+
+    Write-Host ''
+    Write-Host '--- [SERVER] iptables + ufw ---'
+    $sd4 = Invoke-ServerSsh -RemoteCmd @'
+sudo -n iptables -S INPUT 2>/dev/null | head -30 || echo "iptables not readable without sudo"
+sudo -n ufw status verbose 2>/dev/null || echo "ufw not readable without sudo"
+'@ -TimeoutSec 15
+    Write-Host $sd4.Out
+
+    Write-Host ''
+    Write-Host '--- [SERVER] OpenVPN tun IP ---'
+    $sd5 = Invoke-ServerSsh -RemoteCmd @'
+ip a | grep -E 'tun|10\.8\.' || echo "no tun or 10.8.x address found"
+systemctl is-active openvpn@server 2>/dev/null || echo "openvpn@server: status unknown"
+'@ -TimeoutSec 10
+    Write-Host $sd5.Out
+
+    Write-Host ''
+    Write-Host '--- [CLIENT] ip addr / ip route ---'
+    $cd1 = Invoke-ClientSsh -RemoteCmd 'ip addr show; ip route show' -TimeoutSec 15
+    Write-Host $cd1.Out
+
+    Write-Host ''
+    Write-Host '--- [CLIENT] ping 10.8.0.1 ---'
+    $cd2 = Invoke-ClientSsh -RemoteCmd 'ping -c 3 10.8.0.1 2>&1; true' -TimeoutSec 20
+    Write-Host $cd2.Out
+
+    # Verbose curl — check its EXIT CODE (not just text).  If it succeeds here,
+    # the server recovered during diagnostics; honour that and continue.
+    Write-Host ''
+    Write-Host '--- [CLIENT] verbose curl (authoritative final check) ---'
+    $cd3 = Invoke-ClientSsh `
+        -RemoteCmd 'curl -v --connect-timeout 10 --max-time 15 -o /tmp/small_preflight_diag.bin http://10.8.0.1:8000/small.bin 2>&1' `
+        -TimeoutSec 35
+    Write-Host $cd3.Out
+    if ($cd3.Ok) {
+        $ClientHttpReady = $true
+        Write-Ok 'Diagnostic verbose curl succeeded (HTTP 200) — server is reachable. Continuing to capture.'
+    }
+
+    if (-not $ClientHttpReady) {
+        Write-Host ''
+        Write-Err2 'Failure category guide:'
+        Write-Err2 '  A. HTTP server not running      -> http.server not in ps aux'
+        Write-Err2 '  B. HTTP server wrong interface  -> listening on 0.0.0.0 but iptables blocks tun0'
+        Write-Err2 '  C. OpenVPN tunnel not up        -> ping fails, no tun iface on client'
+        Write-Err2 '  D. Client route missing         -> ping ok, no route to 10.8.0.1 via tun'
+        Write-Err2 '  E. Firewall blocking port 8000  -> ping ok, curl connection refused/timeout'
+        Write-Err2 '  F. File missing in demo dir     -> curl gets 404, server log shows FileNotFoundError'
+        throw 'Client VM cannot reach HTTP server at http://10.8.0.1:8000/small.bin. Aborting before capture.'
+    }
+}
+
+if ($ClientHttpReady) {
+    Write-Ok 'Preflight passed: client can reach HTTP file server through the VPN tunnel.'
+}
 
 # ---------------------------------------------------------------------------
 # 4. tcpdump + traffic on client
@@ -387,9 +649,9 @@ echo client_torn_down
 Invoke-ClientSsh -RemoteCmd $teardownClient -TimeoutSec 20 | Out-Null
 
 $teardownServer = @'
-if [ -f /tmp/openvpn_lab_http.pid ]; then
-  kill "$(cat /tmp/openvpn_lab_http.pid)" 2>/dev/null || true
-  rm -f /tmp/openvpn_lab_http.pid
+if [ -f /tmp/openvpn_http_server.pid ]; then
+  kill "$(cat /tmp/openvpn_http_server.pid)" 2>/dev/null || true
+  rm -f /tmp/openvpn_http_server.pid
 fi
 pkill -f "python3 -m http.server 8000" 2>/dev/null || true
 echo server_torn_down

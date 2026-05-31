@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import Navbar from './components/Navbar.jsx';
 import Dashboard from './pages/Dashboard.jsx';
-import MultiModelCsvEvaluation from './pages/MultiModelCsvEvaluation.jsx';
+import ModelComparison from './pages/ModelComparison.jsx';
 import LiveVM from './pages/LiveVM.jsx';
 import Models from './pages/Models.jsx';
 import Robustness from './pages/Robustness.jsx';
@@ -59,7 +59,7 @@ export default function App() {
 
   let body = null;
   switch (resolvedPage) {
-    case 'multimodel':  body = <MultiModelCsvEvaluation />; break;
+    case 'multimodel':  body = <ModelComparison />; break;
     case 'livevm':
       body = <LiveVM tab={liveVmTab} onTabChange={setLiveVmTab} />; break;
     case 'models':      body = <Models />; break;
