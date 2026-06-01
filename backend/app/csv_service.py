@@ -7,49 +7,40 @@ from typing import Any, Dict, List
 
 import pandas as pd
 
-from .registry_loader import (
-    BUNDLE_ROOT,
-    COMPARISON_CSV_PATH,
-    DEMO_FLOWS_PATH,
-    DEMO_FLOWS_FULL_CANONICAL_PATH,
-    DEMO_FLOWS_UNIFIED_PATH,
-)
+from .registry_loader import BUNDLE_ROOT, COMPARISON_CSV_PATH, DEMO_FLOWS_PATH, DEMO_FLOWS_FULL_CANONICAL_PATH
+from .robust9_inference import REQUIRED_FEATURES as ROBUST9_REQUIRED_FEATURES
 
 DEMO_MULTIMODEL_FLOWS_PATH = BUNDLE_ROOT / "demo_data" / "demo_multimodel_flows.csv"
-# Legacy benchmark CSV — kept for reference but not the active demo
 BENCHMARK_CSV_PATH = BUNDLE_ROOT / "demo_data" / "simultaneous_test_selected_models.csv"
 
 
-def load_demo_flows_unified() -> pd.DataFrame:
-    """Load the unified_relative_shape_v2__lgbm demo flows CSV (12 features). Primary demo CSV."""
-    if not DEMO_FLOWS_UNIFIED_PATH.exists():
-        raise FileNotFoundError(f"Unified demo CSV missing: {DEMO_FLOWS_UNIFIED_PATH}")
-    return pd.read_csv(DEMO_FLOWS_UNIFIED_PATH)
-
-
 def load_demo_flows() -> pd.DataFrame:
-    """Load the legacy robust9 demo flows CSV (9 sz_* features). Legacy/reference only."""
+    """Load the legacy robust9 demo flows CSV (9 sz_* features)."""
     if not DEMO_FLOWS_PATH.exists():
         raise FileNotFoundError(f"Demo CSV missing: {DEMO_FLOWS_PATH}")
     return pd.read_csv(DEMO_FLOWS_PATH)
 
 
 def load_demo_flows_full_canonical() -> pd.DataFrame:
-    """Load the full_canonical__lgbm demo flows CSV (34 features). Legacy/comparison only."""
+    """Load the full_canonical__lgbm demo flows CSV (34 features)."""
     if not DEMO_FLOWS_FULL_CANONICAL_PATH.exists():
         raise FileNotFoundError(f"Full-canonical demo CSV missing: {DEMO_FLOWS_FULL_CANONICAL_PATH}")
     return pd.read_csv(DEMO_FLOWS_FULL_CANONICAL_PATH)
 
 
 def load_multimodel_demo_flows() -> pd.DataFrame:
-    """Legacy multi-model demo CSV. Use load_demo_flows_unified() for the active model."""
     if not DEMO_MULTIMODEL_FLOWS_PATH.exists():
         raise FileNotFoundError(f"Multimodel demo CSV missing: {DEMO_MULTIMODEL_FLOWS_PATH}")
     return pd.read_csv(DEMO_MULTIMODEL_FLOWS_PATH)
 
 
 def load_benchmark_csv() -> pd.DataFrame:
-    """Load the legacy simultaneous benchmark CSV. Legacy reference — not the active demo."""
+    """Load the simultaneous benchmark CSV (7,952 flows, 104 captures).
+
+    This is the audit-generated benchmark CSV compatible with the 4 selected models:
+    full_canonical__lgbm, robust9_firewall, balanced_bagging_3ds_reference,
+    balanced_bagging_baseline.
+    """
     if not BENCHMARK_CSV_PATH.exists():
         raise FileNotFoundError(
             f"Benchmark CSV missing: {BENCHMARK_CSV_PATH}. "
@@ -70,6 +61,20 @@ def parse_uploaded_csv(raw_bytes: bytes) -> pd.DataFrame:
         raise ValueError(f"Could not parse uploaded CSV: {exc}") from exc
 
 
+def parse_uploaded_csv_robust9(raw_bytes: bytes) -> pd.DataFrame:
+    """Parse and validate an uploaded CSV for the robust9 (9-feature) engine."""
+    try:
+        df = pd.read_csv(io.BytesIO(raw_bytes))
+    except Exception as exc:  # noqa: BLE001
+        raise ValueError(f"Could not parse uploaded CSV: {exc}") from exc
+    missing = [c for c in ROBUST9_REQUIRED_FEATURES if c not in df.columns]
+    if missing:
+        raise ValueError(
+            "Uploaded CSV is missing required robust9 feature columns: " + ", ".join(missing)
+        )
+    return df
+
+
 def parse_multimodel_csv(raw_bytes: bytes) -> pd.DataFrame:
     """Parse an uploaded CSV for multi-model evaluation. No feature validation here —
     each engine validates its own required features and gracefully skips if missing."""
@@ -88,4 +93,6 @@ def load_comparison_rows() -> List[Dict[str, Any]]:
         for r in reader:
             rows.append({k: (v if v != "" else None) for k, v in r.items()})
     return rows
+
+
 

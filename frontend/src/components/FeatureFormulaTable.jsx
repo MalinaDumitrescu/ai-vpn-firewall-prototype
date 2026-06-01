@@ -91,4 +91,3 @@ export default function FeatureFormulaTable({ featuresObj = {}, selectedOnly = f
     </div>
   );
 }
-

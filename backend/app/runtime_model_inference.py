@@ -74,15 +74,7 @@ class RuntimeModelEngine:
 
         self.model_id = model_id
         self.loader_config: Dict[str, Any] = _read_json(model_dir / "runtime_loader_config.json")
-
-        # Support both "feature_order" (legacy bagging models) and "features" (unified v2)
-        _fo_raw = _read_json(model_dir / "feature_order.json")
-        self.feature_order: List[str] = (
-            _fo_raw.get("feature_order")
-            or _fo_raw.get("features")
-            or []
-        )
-
+        self.feature_order: List[str] = _read_json(model_dir / "feature_order.json")["feature_order"]
         self.thresholds: Dict[str, Any] = _read_json(model_dir / "thresholds.json")
 
         self.probability_column: str = self.loader_config.get("probability_column", "prob_raw")
@@ -131,7 +123,7 @@ class RuntimeModelEngine:
         self.is_default_firewall: bool = (
             alist_data.get("default_firewall") == model_id
         )
-        # Executable = only unified_relative_shape_v2__lgbm (inference_permitted=true, executable=true)
+        # Executable = only full_canonical__lgbm (inference_permitted=true, executable=true)
         self.is_executable: bool = model_alist.get("executable", False)
         self.is_comparison_only: bool = not self.is_executable
 
