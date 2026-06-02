@@ -7,11 +7,17 @@ from typing import Any, Dict, List
 
 import pandas as pd
 
-from .registry_loader import BUNDLE_ROOT, COMPARISON_CSV_PATH, DEMO_FLOWS_PATH, DEMO_FLOWS_FULL_CANONICAL_PATH
+from .registry_loader import (
+    BUNDLE_ROOT,
+    COMPARISON_CSV_PATH,
+    DEMO_FLOWS_PATH,
+    DEMO_FLOWS_FULL_CANONICAL_PATH,
+    DEMO_FLOWS_UNIFIED_PATH,
+)
 from .robust9_inference import REQUIRED_FEATURES as ROBUST9_REQUIRED_FEATURES
 
 DEMO_MULTIMODEL_FLOWS_PATH = BUNDLE_ROOT / "demo_data" / "demo_multimodel_flows.csv"
-BENCHMARK_CSV_PATH = BUNDLE_ROOT / "demo_data" / "simultaneous_test_selected_models.csv"
+BENCHMARK_CSV_PATH = BUNDLE_ROOT / "demo_data" / "demo_flows_full_canonical(2).csv"
 
 
 def load_demo_flows() -> pd.DataFrame:
@@ -28,6 +34,17 @@ def load_demo_flows_full_canonical() -> pd.DataFrame:
     return pd.read_csv(DEMO_FLOWS_FULL_CANONICAL_PATH)
 
 
+def load_demo_flows_unified() -> pd.DataFrame:
+    """Load the unified_relative_shape_v2__lgbm demo flows CSV (12 features).
+
+    This is the bundled demo CSV for the executable firewall model
+    (unified_model_demo_flows.csv inside the runtime bundle's demo_data/).
+    """
+    if not DEMO_FLOWS_UNIFIED_PATH.exists():
+        raise FileNotFoundError(f"Unified demo CSV missing: {DEMO_FLOWS_UNIFIED_PATH}")
+    return pd.read_csv(DEMO_FLOWS_UNIFIED_PATH)
+
+
 def load_multimodel_demo_flows() -> pd.DataFrame:
     if not DEMO_MULTIMODEL_FLOWS_PATH.exists():
         raise FileNotFoundError(f"Multimodel demo CSV missing: {DEMO_MULTIMODEL_FLOWS_PATH}")
@@ -35,16 +52,15 @@ def load_multimodel_demo_flows() -> pd.DataFrame:
 
 
 def load_benchmark_csv() -> pd.DataFrame:
-    """Load the simultaneous benchmark CSV (7,952 flows, 104 captures).
+    """Load the bundled legacy benchmark CSV for the 4 compatible raw-feature models.
 
-    This is the audit-generated benchmark CSV compatible with the 4 selected models:
-    full_canonical__lgbm, robust9_firewall, balanced_bagging_3ds_reference,
-    balanced_bagging_baseline.
+    Compatible models: full_canonical__lgbm, robust9_firewall,
+    balanced_bagging_3ds_reference, balanced_bagging_baseline.
     """
     if not BENCHMARK_CSV_PATH.exists():
         raise FileNotFoundError(
             f"Benchmark CSV missing: {BENCHMARK_CSV_PATH}. "
-            "Expected: demo_data/simultaneous_test_selected_models.csv"
+            "Expected: demo_data/demo_flows_full_canonical(2).csv"
         )
     return pd.read_csv(BENCHMARK_CSV_PATH)
 
@@ -93,6 +109,3 @@ def load_comparison_rows() -> List[Dict[str, Any]]:
         for r in reader:
             rows.append({k: (v if v != "" else None) for k, v in r.items()})
     return rows
-
-
-

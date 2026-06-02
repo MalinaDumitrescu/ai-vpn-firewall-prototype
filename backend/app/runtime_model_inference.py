@@ -24,6 +24,7 @@ from .registry_loader import (
     RUNTIME_MODELS_DIR,
     get_allowlisted_model_ids,
     get_model_entry,
+    load_feature_order,
     load_inference_allowlist,
 )
 
@@ -74,7 +75,7 @@ class RuntimeModelEngine:
 
         self.model_id = model_id
         self.loader_config: Dict[str, Any] = _read_json(model_dir / "runtime_loader_config.json")
-        self.feature_order: List[str] = _read_json(model_dir / "feature_order.json")["feature_order"]
+        self.feature_order: List[str] = load_feature_order(model_id)
         self.thresholds: Dict[str, Any] = _read_json(model_dir / "thresholds.json")
 
         self.probability_column: str = self.loader_config.get("probability_column", "prob_raw")

@@ -901,8 +901,8 @@ export default function ModelComparison() {
                   <span className="icon">ℹ</span>
                   <div>
                     <strong>Bundled CSV:</strong>{' '}
-                    <span className="mono">simultaneous_test_selected_models.csv</span> — compatible raw-feature benchmark.
-                    Only the <strong>{nSelected} selected</strong> model{nSelected !== 1 ? 's' : ''} will run.
+                    <span className="mono">demo_flows_full_canonical(2).csv</span> — compatible raw-feature benchmark.
+                    Only the <strong>{nSelected} selected</strong> compatible model{nSelected !== 1 ? 's' : ''} will run.
                   </div>
                 </div>
                 <button

@@ -791,8 +791,8 @@ export default function MultiModelCsvEvaluation() {
               <span className="icon">ℹ</span>
               <div>
                 <strong>Bundled benchmark:</strong>{' '}
-                <span className="mono">simultaneous_test_selected_models.csv</span>{' '}
-                (7,952 flows, 104 captures).{' '}
+                <span className="mono">demo_flows_full_canonical(2).csv</span>{' '}
+                — compatible raw-feature benchmark.{' '}
                 <span className="badge bad small-badge" style={{ marginLeft: 4 }}>benchmark-only</span>
               </div>
             </div>
@@ -820,7 +820,7 @@ export default function MultiModelCsvEvaluation() {
                 Upload compatible benchmark CSV
               </div>
               <p className="dim" style={{ marginTop: 0, marginBottom: 10, fontSize: 12 }}>
-                Upload <span className="mono">simultaneous_test_selected_models.csv</span> or a compatible CSV
+                Upload <span className="mono">demo_flows_full_canonical(2).csv</span> or a compatible CSV
                 with the same raw features. The 4 compatible models will each select their own feature subset.
                 Extra columns are ignored. Missing required features skip only that model.
               </p>

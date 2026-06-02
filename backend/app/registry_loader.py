@@ -50,6 +50,45 @@ COMPARISON_CSV_PATH = (
 )
 
 
+def load_feature_order(model_id: str) -> List[str]:
+    """Resolve the ordered feature list for a runtime model.
+
+    Accepts multiple historical key names so artifacts produced by different
+    training pipelines remain compatible:
+
+        feature_order  → canonical
+        features       → unified_relative_shape_v2 family
+        feature_names  → legacy export
+        required_features / required_columns / selected_features → misc
+
+    Raises a descriptive ValueError if the file exists but no recognized key
+    is present, and FileNotFoundError if the artifact is missing entirely.
+    """
+    path = RUNTIME_MODELS_DIR / model_id / "feature_order.json"
+    if not path.exists():
+        raise FileNotFoundError(
+            f"Model configuration error: feature_order.json not found for "
+            f"'{model_id}' (expected at {path})."
+        )
+    data = _read_json(path) or {}
+    for key in (
+        "feature_order",
+        "features",
+        "feature_names",
+        "required_features",
+        "required_columns",
+        "selected_features",
+    ):
+        val = data.get(key)
+        if val:
+            return list(val)
+    raise ValueError(
+        f"Model configuration error: missing feature_order for '{model_id}'. "
+        f"feature_order.json must contain one of: feature_order, features, "
+        f"feature_names, required_features, required_columns, selected_features."
+    )
+
+
 def _read_json(path: Path) -> Optional[Dict[str, Any]]:
     if not path.exists():
         return None

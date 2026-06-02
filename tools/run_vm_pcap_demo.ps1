@@ -444,5 +444,3 @@ try {
 Write-Section "Demo '$TrafficProfile' complete (simulation only)"
 Write-Ok 'All steps finished.'
 exit 0
-
-

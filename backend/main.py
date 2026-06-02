@@ -243,9 +243,7 @@ def get_runtime_models() -> List[Dict[str, Any]]:
         # Feature info.
         feature_order: List[str] = []
         try:
-            fo = registry_loader._read_json(model_dir / "feature_order.json")  # type: ignore[attr-defined]
-            if fo:
-                feature_order = fo.get("feature_order", [])
+            feature_order = registry_loader.load_feature_order(mid)
         except Exception:
             pass
         # Threshold info — supports both nested (robust9) and flat (full_canonical) formats.
@@ -299,13 +297,9 @@ def get_runtime_required_features() -> Dict[str, Any]:
     per_model: Dict[str, List[str]] = {}
     union: set = set()
     for mid in allowed_ids:
-        model_dir = registry_loader.RUNTIME_MODELS_DIR / mid
-        fo_path = model_dir / "feature_order.json"
         feats: List[str] = []
         try:
-            fo = registry_loader._read_json(fo_path)  # type: ignore[attr-defined]
-            if fo:
-                feats = fo.get("feature_order", [])
+            feats = registry_loader.load_feature_order(mid)
         except Exception:
             pass
         per_model[mid] = feats
@@ -743,12 +737,11 @@ def legacy_benchmark_bundled(
 
     selected_model_ids: optional comma-separated list of model IDs to run.
                         Only the 4 raw-feature compatible models are allowed.
-    Uses demo_data/simultaneous_test_selected_models.csv when available,
-    falling back to demo_multimodel_flows.csv.
+    Uses demo_data/demo_flows_full_canonical(2).csv.
     Results are benchmark-only and do NOT affect firewall decisions.
     unified_relative_shape_v2__lgbm is NOT run here.
     """
-    # Try simultaneous_test first, fall back to multimodel demo
+    # Load bundled legacy benchmark CSV
     try:
         df = load_benchmark_csv()
     except FileNotFoundError:
@@ -776,7 +769,7 @@ def legacy_benchmark_bundled(
         logger.exception("legacy benchmark bundled failed")
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
-    result["source"] = "bundled:simultaneous_test_selected_models.csv"
+    result["source"] = "bundled:demo_flows_full_canonical(2).csv"
     return result
 
 
