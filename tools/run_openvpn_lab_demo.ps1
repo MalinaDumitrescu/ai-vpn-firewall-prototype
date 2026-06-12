@@ -6,9 +6,10 @@
     Coordinates a client VM (OpenVPN client + tcpdump + traffic generator) and
     a server VM (OpenVPN server + Python HTTP server on the tunnel IP). Records
     a PCAP of real OpenVPN tunnel traffic inside the client VM, samples it if
-    necessary, copies it to the Windows host, and streams full_canonical_34
-    features into the FastAPI backend at /firewall/live-ingest using the
-    full_canonical__lgbm model.
+    necessary, copies it to the Windows host, and streams the 12 unified
+    relative-shape-v2 features into the FastAPI backend at
+    /firewall/live-ingest using the active runtime model
+    unified_relative_shape_v2__lgbm.
 
     SAFETY
     ------
@@ -70,6 +71,10 @@ $ScriptDir    = Split-Path -Parent $MyInvocation.MyCommand.Path
 $ProjectRoot  = Split-Path -Parent $ScriptDir
 $CapturesDir  = Join-Path $ProjectRoot 'captures'
 $PcapStreamer = Join-Path $ScriptDir 'pcap_to_live_stream.py'
+# Active runtime model used by /firewall/live-ingest. Passed explicitly to
+# pcap_to_live_stream.py so the streamer extracts the 12 unified features
+# (not the legacy full_canonical 34-feature schema).
+$ActiveRuntimeModel = 'unified_relative_shape_v2__lgbm'
 if (-not (Test-Path $CapturesDir)) { New-Item -ItemType Directory -Path $CapturesDir | Out-Null }
 
 $RemotePcap        = "/home/$SshUser/vm_openvpn_lab_auto.pcap"
@@ -102,17 +107,15 @@ function Write-Err2([string]$m)  { Write-Host "[err ] $m" -ForegroundColor Red }
 function Write-Ok([string]$m)    { Write-Host "[ ok ] $m" -ForegroundColor Green }
 
 function ConvertTo-SshBashB64 {
-    # Wrap an arbitrary multi-line bash script into a single-line remote
-    # command by base64-encoding it. PowerShell + Start-Job + ssh otherwise
-    # collapse embedded newlines into spaces on the remote shell, which
-    # breaks for-loops and `set +e`.
-    # IMPORTANT: normalize to LF-only before encoding so that Windows CRLF
-    # line endings don't reach Linux bash as stray \r characters.
     param([Parameter(Mandatory)] [string] $Script)
+
+    # Normalize Windows CRLF to Linux LF before sending to bash
     $Script = $Script -replace "`r`n", "`n"
     $Script = $Script -replace "`r", "`n"
+
     $bytes = [System.Text.Encoding]::UTF8.GetBytes($Script)
     $b64   = [Convert]::ToBase64String($bytes)
+
     return "echo $b64 | base64 -d | bash"
 }
 
@@ -124,28 +127,79 @@ function Invoke-SshRaw {
         [int]      $TimeoutSec = 0,
         [switch]   $AsScript
     )
+
     if ($AsScript -or $RemoteCmd -match "`n") {
         $RemoteCmd = ConvertTo-SshBashB64 -Script $RemoteCmd
     }
+
     $args = @($Opts + @($Target, $RemoteCmd))
+
     if ($TimeoutSec -gt 0) {
-        $job = Start-Job -ScriptBlock { param($a) & ssh @a 2>&1 } -ArgumentList (,$args)
+        $job = Start-Job -ScriptBlock {
+            param($a)
+
+            $out = & ssh @a 2>&1
+            $code = $LASTEXITCODE
+
+            [PSCustomObject]@{
+                Out  = ($out -join "`n")
+                Code = $code
+            }
+        } -ArgumentList (,$args)
+
         $done = Wait-Job $job -Timeout $TimeoutSec
+
         if (-not $done) {
             Stop-Job $job | Out-Null
             Remove-Job $job -Force | Out-Null
             return @{ Ok = $false; Out = ''; Code = 124 }
         }
-        $out = Receive-Job $job
-        $code = if ($job.ChildJobs[0].JobStateInfo.State -eq 'Failed') { 1 } else { 0 }
+
+        $result = Receive-Job $job
         Remove-Job $job -Force | Out-Null
-        return @{ Ok = ($code -eq 0); Out = ($out -join "`n"); Code = $code }
+
+        return @{
+            Ok   = ($result.Code -eq 0)
+            Out  = $result.Out
+            Code = $result.Code
+        }
     }
+
     $out = & ssh @args 2>&1
-    return @{ Ok = ($LASTEXITCODE -eq 0); Out = ($out -join "`n"); Code = $LASTEXITCODE }
+    $code = $LASTEXITCODE
+
+    return @{
+        Ok   = ($code -eq 0)
+        Out  = ($out -join "`n")
+        Code = $code
+    }
 }
-function Invoke-ClientSsh { param([string]$RemoteCmd,[int]$TimeoutSec=0) Invoke-SshRaw -Opts $ClientSshOpts -Target $ClientSshTarget -RemoteCmd $RemoteCmd -TimeoutSec $TimeoutSec }
-function Invoke-ServerSsh { param([string]$RemoteCmd,[int]$TimeoutSec=0) Invoke-SshRaw -Opts $ServerSshOpts -Target $ServerSshTarget -RemoteCmd $RemoteCmd -TimeoutSec $TimeoutSec }
+
+function Invoke-ClientSsh {
+    param(
+        [string] $RemoteCmd,
+        [int]    $TimeoutSec = 0
+    )
+
+    Invoke-SshRaw `
+        -Opts $ClientSshOpts `
+        -Target $ClientSshTarget `
+        -RemoteCmd $RemoteCmd `
+        -TimeoutSec $TimeoutSec
+}
+
+function Invoke-ServerSsh {
+    param(
+        [string] $RemoteCmd,
+        [int]    $TimeoutSec = 0
+    )
+
+    Invoke-SshRaw `
+        -Opts $ServerSshOpts `
+        -Target $ServerSshTarget `
+        -RemoteCmd $RemoteCmd `
+        -TimeoutSec $TimeoutSec
+}
 
 function Test-VmRunning {
     param([string] $Name)
@@ -181,8 +235,8 @@ function Wait-SshGeneric {
 # ---------------------------------------------------------------------------
 
 Write-Section "AI VPN Firewall Prototype - OpenVPN Lab Demo (LOCAL DEMO MODE)"
-Write-Host "  Client VM       : $ClientVmName  ($ClientSshTarget`:$ClientSshPort)"
-Write-Host "  Server VM       : $ServerVmName  ($ServerSshTarget`:$ServerSshPort)"
+Write-Host "  Client VM       : $ClientVmName  (${ClientSshTarget}:$ClientSshPort)"
+Write-Host "  Server VM       : $ServerVmName  (${ServerSshTarget}:$ServerSshPort)"
 Write-Host "  Scenario        : $Scenario"
 Write-Host "  Capture seconds : $CaptureSeconds"
 Write-Host "  API base        : $ApiBase"
@@ -214,8 +268,12 @@ if ($DryRun) {
             --out-csv      $FeaturesCsv `
             --batch-size   $BatchSize `
             --delay-seconds $DelaySeconds `
+            --model-id     $ActiveRuntimeModel `
             --dry-run
-        if ($LASTEXITCODE -ne 0) { Write-Warn2 "pcap_to_live_stream.py exited with code $LASTEXITCODE." }
+        if ($LASTEXITCODE -ne 0) {
+            Write-Err2 "pcap_to_live_stream.py failed with code $LASTEXITCODE."
+            exit $LASTEXITCODE
+        }
     } else {
         Write-Info "No existing local PCAP at $LocalPcap; nothing to feed pcap_to_live_stream.py."
     }
@@ -230,10 +288,10 @@ if ($DryRun) {
 Start-VmIfNeeded -Name $ClientVmName -Skip:$SkipClientVmStart
 Start-VmIfNeeded -Name $ServerVmName -Skip:$SkipServerVmStart
 
-Wait-SshGeneric -Label "$ClientSshTarget`:$ClientSshPort" -TimeoutSec 120 -Probe {
+Wait-SshGeneric -Label "${ClientSshTarget}:$ClientSshPort" -TimeoutSec 120 -Probe {
     Invoke-ClientSsh -RemoteCmd 'echo ssh_ready' -TimeoutSec 12
 }
-Wait-SshGeneric -Label "$ServerSshTarget`:$ServerSshPort" -TimeoutSec 120 -Probe {
+Wait-SshGeneric -Label "${ServerSshTarget}:$ServerSshPort" -TimeoutSec 120 -Probe {
     Invoke-ServerSsh -RemoteCmd 'echo ssh_ready' -TimeoutSec 12
 }
 
@@ -408,11 +466,50 @@ Write-Ok 'HTTP server is up on 10.8.0.1:8000.'
 # ---------------------------------------------------------------------------
 
 Write-Section 'Client: preflight (config, tcpdump)'
-$r = Invoke-ClientSsh -RemoteCmd "test -f '$ClientOpenVpnConfig' && echo cfg_ok || echo cfg_missing" -TimeoutSec 10
-if ($r.Out -notmatch 'cfg_ok') { throw "OpenVPN client config missing on client VM: $ClientOpenVpnConfig" }
-$r = Invoke-ClientSsh -RemoteCmd 'command -v tcpdump >/dev/null 2>&1 && echo td_ok || echo td_missing' -TimeoutSec 10
-if ($r.Out -notmatch 'td_ok') { throw 'tcpdump not found on client VM.' }
-Write-Ok 'Client preflight ok.'
+
+# Robust diagnostic check. This avoids a blind "missing" error and proves
+# which VM/SSH target is being inspected.
+$cfgCheckScript = @'
+REQ_PATH="__CLIENT_OVPN_PATH__"
+echo "CLIENT_PREFLIGHT_BEGIN"
+echo "USER=$(whoami)"
+echo "HOSTNAME=$(hostname)"
+echo "PWD=$(pwd)"
+echo "REQ_PATH=$REQ_PATH"
+echo "HOME=$HOME"
+if [ -f "$REQ_PATH" ]; then
+  echo "CFG_OK=$REQ_PATH"
+  ls -l "$REQ_PATH"
+else
+  echo "CFG_MISSING=$REQ_PATH"
+  echo "AVAILABLE_OVPN_FILES_BEGIN"
+  find /home/__SSH_USER__ /etc/openvpn -maxdepth 5 -type f -name "*.ovpn" 2>/dev/null | sed 's/^/OVPN_FOUND=/' || true
+  echo "AVAILABLE_OVPN_FILES_END"
+fi
+command -v tcpdump >/dev/null 2>&1 && echo "TCPDUMP_OK" || echo "TCPDUMP_MISSING"
+echo "CLIENT_PREFLIGHT_END"
+'@
+$cfgCheckScript = $cfgCheckScript.Replace('__CLIENT_OVPN_PATH__', $ClientOpenVpnConfig)
+$cfgCheckScript = $cfgCheckScript.Replace('__SSH_USER__', $SshUser)
+$cfgR = Invoke-ClientSsh -RemoteCmd $cfgCheckScript -TimeoutSec 20
+Write-Host $cfgR.Out
+
+if ($cfgR.Out -notmatch 'CFG_OK=') {
+    $foundMatch = [regex]::Match($cfgR.Out, 'OVPN_FOUND=(.+)')
+    if ($foundMatch.Success) {
+        $discoveredConfig = $foundMatch.Groups[1].Value.Trim()
+        Write-Warn2 "Requested OpenVPN config was not visible at '$ClientOpenVpnConfig'. Using discovered config: $discoveredConfig"
+        $ClientOpenVpnConfig = $discoveredConfig
+    } else {
+        throw "OpenVPN client config not visible through SSH on ${ClientSshTarget}:$ClientSshPort. Requested: $ClientOpenVpnConfig. See CLIENT_PREFLIGHT diagnostics above."
+    }
+}
+
+if ($cfgR.Out -notmatch 'TCPDUMP_OK') {
+    throw 'tcpdump not found on client VM.'
+}
+
+Write-Ok "Client preflight ok. OpenVPN config: $ClientOpenVpnConfig"
 
 Write-Section 'Client: starting OpenVPN client (daemon)'
 Invoke-ClientSsh -RemoteCmd "sudo -n pkill -f 'openvpn --config $ClientOpenVpnConfig' 2>/dev/null || true" -TimeoutSec 15 | Out-Null
@@ -443,9 +540,11 @@ Write-Host $r.Out
 
 # Ping — use exit code, not text matching.  ICMP may be blocked; treat failure
 # as a warning only and let the curl test be the authoritative gate.
-$pingR = Invoke-ClientSsh -RemoteCmd 'ping -c 4 10.8.0.1' -TimeoutSec 25
+$pingR = Invoke-ClientSsh `
+    -RemoteCmd 'ping -c 4 10.8.0.1; echo PING_RC=$?' `
+    -TimeoutSec 25
 Write-Host $pingR.Out
-if ($pingR.Ok) {
+if ($pingR.Out -match 'PING_RC=0') {
     Write-Ok 'ICMP ping to 10.8.0.1 succeeded.'
 } else {
     Write-Warn2 'ICMP ping to 10.8.0.1 failed; ICMP may be blocked on the tun interface.'
@@ -460,14 +559,14 @@ Write-Section 'Preflight: client curl -> http://10.8.0.1:8000/small.bin'
 $ClientHttpReady = $false
 
 $curlR = Invoke-ClientSsh `
-    -RemoteCmd 'curl -fsS --connect-timeout 10 --max-time 15 -o /tmp/small_preflight.bin http://10.8.0.1:8000/small.bin' `
+    -RemoteCmd 'curl -fsS --connect-timeout 20 --max-time 35 -o /tmp/small_preflight.bin http://10.8.0.1:8000/small.bin; echo CURL_RC=$?' `
     -TimeoutSec 30
 Write-Host $curlR.Out
-if ($curlR.Ok) {
+if ($curlR.Out -match 'CURL_RC=0') {
     $ClientHttpReady = $true
     Write-Ok 'Client can reach HTTP file server through the VPN tunnel.'
 } else {
-    Write-Warn2 "First curl failed (ssh/curl exit code $($curlR.Code)). Attempting server-side iptables fix and retrying..."
+    Write-Warn2 "First curl failed. Client cannot reach HTTP file server through the VPN tunnel. Attempting server-side iptables fix and retrying..."
 }
 
 # ── Server-side iptables fix + retry ─────────────────────────────────────────
@@ -497,14 +596,14 @@ ps aux | grep http.server | grep -v grep || echo "http.server not running"
 
     Write-Info 'Retrying client curl after server fix...'
     $curlR2 = Invoke-ClientSsh `
-        -RemoteCmd 'curl -fsS --connect-timeout 10 --max-time 15 -o /tmp/small_preflight.bin http://10.8.0.1:8000/small.bin' `
+        -RemoteCmd 'curl -fsS --connect-timeout 10 --max-time 15 -o /tmp/small_preflight.bin http://10.8.0.1:8000/small.bin; echo CURL_RC=$?' `
         -TimeoutSec 30
     Write-Host $curlR2.Out
-    if ($curlR2.Ok) {
+    if ($curlR2.Out -match 'CURL_RC=0') {
         $ClientHttpReady = $true
         Write-Ok 'Client reached HTTP server after iptables fix + retry.'
     } else {
-        Write-Warn2 "Retry curl also failed (exit code $($curlR2.Code)). Collecting full diagnostics..."
+        Write-Warn2 "Retry curl also failed. Collecting full diagnostics..."
     }
 }
 
@@ -594,7 +693,7 @@ if ($ClientHttpReady) {
 
 Write-Section "Starting tcpdump on client (background, ${CaptureSeconds}s)"
 Invoke-ClientSsh -RemoteCmd "rm -f '$RemotePcap'" -TimeoutSec 10 | Out-Null
-$tcpdumpCmd  = "sudo -n timeout $CaptureSeconds tcpdump -i any -w '$RemotePcap' -q"
+$tcpdumpCmd  = "sudo -n timeout $CaptureSeconds tcpdump -i any -B 8192 -w '$RemotePcap' -q"
 $tcpdumpArgs = @($ClientSshOpts + @($ClientSshTarget, $tcpdumpCmd))
 $tcpdumpJob  = Start-Job -ScriptBlock { param($a) & ssh @a 2>&1 } -ArgumentList (,$tcpdumpArgs)
 Start-Sleep -Seconds 3
@@ -710,8 +809,12 @@ Write-Section 'Streaming features into backend'
     --batch-size   $BatchSize `
     --delay-seconds $DelaySeconds `
     --scenario     $Scenario `
+    --model-id     $ActiveRuntimeModel `
     --out-csv      $FeaturesCsv
-if ($LASTEXITCODE -ne 0) { Write-Warn2 "pcap_to_live_stream.py exited with code $LASTEXITCODE." }
+if ($LASTEXITCODE -ne 0) {
+            Write-Err2 "pcap_to_live_stream.py failed with code $LASTEXITCODE."
+            exit $LASTEXITCODE
+        }
 
 Write-Section 'Final backend live-ingest state'
 try {
@@ -722,5 +825,3 @@ try {
 Write-Section 'OpenVPN lab demo complete (simulation only)'
 Write-Ok 'All steps finished.'
 exit 0
-
-

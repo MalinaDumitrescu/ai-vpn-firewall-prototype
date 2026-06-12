@@ -60,6 +60,10 @@ $ScriptDir   = Split-Path -Parent $MyInvocation.MyCommand.Path
 $ProjectRoot = Split-Path -Parent $ScriptDir
 $CapturesDir = Join-Path $ProjectRoot 'captures'
 $PcapStreamer = Join-Path $ScriptDir 'pcap_to_live_stream.py'
+# Active runtime model used by /firewall/live-ingest. Passed explicitly to
+# pcap_to_live_stream.py so the streamer extracts the 12 unified features
+# (not the legacy full_canonical 34-feature schema).
+$ActiveRuntimeModel = 'unified_relative_shape_v2__lgbm'
 
 if (-not (Test-Path $CapturesDir)) {
     New-Item -ItemType Directory -Path $CapturesDir | Out-Null
@@ -113,15 +117,15 @@ function Write-Err2([string]$Msg)  { Write-Host "[err ] $Msg" -ForegroundColor R
 function Write-Ok([string]$Msg)    { Write-Host "[ ok ] $Msg" -ForegroundColor Green }
 
 function ConvertTo-SshBashB64 {
-    # Wrap an arbitrary multi-line bash script into a single-line remote command
-    # by base64-encoding it. This survives PowerShell/Start-Job/ssh argv
-    # collapsing of embedded newlines, which would otherwise turn
-    #   set +e
-    #   for i in ...
-    # into  "set +e for i in ..."  on the remote shell.
     param([Parameter(Mandatory)] [string] $Script)
+
+    # Normalize Windows CRLF to Linux LF before sending to bash
+    $Script = $Script -replace "`r`n", "`n"
+    $Script = $Script -replace "`r", "`n"
+
     $bytes = [System.Text.Encoding]::UTF8.GetBytes($Script)
     $b64   = [Convert]::ToBase64String($bytes)
+
     return "echo $b64 | base64 -d | bash"
 }
 
@@ -131,26 +135,52 @@ function Invoke-Ssh {
         [int]    $TimeoutSec = 0,
         [switch] $AsScript
     )
+
     if ($AsScript -or $RemoteCmd -match "`n") {
         $RemoteCmd = ConvertTo-SshBashB64 -Script $RemoteCmd
     }
+
     $args = @($SshOpts + @($SshTarget, $RemoteCmd))
+
     if ($TimeoutSec -gt 0) {
-        $job = Start-Job -ScriptBlock { param($a) & ssh @a 2>&1 } -ArgumentList (,$args)
+        $job = Start-Job -ScriptBlock {
+            param($a)
+
+            $out = & ssh @a 2>&1
+            $code = $LASTEXITCODE
+
+            [PSCustomObject]@{
+                Out  = ($out -join "`n")
+                Code = $code
+            }
+        } -ArgumentList (,$args)
+
         $done = Wait-Job $job -Timeout $TimeoutSec
+
         if (-not $done) {
             Stop-Job $job | Out-Null
             Remove-Job $job -Force | Out-Null
             return @{ Ok = $false; Out = ''; Code = 124 }
         }
-        $out = Receive-Job $job
-        $code = if ($job.ChildJobs[0].JobStateInfo.State -eq 'Failed') { 1 } else { 0 }
+
+        $result = Receive-Job $job
         Remove-Job $job -Force | Out-Null
-        return @{ Ok = ($code -eq 0); Out = ($out -join "`n"); Code = $code }
+
+        return @{
+            Ok   = ($result.Code -eq 0)
+            Out  = $result.Out
+            Code = $result.Code
+        }
     }
+
     $out = & ssh @args 2>&1
     $code = $LASTEXITCODE
-    return @{ Ok = ($code -eq 0); Out = ($out -join "`n"); Code = $code }
+
+    return @{
+        Ok   = ($code -eq 0)
+        Out  = ($out -join "`n")
+        Code = $code
+    }
 }
 
 function Test-VmRunning {
@@ -199,14 +229,23 @@ if ($ResolvedVBoxManage) {
 
 function Wait-Ssh {
     param([int] $TimeoutSec = 90)
-    Write-Info "Waiting up to $TimeoutSec s for SSH on $SshTarget`:$SshPort ..."
+
+    Write-Info "Waiting up to $TimeoutSec s for SSH on ${SshTarget}:$SshPort ..."
+
     $deadline = (Get-Date).AddSeconds($TimeoutSec)
+
     while ((Get-Date) -lt $deadline) {
         $r = Invoke-Ssh -RemoteCmd 'echo ssh_ready' -TimeoutSec 12
-        if ($r.Ok -and ($r.Out -match 'ssh_ready')) { Write-Ok 'SSH reachable.'; return }
+
+        if ($r.Ok -and ($r.Out -match 'ssh_ready')) {
+            Write-Ok 'SSH reachable.'
+            return
+        }
+
         Start-Sleep -Seconds 3
     }
-    throw "SSH did not become reachable on $SshTarget`:$SshPort within $TimeoutSec s."
+
+    throw "SSH did not become reachable on ${SshTarget}:$SshPort within $TimeoutSec s."
 }
 
 function Confirm-Preflight {
@@ -238,10 +277,40 @@ function Confirm-Preflight {
 # Traffic generators (single-line bash for CRLF safety)
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# Traffic generators (single-line bash for CRLF safety)
+#
+# Each generator is designed to:
+#   * keep the VM busy for roughly the whole tcpdump window (default 60 s)
+#   * touch many distinct hosts so flow_id diversity is high
+#   * mix small (DNS / HEAD / favicon) and large (multi-MB) flows so
+#     packet-size and IAT distributions are non-degenerate
+#   * use parallel background curls so flows overlap in time
+#   * stay self-terminating (never run longer than CaptureSeconds + 60 s)
+# ---------------------------------------------------------------------------
+
 function Get-BasicTrafficScript {
     return @'
 set +e
-for i in $(seq 1 6); do curl --max-time 8 -s -o /dev/null http://example.com/ || true; curl --max-time 8 -s -o /dev/null https://en.wikipedia.org/wiki/Main_Page || true; ping -c 2 8.8.8.8 >/dev/null 2>&1 || true; sleep 1; done
+echo "[vm] basic: ordinary benign HTTP/HTTPS/DNS/ICMP browsing-like traffic"
+HOSTS_HTTPS="https://example.com/ https://en.wikipedia.org/wiki/Main_Page https://www.iana.org/ https://www.kernel.org/ https://www.debian.org/ https://www.python.org/ https://www.gnu.org/ https://www.mozilla.org/ https://www.eff.org/ https://duckduckgo.com/"
+HOSTS_HTTP="http://example.com/ http://neverssl.com/ http://www.gnu.org/"
+PINGS="8.8.8.8 1.1.1.1 9.9.9.9 208.67.222.222"
+DNS="example.com wikipedia.org github.com python.org debian.org kernel.org cloudflare.com eff.org"
+# 6 sweeps of ~10 s each ~= 60 s of varied traffic.
+for sweep in 1 2 3 4 5 6; do
+  for u in $HOSTS_HTTPS; do curl --max-time 6 -s -o /dev/null "$u" & done
+  for u in $HOSTS_HTTP;  do curl --max-time 6 -s -o /dev/null "$u" & done
+  for ip in $PINGS;      do ping -c 2 -W 1 "$ip" >/dev/null 2>&1 & done
+  for d in $DNS;         do getent hosts "$d" >/dev/null 2>&1 & done
+  wait
+  sleep 1
+done
+# A couple of slightly larger benign downloads for byte-volume.
+curl --max-time 25 -s -o /tmp/b_kernel.html https://www.kernel.org/ &
+curl --max-time 25 -s -o /tmp/b_debian.html https://www.debian.org/News/ &
+wait
+rm -f /tmp/b_kernel.html /tmp/b_debian.html
 echo basic_traffic_done
 '@
 }
@@ -249,10 +318,21 @@ echo basic_traffic_done
 function Get-VpnlikeTrafficScript {
     return @'
 set +e
-echo "[vm] vpnlike: encrypted/high-volume HTTPS, NOT a real VPN tunnel."
-for i in $(seq 1 25); do curl --max-time 10 -s -o /dev/null https://example.com/ || true; curl --max-time 10 -s -o /dev/null https://en.wikipedia.org/wiki/Main_Page || true; curl --max-time 10 -s -o /dev/null https://github.com/ || true; sleep 0.4; done
-curl --max-time 60 -s -o /tmp/dl10.bin https://speed.cloudflare.com/__down?bytes=10485760 || true
-rm -f /tmp/dl10.bin || true
+echo "[vm] vpnlike: high-volume encrypted HTTPS (NOT a real VPN tunnel)."
+HOSTS="https://example.com/ https://en.wikipedia.org/wiki/Main_Page https://github.com/ https://www.cloudflare.com/ https://www.python.org/ https://www.mozilla.org/ https://www.kernel.org/ https://www.debian.org/ https://www.ietf.org/ https://www.iana.org/ https://duckduckgo.com/ https://www.eff.org/"
+# 60 sweeps with 8-way parallelism per sweep ~= heavy continuous HTTPS load.
+for sweep in $(seq 1 60); do
+  for u in $HOSTS; do curl --max-time 8 -s -o /dev/null "$u" & done
+  wait
+  sleep 0.2
+done
+# Multiple parallel multi-MB encrypted downloads to push large packets through TLS.
+curl --max-time 90 -s -o /tmp/dl_a.bin https://speed.cloudflare.com/__down?bytes=20971520 &
+curl --max-time 90 -s -o /tmp/dl_b.bin https://speed.cloudflare.com/__down?bytes=20971520 &
+curl --max-time 90 -s -o /tmp/dl_c.bin https://speed.cloudflare.com/__down?bytes=10485760 &
+curl --max-time 90 -s -o /tmp/dl_d.bin https://speed.cloudflare.com/__down?bytes=10485760 &
+wait
+rm -f /tmp/dl_a.bin /tmp/dl_b.bin /tmp/dl_c.bin /tmp/dl_d.bin
 echo vpnlike_traffic_done
 '@
 }
@@ -260,7 +340,23 @@ echo vpnlike_traffic_done
 function Get-WarpTrafficScript {
     return @'
 set +e
-for i in $(seq 1 30); do curl --max-time 8 -s -o /dev/null https://example.com/ || true; curl --max-time 8 -s -o /dev/null https://en.wikipedia.org/wiki/Main_Page || true; curl --max-time 8 -s -o /dev/null https://www.cloudflare.com/ || true; sleep 0.4; done
+echo "[vm] warp: heavy mixed HTTPS traffic through Cloudflare WARP tunnel."
+HOSTS="https://www.cloudflare.com/ https://blog.cloudflare.com/ https://1.1.1.1/ https://workers.cloudflare.com/ https://example.com/ https://en.wikipedia.org/wiki/Main_Page https://github.com/ https://www.python.org/ https://www.mozilla.org/ https://www.kernel.org/ https://www.debian.org/ https://www.ietf.org/"
+# Periodic WARP verification beacons mixed with normal browsing.
+for sweep in $(seq 1 60); do
+  for u in $HOSTS; do curl --max-time 8 -s -o /dev/null "$u" & done
+  # one trace beacon per sweep to keep WARP active
+  curl --max-time 5 -s -o /dev/null https://www.cloudflare.com/cdn-cgi/trace &
+  wait
+  sleep 0.2
+done
+# Multiple parallel multi-MB downloads inside the WARP tunnel.
+curl --max-time 90 -s -o /tmp/warp_a.bin https://speed.cloudflare.com/__down?bytes=20971520 &
+curl --max-time 90 -s -o /tmp/warp_b.bin https://speed.cloudflare.com/__down?bytes=20971520 &
+curl --max-time 90 -s -o /tmp/warp_c.bin https://speed.cloudflare.com/__down?bytes=10485760 &
+curl --max-time 90 -s -o /tmp/warp_d.bin https://speed.cloudflare.com/__down?bytes=10485760 &
+wait
+rm -f /tmp/warp_a.bin /tmp/warp_b.bin /tmp/warp_c.bin /tmp/warp_d.bin
 echo warp_traffic_done
 '@
 }
@@ -310,7 +406,7 @@ function Invoke-WarpTeardown {
 Write-Section "AI VPN Firewall Prototype - VM PCAP Demo (LOCAL DEMO MODE)"
 Write-Host "  Profile        : $TrafficProfile"
 Write-Host "  Note           : $($P.Note)"
-Write-Host "  VM             : $VmName  ($SshTarget`:$SshPort)"
+Write-Host "  VM             : $VmName  (${SshTarget}:$SshPort)"
 Write-Host "  Capture seconds: $CaptureSeconds"
 Write-Host "  API base       : $ApiBase"
 Write-Host "  Remote PCAP    : $RemotePcap"
@@ -336,8 +432,12 @@ if ($DryRun) {
             --out-csv     $FeaturesCsv `
             --batch-size  $BatchSize `
             --delay-seconds $DelaySeconds `
+            --model-id    $ActiveRuntimeModel `
             --dry-run
-        if ($LASTEXITCODE -ne 0) { Write-Warn2 "pcap_to_live_stream.py exited with code $LASTEXITCODE." }
+        if ($LASTEXITCODE -ne 0) {
+            Write-Err2 "pcap_to_live_stream.py failed with code $LASTEXITCODE."
+            exit $LASTEXITCODE
+        }
     } else {
         Write-Info "No existing local PCAP at $LocalPcap; nothing to feed pcap_to_live_stream.py."
     }
@@ -430,8 +530,12 @@ Write-Section 'Streaming features into backend'
     --batch-size   $BatchSize `
     --delay-seconds $DelaySeconds `
     --scenario     $Scenario `
+    --model-id     $ActiveRuntimeModel `
     --out-csv      $FeaturesCsv
-if ($LASTEXITCODE -ne 0) { Write-Warn2 "pcap_to_live_stream.py exited with code $LASTEXITCODE." }
+if ($LASTEXITCODE -ne 0) {
+            Write-Err2 "pcap_to_live_stream.py failed with code $LASTEXITCODE."
+            exit $LASTEXITCODE
+        }
 
 Write-Section 'Final backend live-ingest state'
 try {
