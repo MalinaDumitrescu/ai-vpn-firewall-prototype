@@ -1,9 +1,7 @@
 """FastAPI entrypoint for the AI VPN Firewall Prototype."""
 from __future__ import annotations
 
-import json
 import logging
-from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from fastapi import FastAPI, File, HTTPException, Query, UploadFile
@@ -14,19 +12,17 @@ from app import registry_loader
 from app.registry_loader import EXECUTABLE_FIREWALL_MODEL_ID
 from app.csv_service import (
     load_comparison_rows,
-    load_benchmark_csv,
-    load_demo_flows_unified,
+    load_demo_flows,
+    load_demo_flows_full_canonical,
     load_multimodel_demo_flows,
     parse_multimodel_csv,
     parse_uploaded_csv,
+    load_benchmark_csv,
 )
 from app.benchmark_service import (
     run_benchmark,
-    run_legacy_benchmark,
-    get_legacy_benchmark_model_info,
     COMPATIBLE_BENCHMARK_MODEL_IDS,
     INCOMPATIBLE_MODEL_IDS,
-    LEGACY_BENCHMARK_MODEL_IDS,
 )
 from app.live_replay_service import (
     TEMPLATE_HEADER,
@@ -49,12 +45,11 @@ logging.basicConfig(level=logging.INFO)
 
 app = FastAPI(
     title="AI VPN Firewall Prototype API",
-    version="0.2.0",
+    version="0.1.0",
     description=(
         "Read-only access to the standalone runtime bundle. "
-        "Default inference model: unified_relative_shape_v2__lgbm "
-        "(single LightGBM + isotonic calibration, 12 unified relative-shape features, unified_feature_contract_v2). "
-        "Legacy models (full_canonical__lgbm, robust9_firewall, etc.) retained for comparison only — not executable. "
+        "Default inference model: full_canonical__lgbm (single LightGBM, 34 features). "
+        "Legacy baseline: robust9_firewall (XGB+LGBM+CatBoost ensemble, 9 features). "
         "Inference is simulation-only — no real blocking is performed."
     ),
 )
@@ -131,7 +126,7 @@ def get_default_model() -> Dict[str, Any]:
         "comparison_only": False,
         "action_mode": "simulation",
         "production_ready": False,
-        "warning": "Simulation only. No packets are blocked. Unified feature contract v2 model. Not production-ready.",
+        "warning": "Dataset fingerprinting remains unresolved (domain_auc=1.0). Known-domain simulation prototype only.",
         **entry,
     }
 
@@ -212,13 +207,17 @@ def comparison_summary() -> List[Dict[str, Any]]:
 
 # --------------------------------------------------------------------------- firewall
 
+# Legacy single-model guard — kept for reference; default model is now full_canonical__lgbm.
+# The live ingest and live replay services continue to use robust9_firewall since they
+# consume 9-feature PCAP-derived flow batches that match the robust9 feature schema.
+
 
 # ---------------------------------------------------------------- runtime models
 
 def _get_default_engine_and_demo_csv():
     """Return (RuntimeModelEngine, load_fn) for the executable firewall model."""
     engine = get_engine(EXECUTABLE_FIREWALL_MODEL_ID)
-    load_csv = load_demo_flows_unified
+    load_csv = load_demo_flows_full_canonical
     return engine, load_csv
 
 @app.get("/firewall/runtime-models")
@@ -243,7 +242,9 @@ def get_runtime_models() -> List[Dict[str, Any]]:
         # Feature info.
         feature_order: List[str] = []
         try:
-            feature_order = registry_loader.load_feature_order(mid)
+            fo = registry_loader._read_json(model_dir / "feature_order.json")  # type: ignore[attr-defined]
+            if fo:
+                feature_order = fo.get("feature_order", [])
         except Exception:
             pass
         # Threshold info — supports both nested (robust9) and flat (full_canonical) formats.
@@ -297,9 +298,13 @@ def get_runtime_required_features() -> Dict[str, Any]:
     per_model: Dict[str, List[str]] = {}
     union: set = set()
     for mid in allowed_ids:
+        model_dir = registry_loader.RUNTIME_MODELS_DIR / mid
+        fo_path = model_dir / "feature_order.json"
         feats: List[str] = []
         try:
-            feats = registry_loader.load_feature_order(mid)
+            fo = registry_loader._read_json(fo_path)  # type: ignore[attr-defined]
+            if fo:
+                feats = fo.get("feature_order", [])
         except Exception:
             pass
         per_model[mid] = feats
@@ -324,7 +329,7 @@ def firewall_multimodel_demo() -> Dict[str, Any]:
     Comparison models are listed with metadata but no inference is performed on them.
     """
     try:
-        df = load_demo_flows_unified()
+        df = load_demo_flows_full_canonical()
     except FileNotFoundError as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
@@ -386,7 +391,7 @@ def firewall_multimodel_demo() -> Dict[str, Any]:
         "input_summary": {
             "total_flows": int(len(df)),
             "total_sessions": total_sessions,
-            "source": "unified_model_demo_flows.csv",
+            "source": "demo_flows_full_canonical.csv",
         },
         "executable_model": EXECUTABLE_FIREWALL_MODEL_ID,
         "selected_models": allowed_ids,
@@ -581,11 +586,11 @@ def live_replay_template() -> str:
 
 @app.post("/firewall/live-ingest")
 def firewall_live_ingest(payload: LiveIngestRequest) -> Dict[str, Any]:
-    """Accept a batch of unified_relative_shape_v2 flow features from tools/pcap_to_live_stream.py.
+    """Accept a batch of robust9 flow features from tools/pcap_to_live_stream.py.
 
     Each call ingests one batch of flows extracted from a PCAP file captured
-    inside the Ubuntu Server VM.  The endpoint runs unified_relative_shape_v2__lgbm
-    inference on every accumulated flow and returns up-to-date session labels so the
+    inside the Ubuntu Server VM.  The endpoint runs robust9_firewall inference
+    on every accumulated flow and returns up-to-date session labels so the
     frontend Live VM Monitor can display near-real-time results.
 
     SAFETY: No packet capture is performed here.  All decisions are
@@ -630,8 +635,8 @@ def benchmark_compatible_info() -> Dict[str, Any]:
     """Return metadata about the compatible benchmark and model list."""
     return {
         "benchmark_only": True,
-        "benchmark_csv": "unified_model_demo_flows.csv",
-        "benchmark_csv_description": "Unified feature contract v2 demo flows — 588 flows, unified_relative_shape_v2 features",
+        "benchmark_csv": "simultaneous_test_selected_models.csv",
+        "benchmark_csv_description": "7,952 flows, 104 captures — audit-generated simultaneous benchmark",
         "compatible_models": COMPATIBLE_BENCHMARK_MODEL_IDS,
         "incompatible_models": INCOMPATIBLE_MODEL_IDS,
         "incompatible_reason": (
@@ -640,10 +645,6 @@ def benchmark_compatible_info() -> Dict[str, Any]:
         ),
         "firewall_model": EXECUTABLE_FIREWALL_MODEL_ID,
         "executable_firewall_model_only": True,
-        "legacy_models_note": (
-            "full_canonical__lgbm, robust9_firewall, balanced_bagging_* are legacy comparison models. "
-            "They are not executable. Use /comparison/summary for cross-model metrics."
-        ),
         "note": (
             "Benchmark comparison is read-only / benchmark-only. "
             "Results do not affect firewall decisions."
@@ -653,13 +654,13 @@ def benchmark_compatible_info() -> Dict[str, Any]:
 
 @app.get("/benchmark/compatible-csv/bundled")
 def benchmark_bundled() -> Dict[str, Any]:
-    """Run the bundled unified demo CSV against the unified executable model.
+    """Run the bundled simultaneous benchmark CSV against the 4 compatible models.
 
-    Uses demo_data/unified_model_demo_flows.csv (588 flows, unified_relative_shape_v2 features).
+    Uses demo_data/simultaneous_test_selected_models.csv (7,952 flows, 104 captures).
     Results are benchmark-only and do not affect firewall decisions.
     """
     try:
-        df = load_demo_flows_unified()
+        df = load_benchmark_csv()
     except FileNotFoundError as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
@@ -669,7 +670,7 @@ def benchmark_bundled() -> Dict[str, Any]:
         logger.exception("benchmark/bundled failed")
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
-    result["source"] = "bundled:unified_model_demo_flows.csv"
+    result["source"] = "bundled:simultaneous_test_selected_models.csv"
     return result
 
 
@@ -711,184 +712,6 @@ async def benchmark_upload_csv(file: UploadFile = File(...)) -> Dict[str, Any]:
 
     result["source"] = f"uploaded:{file.filename or 'uploaded.csv'}"
     return result
-
-
-# ======================================================================= legacy benchmark comparison
-
-@app.get("/benchmark/legacy/models")
-def legacy_benchmark_models() -> Dict[str, Any]:
-    """Return metadata for all legacy benchmark models (compatible + incompatible).
-
-    These are comparison-only models. The active runtime firewall model
-    (unified_relative_shape_v2__lgbm) is NOT included here.
-    """
-    try:
-        return get_legacy_benchmark_model_info()
-    except Exception as exc:
-        logger.exception("legacy benchmark models info failed")
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
-
-
-@app.get("/benchmark/legacy/bundled")
-def legacy_benchmark_bundled(
-    selected_model_ids: Optional[str] = None,
-) -> Dict[str, Any]:
-    """Run selected compatible legacy models against the bundled benchmark CSV.
-
-    selected_model_ids: optional comma-separated list of model IDs to run.
-                        Only the 4 raw-feature compatible models are allowed.
-    Uses demo_data/demo_flows_full_canonical(2).csv.
-    Results are benchmark-only and do NOT affect firewall decisions.
-    unified_relative_shape_v2__lgbm is NOT run here.
-    """
-    # Load bundled legacy benchmark CSV
-    try:
-        df = load_benchmark_csv()
-    except FileNotFoundError:
-        try:
-            df = load_multimodel_demo_flows()
-        except FileNotFoundError as exc:
-            raise HTTPException(status_code=500, detail=str(exc)) from exc
-
-    selected: Optional[List[str]] = None
-    if selected_model_ids:
-        selected = [s.strip() for s in selected_model_ids.split(",") if s.strip()]
-        if EXECUTABLE_FIREWALL_MODEL_ID in selected:
-            raise HTTPException(
-                status_code=400,
-                detail=(
-                    f"'{EXECUTABLE_FIREWALL_MODEL_ID}' is the active runtime firewall model "
-                    "and must not be run on the legacy benchmark page. "
-                    "Use Live VM for runtime inference."
-                ),
-            )
-
-    try:
-        result = run_legacy_benchmark(df, selected_ids=selected)
-    except Exception as exc:
-        logger.exception("legacy benchmark bundled failed")
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
-
-    result["source"] = "bundled:demo_flows_full_canonical(2).csv"
-    return result
-
-
-@app.post("/benchmark/compare")
-async def benchmark_compare(
-    file: UploadFile = File(...),
-    selected_model_ids: Optional[str] = None,
-) -> Dict[str, Any]:
-    """Run selected compatible legacy models against an uploaded CSV.
-
-    Allowlisted models only:
-      - full_canonical__lgbm
-      - robust9_firewall
-      - balanced_bagging_3ds_reference
-      - balanced_bagging_baseline
-
-    unified_relative_shape_v2__lgbm is NEVER run here.
-    Results are benchmark-only and do NOT affect firewall decisions.
-    """
-    raw = await file.read()
-    if not raw:
-        raise HTTPException(status_code=400, detail="Uploaded file is empty.")
-
-    try:
-        df = parse_multimodel_csv(raw)
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
-
-    selected: Optional[List[str]] = None
-    if selected_model_ids:
-        selected = [s.strip() for s in selected_model_ids.split(",") if s.strip()]
-        if EXECUTABLE_FIREWALL_MODEL_ID in selected:
-            raise HTTPException(
-                status_code=400,
-                detail=(
-                    f"'{EXECUTABLE_FIREWALL_MODEL_ID}' is the active runtime firewall model "
-                    "and must not be run on the legacy benchmark page. "
-                    "Use Live VM for runtime inference."
-                ),
-            )
-        # Reject any non-allowlisted model IDs
-        disallowed = [mid for mid in selected if mid not in LEGACY_BENCHMARK_MODEL_IDS]
-        if disallowed:
-            raise HTTPException(
-                status_code=400,
-                detail=(
-                    f"The following model IDs are not allowed on the benchmark comparison page: "
-                    + ", ".join(disallowed)
-                    + f". Allowed: {LEGACY_BENCHMARK_MODEL_IDS}"
-                ),
-            )
-
-    try:
-        result = run_legacy_benchmark(df, selected_ids=selected)
-    except Exception as exc:
-        logger.exception("benchmark/compare upload failed")
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
-
-    result["source"] = f"uploaded:{file.filename or 'uploaded.csv'}"
-    return result
-
-
-# ===========================================================================
-# /model-details/* — serve the frontend_model_details metadata package
-# ===========================================================================
-
-_FMD_DIR = (
-    Path(__file__).resolve().parent
-    / "runtime_bundle"
-    / "app_runtime_bundle"
-    / "frontend_model_details"
-)
-
-
-def _load_fmd_json(filename: str) -> Any:
-    p = _FMD_DIR / filename
-    if not p.exists():
-        raise HTTPException(status_code=404, detail=f"Metadata file not found: {filename}")
-    return json.loads(p.read_text(encoding="utf-8"))
-
-
-@app.get("/model-details/frontend-content", tags=["model-details"])
-def model_details_frontend_content() -> Any:
-    """Returns frontend_page_content.json — per-page display content and metric chips."""
-    return _load_fmd_json("frontend_page_content.json")
-
-
-@app.get("/model-details/cards", tags=["model-details"])
-def model_details_cards() -> Any:
-    """Returns model_cards_frontend.json — rich model cards with metrics, caveats, and why_selected."""
-    return _load_fmd_json("model_cards_frontend.json")
-
-
-@app.get("/model-details/features", tags=["model-details"])
-def model_details_features() -> Any:
-    """Returns model_feature_details.json — per-feature formulas for all models."""
-    return _load_fmd_json("model_feature_details.json")
-
-
-@app.get("/model-details/metrics", tags=["model-details"])
-def model_details_metrics() -> Any:
-    """Returns model_metrics_summary.json — summary metrics for all evaluated models."""
-    return _load_fmd_json("model_metrics_summary.json")
-
-
-@app.get("/model-details/benchmark-compatibility", tags=["model-details"])
-def model_details_benchmark_compatibility() -> Any:
-    """Returns benchmark_compatibility.json — per-model CSV schema compatibility rules."""
-    return _load_fmd_json("benchmark_compatibility.json")
-
-
-@app.get("/model-details/missing-report", response_class=PlainTextResponse, tags=["model-details"])
-def model_details_missing_report() -> str:
-    """Returns missing_frontend_details.md as plain text."""
-    p = _FMD_DIR / "missing_frontend_details.md"
-    if not p.exists():
-        raise HTTPException(status_code=404, detail="missing_frontend_details.md not found")
-    return p.read_text(encoding="utf-8")
-
 
 
 

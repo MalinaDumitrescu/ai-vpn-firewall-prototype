@@ -1,0 +1,31 @@
+proto,src_ip,dst_ip,src_port,dst_port,packets,bytes,duration_s,category,reason,in_features_csv,feature_csv_matches
+UDP,127.0.0.1,127.0.0.53,58231,53,4,392,0.009,dns,DNS port 53,True,2
+UDP,127.0.0.1,127.0.0.53,50437,53,4,392,0.029,dns,DNS port 53,True,2
+UDP,10.0.2.15,100.100.1.1,37445,53,2,208,0.005,dns,DNS port 53,False,0
+ICMP,10.8.0.6,10.8.0.1,,,13,1092,41.882,icmp,ICMP on tunnel network,True,1
+TCP,10.8.0.6,10.8.0.1,50664,8000,2473,3635396,3.533,inner_tunnel_http,10.8.0.x↔10.8.0.x with HTTP port {8000},True,7
+TCP,10.8.0.6,10.8.0.1,50686,8000,2379,5215604,2.448,inner_tunnel_http,10.8.0.x↔10.8.0.x with HTTP port {8000},True,7
+TCP,10.8.0.6,10.8.0.1,50678,8000,110,108426,0.096,inner_tunnel_http,10.8.0.x↔10.8.0.x with HTTP port {8000},True,7
+TCP,10.8.0.6,10.8.0.1,35126,8000,9,540,19.417,inner_tunnel_http,10.8.0.x↔10.8.0.x with HTTP port {8000},True,7
+TCP,10.8.0.6,10.8.0.1,46216,8000,8,480,11.226,inner_tunnel_http,10.8.0.x↔10.8.0.x with HTTP port {8000},True,7
+TCP,10.8.0.6,10.8.0.1,58810,8000,8,480,11.227,inner_tunnel_http,10.8.0.x↔10.8.0.x with HTTP port {8000},True,7
+TCP,10.8.0.6,10.8.0.1,44270,8000,5,300,4.076,inner_tunnel_http,10.8.0.x↔10.8.0.x with HTTP port {8000},True,7
+UDP,10.0.2.15,162.159.200.1,59937,123,2,152,0.017,nat_or_local_control,VirtualBox NAT 10.0.2.0/24,False,0
+UDP,10.0.2.15,77.81.64.51,60407,123,2,152,0.013,nat_or_local_control,VirtualBox NAT 10.0.2.0/24,False,0
+UDP,10.0.2.15,89.36.93.9,44863,123,2,152,0.013,nat_or_local_control,VirtualBox NAT 10.0.2.0/24,False,0
+UDP,10.0.2.15,193.142.58.163,34275,123,2,152,0.023,nat_or_local_control,VirtualBox NAT 10.0.2.0/24,False,0
+UDP,10.0.2.15,92.180.26.89,59751,123,2,152,0.032,nat_or_local_control,VirtualBox NAT 10.0.2.0/24,False,0
+UDP,10.0.2.15,162.159.200.1,46273,123,2,152,0.025,nat_or_local_control,VirtualBox NAT 10.0.2.0/24,False,0
+UDP,10.0.2.15,86.127.71.168,34530,123,2,152,0.02,nat_or_local_control,VirtualBox NAT 10.0.2.0/24,False,0
+UDP,10.0.2.15,162.159.200.123,39778,123,2,152,0.016,nat_or_local_control,VirtualBox NAT 10.0.2.0/24,False,0
+UDP,10.0.2.15,93.190.144.3,46364,123,2,152,0.017,nat_or_local_control,VirtualBox NAT 10.0.2.0/24,False,0
+UDP,10.0.2.15,185.173.16.132,35272,123,2,152,0.016,nat_or_local_control,VirtualBox NAT 10.0.2.0/24,False,0
+UDP,10.10.10.2,10.10.10.1,55988,1194,7327,9474872,18.684,outer_openvpn_transport,port {1194} in OpenVPN candidate set,True,6
+UDP,10.10.10.2,10.10.10.1,33375,1194,29,3276,62.365,outer_openvpn_transport,port {1194} in OpenVPN candidate set,True,6
+UDP,10.10.10.2,10.10.10.1,38917,1194,20,9018,0.154,outer_openvpn_transport,port {1194} in OpenVPN candidate set,True,6
+UDP,10.10.10.2,10.10.10.1,38470,1194,16,1088,81.92,outer_openvpn_transport,port {1194} in OpenVPN candidate set,True,6
+UDP,10.10.10.2,10.10.10.1,59551,1194,9,644,78.848,outer_openvpn_transport,port {1194} in OpenVPN candidate set,True,6
+UDP,10.10.10.2,10.10.10.1,57316,1194,7,476,61.459,outer_openvpn_transport,port {1194} in OpenVPN candidate set,True,6
+TCP,10.0.2.2,10.0.2.15,56203,22,47,7351,0.41,ssh_control,TCP/22 SSH,True,3
+TCP,10.0.2.2,10.0.2.15,56204,22,39,7367,0.389,ssh_control,TCP/22 SSH,True,3
+TCP,10.0.2.15,10.0.2.2,22,56202,6,588,0.012,ssh_control,TCP/22 SSH,True,3

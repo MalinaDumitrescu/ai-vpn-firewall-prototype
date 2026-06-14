@@ -1,0 +1,2 @@
+model_id,role,feature_family,n_features,runtime_compatible,live_extractor_compatible,production_ready,action_mode,test_auc,lodo_min_auc,domain_auc,deployment_score,review_threshold,block_threshold,legacy_model_id,legacy_test_auc,legacy_lodo_min,legacy_domain_auc
+unified_relative_shape_v2__lgbm,recommended_unified_firewall,unified_relative_shape_v2,12,True,True,False,simulation,0.9826,0.6366,0.9591,0.4691,0.03666666666666667,0.425,full_canonical__lgbm,0.9994,0.6164,1.0

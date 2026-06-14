@@ -5,18 +5,14 @@ import json
 from pathlib import Path
 from typing import Any, Dict, List, Optional  # noqa: F401 – List used by callers
 
-# ── Executable firewall model (single source of truth) ───────────────────────
-# Only this model may run inference.  All others are comparison/documentation.
+
 EXECUTABLE_FIREWALL_MODEL_ID = "unified_relative_shape_v2__lgbm"
 
-# ── Audit-approved benchmark-compatible models ─────────────────────────────
-# The unified model is now the primary firewall. Legacy models are kept as
-# comparison references only — not executable.
+
 BENCHMARK_COMPATIBLE_MODEL_IDS: List[str] = [
     "unified_relative_shape_v2__lgbm",
 ]
 
-# ── Legacy models (comparison/documentation only, not executable) ───────────
 LEGACY_MODEL_IDS: List[str] = [
     "full_canonical__lgbm",
     "robust9_firewall",
@@ -24,15 +20,12 @@ LEGACY_MODEL_IDS: List[str] = [
     "balanced_bagging_baseline",
 ]
 
-# ── Explicitly incompatible benchmark models ───────────────────────────────
-# These require session-derived probability features absent from the raw-feature
-# simultaneous benchmark CSV and must never appear in the benchmark page.
+
 BENCHMARK_INCOMPATIBLE_MODEL_IDS: List[str] = [
     "balanced_bagging_xgb_baseline",
     "robust13_comparison",
 ]
 
-# Bundle root: backend/runtime_bundle/app_runtime_bundle/
 BUNDLE_ROOT = Path(__file__).resolve().parent.parent / "runtime_bundle" / "app_runtime_bundle"
 
 REGISTRY_PATH = BUNDLE_ROOT / "app_model_registry" / "backend" / "model_registry" / "registry.json"
@@ -40,9 +33,7 @@ REGISTRY_PACKAGES_DIR = BUNDLE_ROOT / "app_model_registry" / "backend" / "model_
 UI_GROUPS_PATH = BUNDLE_ROOT / "app_model_registry" / "backend" / "model_registry" / "ui_model_groups.json"
 ALLOWLIST_PATH = BUNDLE_ROOT / "app_model_registry" / "backend" / "model_registry" / "runtime_inference_allowlist.json"
 RUNTIME_MODELS_DIR = BUNDLE_ROOT / "runtime_models"
-# Unified v2 demo CSV (primary demo data for the new default model)
 DEMO_FLOWS_UNIFIED_PATH = BUNDLE_ROOT / "demo_data" / "unified_model_demo_flows.csv"
-# Legacy demo CSVs (kept for backward compatibility)
 DEMO_FLOWS_PATH = BUNDLE_ROOT / "demo_data" / "demo_flows.csv"
 DEMO_FLOWS_FULL_CANONICAL_PATH = BUNDLE_ROOT / "demo_data" / "demo_flows_full_canonical.csv"
 COMPARISON_CSV_PATH = (
@@ -182,11 +173,9 @@ def get_default_firewall_model_id() -> Optional[str]:
     """
     models = list_models()
 
-    # Priority 1: hardcoded constant (preferred)
     if EXECUTABLE_FIREWALL_MODEL_ID in models:
         return EXECUTABLE_FIREWALL_MODEL_ID
 
-    # Priority 2: allowlist declared default_firewall
     try:
         alist = _read_json(ALLOWLIST_PATH)
         if alist:
@@ -196,12 +185,10 @@ def get_default_firewall_model_id() -> Optional[str]:
     except Exception:
         pass
 
-    # Priority 3: role == "recommended_firewall"
     for mid, entry in models.items():
         if entry.get("role") == "recommended_firewall":
             return mid
 
-    # Priority 4: deployment_eligible == True
     for mid, entry in models.items():
         if entry.get("deployment_eligible") is True:
             return mid
@@ -214,7 +201,6 @@ def is_executable(model_id: str) -> bool:
     return model_id == EXECUTABLE_FIREWALL_MODEL_ID
 
 
-# ----------------------------------------------------------------- UI groups
 
 def load_ui_groups() -> Dict[str, Any]:
     data = _read_json(UI_GROUPS_PATH)
@@ -225,7 +211,6 @@ def load_ui_groups() -> Dict[str, Any]:
 
 def _group_ids(group_key: str) -> list:
     data = load_ui_groups()
-    # Support both {"groups": {...}} (current bundle) and a flat layout.
     groups = data.get("groups", data)
     ids = groups.get(group_key)
     if ids is None:
@@ -247,7 +232,6 @@ def get_models_in_group(group_key: str) -> list:
     return out
 
 
-# ----------------------------------------------------------- inference allowlist
 
 def load_inference_allowlist() -> Dict[str, Any]:
     data = _read_json(ALLOWLIST_PATH)

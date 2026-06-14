@@ -1,0 +1,3 @@
+session_id,flow_id,timestamp,src_ip,dst_ip,protocol,dst_port,scenario,sz_cv,sz_iqr,sz_qratio,sz_median_to_mean,sz_p25_median_ratio,sz_p75_median_ratio,sz_iqr_norm_median,iat_cv,iat_iqr,direction_balance_bytes,direction_balance_packets,dispersion_symmetry
+openvpn_lab__window_0000,flow_000000,2026-05-28T06:15:50.237110+00:00,10.0.2.15,10.0.2.2,TCP,49691,openvpn_lab,0.346622,36.0,1.9,1.158391,0.526316,1.0,0.473684,1.235345,0.015169,-0.12005,-0.298969,0.918056
+openvpn_lab__window_0000,flow_000001,2026-05-28T06:15:51.154740+00:00,10.10.10.1,10.10.10.2,UDP,40908,openvpn_lab,0.0,0.0,1.0,1.0,1.0,1.0,0.0,0.767928,4.023623,0.333333,0.333333,1.0

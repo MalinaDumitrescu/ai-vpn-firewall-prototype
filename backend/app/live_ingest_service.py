@@ -28,7 +28,6 @@ from .runtime_model_inference import get_engine, _aggregate as _agg_fn
 from .policy_service import decide_action
 from .registry_loader import RUNTIME_MODELS_DIR
 
-# ─── constants ────────────────────────────────────────────────────────────────
 
 MODEL_ID    = "unified_relative_shape_v2__lgbm"
 FEATURE_SCHEMA = "unified_relative_shape_v2"
@@ -60,10 +59,8 @@ def _load_feature_order() -> List[str]:
     try:
         with path.open("r", encoding="utf-8") as fh:
             data = json.load(fh)
-            # feature_order.json uses "features" key for unified model
             return data.get("features") or data.get("feature_order") or []
     except Exception:
-        # Fallback — hard-coded from unified_relative_shape_v2 feature family
         return [
             "sz_cv", "sz_iqr", "sz_qratio", "sz_median_to_mean",
             "sz_p25_median_ratio", "sz_p75_median_ratio", "sz_iqr_norm_median",
@@ -75,7 +72,7 @@ def _load_feature_order() -> List[str]:
 REQUIRED_FEATURES: List[str] = _load_feature_order()
 
 
-# ─── state ────────────────────────────────────────────────────────────────────
+
 
 class LiveIngestState:
     """Singleton in-memory state for the /firewall/live-ingest endpoint."""
@@ -84,7 +81,7 @@ class LiveIngestState:
         self._lock = threading.Lock()
         self._reset_internal()
 
-    # ── reset ─────────────────────────────────────────────────────────────
+
 
     def _reset_internal(self) -> None:
         self.total_batches:  int              = 0
@@ -100,7 +97,6 @@ class LiveIngestState:
         with self._lock:
             self._reset_internal()
 
-    # ── ingest ────────────────────────────────────────────────────────────
 
     def ingest_batch(
         self,
@@ -148,7 +144,7 @@ class LiveIngestState:
 
             return self._build_response(batch_id, source, received=len(flows))
 
-    # ── scoring ───────────────────────────────────────────────────────────
+
 
     def _recompute_sessions(
         self,
@@ -166,13 +162,11 @@ class LiveIngestState:
         try:
             engine = get_engine(MODEL_ID)
         except Exception:
-            return  # model not loaded yet; skip silently
+            return
 
-        # Enforce feature order — use only the 34 required features
         feature_cols = [c for c in engine.feature_order if c in df.columns]
         if len(feature_cols) < len(engine.feature_order):
-            return  # not enough features; skip
-
+            return
         try:
             X   = df[feature_cols].to_numpy(dtype=float)
             raw = engine._ensemble_raw(X)
@@ -184,7 +178,6 @@ class LiveIngestState:
         df["_prob"] = cal
         df["_raw"]  = raw
 
-        # Group by session_id if present, else treat each row as its own session
         session_col = "session_id" if "session_id" in df.columns else None
 
         counts: Dict[str, int]  = {"PASS": 0, "FLAG_REVIEW": 0, "BLOCK": 0}
@@ -219,7 +212,6 @@ class LiveIngestState:
                 "feature_schema":   FEATURE_SCHEMA,
             }
 
-            # Attach optional metadata from most-recent row in this session
             last_row = grp.iloc[-1]
             for col in OPTIONAL_META_COLS:
                 if col in grp.columns:
@@ -231,7 +223,6 @@ class LiveIngestState:
 
             new_sessions[str(sid)] = session_entry
 
-            # Emit one event per session per batch
             event: Dict[str, Any] = {
                 "event_time":       _now(),
                 "batch_index":      batch_index,
@@ -257,7 +248,6 @@ class LiveIngestState:
         self.latest_counts   = counts
         self.recent_events   = (self.recent_events + new_events)[-MAX_EVENTS:]
 
-    # ── response builder ──────────────────────────────────────────────────
 
     def _build_response(
         self, batch_id: str, source: str, received: int
@@ -303,7 +293,6 @@ class LiveIngestState:
             )
 
 
-# ─── module-level singleton ───────────────────────────────────────────────────
 
 _ingest_state = LiveIngestState()
 
@@ -312,7 +301,6 @@ def get_ingest_state() -> LiveIngestState:
     return _ingest_state
 
 
-# ─── helpers ─────────────────────────────────────────────────────────────────
 
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat()

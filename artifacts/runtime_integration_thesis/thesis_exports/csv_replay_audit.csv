@@ -1,0 +1,18 @@
+field,value,source_file
+Endpoint — upload,POST /firewall/live-replay/upload (multipart `file`),backend/main.py (lines 535–544); backend/app/live_replay_service.py::LiveReplayState.load_csv
+Endpoint — step,POST /firewall/live-replay/step (form `batch_size` default 5),backend/main.py (lines 547–558); LiveReplayState.step
+Endpoint — reset,POST /firewall/live-replay/reset,backend/main.py (lines 561–571); LiveReplayState.reset
+Endpoint — state,GET /firewall/live-replay/state,backend/main.py (lines 574–577); LiveReplayState.get_state
+Endpoint — CSV template,GET /firewall/live-replay/template (text/plain header),backend/main.py (lines 580–583); live_replay_service.TEMPLATE_HEADER
+Active model,unified_relative_shape_v2__lgbm (EXECUTABLE_FIREWALL_MODEL_ID),backend/app/live_replay_service.py::MODEL_ID; registry_loader.EXECUTABLE_FIREWALL_MODEL_ID
+Required feature columns (12),"sz_cv, sz_iqr, sz_qratio, sz_median_to_mean, sz_p25_median_ratio, sz_p75_median_ratio, sz_iqr_norm_median, iat_cv, iat_iqr, direction_balance_bytes, direction_balance_packets, dispersion_symmetry",runtime_models/unified_relative_shape_v2__lgbm/feature_order.json
+Optional metadata columns (pass-through),"capture_id, session_id, flow_id, timestamp, src_ip, dst_ip, protocol, dst_port, scenario, dataset, label",live_replay_service.OPTIONAL_COLS + capture_id/session_id grouping logic
+Schema validation,load_csv compares uploaded columns against engine.feature_order; missing → ValueError → HTTP 400,live_replay_service.LiveReplayState.load_csv
+Model-input column selection,engine.score_dataframe reads only feature_order columns; extras retained but never fed to model,runtime_model_inference.RuntimeModelEngine.score_dataframe
+Session grouping,capture_id preferred; falls back to session_id; synthetic 'session_0' otherwise,live_replay_service.LiveReplayState.load_csv / _recompute_sessions
+Scoring & aggregation,Per-flow prob via prob_iso; per-session via aggregation='mean',runtime_loader_config.json; runtime_model_inference._aggregate
+Thresholds (review / block),review_threshold=0.03666666666666667; block_threshold=0.425,runtime_models/unified_relative_shape_v2__lgbm/thresholds.json + registry.json
+Output fields per request,"loaded, running, finished, model_id, feature_schema, executable, action_mode, production_readiness, total_rows, replay_pointer, progress_percent, counts {PASS/FLAG_REVIEW/BLOCK}, labelled_counts {BENIGN_LIKE/FLAGGED_FOR_REVIEW/VPN_LIKE_SIMULATED_BLOCK}, active_sessions[], recent_events[], warnings[]",live_replay_service.LiveReplayState._snapshot
+Output decision labels,PASS → BENIGN_LIKE; FLAG_REVIEW → FLAGGED_FOR_REVIEW; BLOCK → VPN_LIKE_SIMULATED_BLOCK,live_replay_service.LABEL_MAP
+Affects real network traffic?,"no — action_mode='simulation', simulated=True on every event; no shell, no iptables/nftables/Windows Firewall calls",live_replay_service.py module docstring (SAFETY CONSTRAINTS)
+Frontend display,"Live Replay page consumes /firewall/live-replay/state → counts, labelled_counts, recent_events, active_sessions",frontend/src — live replay page (state polling)

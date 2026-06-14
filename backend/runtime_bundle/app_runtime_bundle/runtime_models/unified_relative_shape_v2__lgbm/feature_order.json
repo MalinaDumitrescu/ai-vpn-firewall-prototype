@@ -1,0 +1,1 @@
+{"features": ["sz_cv", "sz_iqr", "sz_qratio", "sz_median_to_mean", "sz_p25_median_ratio", "sz_p75_median_ratio", "sz_iqr_norm_median", "iat_cv", "iat_iqr", "direction_balance_bytes", "direction_balance_packets", "dispersion_symmetry"], "family": "unified_relative_shape_v2", "model_type": "lgbm"}

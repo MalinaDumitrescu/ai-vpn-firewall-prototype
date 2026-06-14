@@ -1,0 +1,18 @@
+field,value,source_file
+Capture — inside VM,`sudo tcpdump -i any -w /tmp/capture.pcap` (manual; not invoked by backend),tools/pcap_to_live_stream.py module docstring; tools/run_openvpn_lab_demo.ps1
+Capture — backend involvement,"none — backend has NO sniffer, NO subprocess, NO libpcap binding",backend/app/live_ingest_service.py module docstring (SAFETY CONSTRAINTS)
+Copy PCAP host ← VM,`scp -P 2222 user@127.0.0.1:/tmp/capture.pcap captures/`,tools/pcap_to_live_stream.py module docstring
+PCAP → features converter,"tools/pcap_to_live_stream.py (scapy reads PCAP, builds bidirectional flow keys, computes features)",tools/pcap_to_live_stream.py::parse_pcap + _compute_full_canonical
+Default model & schema,unified_relative_shape_v2__lgbm → unified_relative_shape_v2 (12 features). Legacy --model-id full_canonical__lgbm (34 features) selectable.,"tools/pcap_to_live_stream.py::DEFAULT_MODEL_ID, FEATURES_BY_MODEL"
+Packet size definition,IP total length (ip_layer.len). NOT Ethernet frame length.,tools/pcap_to_live_stream.py::parse_pcap (`pkt_len = float(ip_layer.len)`)
+Client-side schema validation,validate_rows checks all required features present + finite; aborts before streaming on failure,tools/pcap_to_live_stream.py::validate_rows
+Backend ingest endpoint,"POST /firewall/live-ingest (LiveIngestRequest payload: source, batch_id, feature_schema, flows[])",backend/main.py (lines 588–611); backend/app/schemas.py::LiveIngestRequest
+Other live-ingest endpoints,"POST /firewall/live-ingest/reset, GET /firewall/live-ingest/state",backend/main.py (lines 614–629)
+Backend-side schema validation,REQUIRED_FEATURES loaded from feature_order.json; missing column → ValueError → HTTP 400 with batch_id and missing list,backend/app/live_ingest_service.py::ingest_batch + _load_feature_order
+Selected runtime model,unified_relative_shape_v2__lgbm (hard-coded MODEL_ID; client cannot override),backend/app/live_ingest_service.py::MODEL_ID
+Scoring engine,RuntimeModelEngine — ensemble_raw → calibrate (isotonic) → session aggregation,backend/app/runtime_model_inference.py::RuntimeModelEngine
+Session grouping,session_id column if present; otherwise each row treated as its own session,live_ingest_service._recompute_sessions
+Output fields per request,"batch_id, source, received_flows, total_batches, total_flows, total_sessions, counts {PASS/FLAG_REVIEW/BLOCK}, labelled_counts, active_sessions[], recent_events[], model_id, feature_schema, feature_count, action_mode='simulation', production_readiness=false, warnings[]",live_ingest_service._build_response
+Output decision labels,PASS → BENIGN_LIKE; FLAG_REVIEW → FLAGGED_FOR_REVIEW; BLOCK → VPN_LIKE_SIMULATED_BLOCK,live_ingest_service.LABEL_MAP
+Real packet blocking?,"no — module docstring forbids packet capture, shell calls, and OS firewall modification. action_mode='simulation', simulated=True, production_readiness=false on every response.",backend/app/live_ingest_service.py module docstring + _build_response
+Frontend display,"Live VM Monitor page polls /firewall/live-ingest/state and renders counts, recent events, session list",frontend/src — Live VM page

@@ -1,0 +1,21 @@
+field,value
+active_model_id,unified_relative_shape_v2__lgbm
+feature_family,unified_relative_shape_v2
+feature_count,12
+features,"sz_cv, sz_iqr, sz_qratio, sz_median_to_mean, sz_p25_median_ratio, sz_p75_median_ratio, sz_iqr_norm_median, iat_cv, iat_iqr, direction_balance_bytes, direction_balance_packets, dispersion_symmetry"
+feature_order_path,runtime_models/unified_relative_shape_v2__lgbm/feature_order.json
+thresholds_path,runtime_models/unified_relative_shape_v2__lgbm/thresholds.json
+model_artifact_path,runtime_models/unified_relative_shape_v2__lgbm/model.pkl
+calibrator_artifact_path,runtime_models/unified_relative_shape_v2__lgbm/calibrator.pkl
+probability_column,prob_iso
+session_aggregation,mean
+session_grouping_column,capture_id
+action_mode,simulation
+production_readiness,False
+executable,True
+review_threshold,0.03666666666666667
+block_threshold,0.425
+policy_label,PASS/FLAG_REVIEW/SIMULATED_BLOCK
+allowlist_role,recommended_firewall
+allowlist_note,Only unified_relative_shape_v2__lgbm is executable. All other models are legacy/comparison/benchmark only.
+simulation_warning_text,Simulation only -- no real packets are blocked. production_readiness=false; do not deploy as-is.

@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Full consistency audit script for AI VPN Firewall Prototype."""
 import urllib.request, urllib.error, json, sys
 
@@ -24,12 +23,10 @@ print("=" * 60)
 print("  BACKEND AUDIT")
 print("=" * 60)
 
-# 1. Health
 print("\n--- /health ---")
 d = get("/health")
 check("status == ok", d.get("status") == "ok", d.get("status"))
 
-# 2. Default model
 print("\n--- /models/default ---")
 d = get("/models/default")
 check("model_id == full_canonical__lgbm", d.get("model_id") == "full_canonical__lgbm", d.get("model_id"))
@@ -42,7 +39,6 @@ check("algorithm == lightgbm", d.get("algorithm") == "lightgbm", d.get("algorith
 check("probability_column == prob", d.get("selected_probability_column") == "prob", d.get("selected_probability_column"))
 check("warning present", bool(d.get("warning")))
 
-# 3. Runtime models – only full_canonical executable
 print("\n--- /firewall/runtime-models ---")
 models = get("/firewall/runtime-models")
 fc = next((m for m in models if m["model_id"] == "full_canonical__lgbm"), None)
@@ -56,7 +52,6 @@ check("robust9 executable == false", r9 and r9.get("executable") == False)
 check("robust9 comparison_only == true", r9 and r9.get("comparison_only") == True)
 check("robust9 default_firewall == false", r9 and r9.get("default_firewall") == False)
 
-# 4. Required features
 print("\n--- /firewall/required-features ---")
 d = get("/firewall/required-features")
 feats = d.get("required_features", [])
@@ -66,7 +61,6 @@ check("iat_all_mean present", "iat_all_mean" in feats)
 check("sz_cv present", "sz_cv" in feats)
 check("model_id == full_canonical__lgbm", d.get("model_id") == "full_canonical__lgbm")
 
-# 5. Firewall demo output
 print("\n--- /firewall/demo ---")
 d = get("/firewall/demo")
 check("model_id == full_canonical__lgbm", d.get("model_id") == "full_canonical__lgbm")
@@ -84,7 +78,6 @@ if d.get("sessions"):
     check("action is valid", s.get("action") in ("PASS", "FLAG_REVIEW", "BLOCK"))
     check("simulated flag present", "simulated" in s)
 
-# 6. Live replay state
 print("\n--- /firewall/live-replay/state ---")
 d = get("/firewall/live-replay/state")
 check("model_id == full_canonical__lgbm", d.get("model_id") == "full_canonical__lgbm")
@@ -92,14 +85,12 @@ check("executable == true", d.get("executable") == True)
 check("comparison_only == false", d.get("comparison_only") == False)
 check("action_mode == simulation", d.get("action_mode") == "simulation")
 
-# 7. Live ingest state
 print("\n--- /firewall/live-ingest/state ---")
 d = get("/firewall/live-ingest/state")
 check("recommended_model == full_canonical__lgbm", d.get("recommended_model") == "full_canonical__lgbm")
 check("model_note present", bool(d.get("model_note")))
 check("action_mode == simulation", d.get("action_mode") == "simulation")
 
-# 8. Reject robust9 inference (selected_model_ids as query param)
 print("\n--- /firewall/analyze-csv-multimodel with robust9_firewall (expect 400) ---")
 csv_bytes = b"capture_id,sz_all_mean\n1,100\n"
 body = (
@@ -123,13 +114,11 @@ except urllib.error.HTTPError as e:
     err = json.loads(e.read())
     check("rejection message mentions comparison-only", "comparison" in err.get("detail","").lower())
 
-# 9. Comparison summary (read-only, should succeed)
 print("\n--- /comparison/summary ---")
 d = get("/comparison/summary")
 check("comparison summary is list", isinstance(d, list))
 check("has entries", len(d) > 0)
 
-# 10. Full canonical policy
 print("\n--- /models/full_canonical__lgbm/policy ---")
 d = get("/models/full_canonical__lgbm/policy")
 th = d.get("thresholds", {})

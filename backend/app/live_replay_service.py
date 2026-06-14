@@ -28,11 +28,10 @@ from .registry_loader import EXECUTABLE_FIREWALL_MODEL_ID
 from .runtime_model_inference import _aggregate, get_engine
 from .policy_service import decide_action
 
-# ─── constants ────────────────────────────────────────────────────────────────
 
-MODEL_ID       = EXECUTABLE_FIREWALL_MODEL_ID   # "unified_relative_shape_v2__lgbm"
+MODEL_ID       = EXECUTABLE_FIREWALL_MODEL_ID
 ACTION_MODE    = "simulation"
-MAX_EVENTS     = 200        # ring buffer limit
+MAX_EVENTS     = 200
 
 OPTIONAL_COLS  = [
     "flow_id", "timestamp", "src_ip", "dst_ip",
@@ -45,7 +44,6 @@ LABEL_MAP = {
     "BLOCK":       "VPN_LIKE_SIMULATED_BLOCK",
 }
 
-# 12 unified_relative_shape_v2 features (must match feature_order.json)
 _UNIFIED_FEATURES: List[str] = [
     "sz_cv", "sz_iqr", "sz_qratio", "sz_median_to_mean",
     "sz_p25_median_ratio", "sz_p75_median_ratio", "sz_iqr_norm_median",
@@ -53,7 +51,6 @@ _UNIFIED_FEATURES: List[str] = [
     "direction_balance_bytes", "direction_balance_packets", "dispersion_symmetry",
 ]
 
-# Backward-compat alias
 _FULL_CANONICAL_FEATURES = _UNIFIED_FEATURES
 
 TEMPLATE_HEADER = (
@@ -69,7 +66,6 @@ WARNINGS = [
     "Feature schema comes from unified feature contract v2 (unified_feature_contract_v2).",
 ]
 
-# ─── state ────────────────────────────────────────────────────────────────────
 
 class LiveReplayState:
     """Single shared in-memory replay state (one active replay at a time)."""
@@ -78,7 +74,6 @@ class LiveReplayState:
         self._lock = threading.Lock()
         self._reset_internal()
 
-    # ------------------------------------------------------------------ reset
 
     def _reset_internal(self) -> None:
         """Called inside lock or during __init__."""
@@ -108,7 +103,6 @@ class LiveReplayState:
         with self._lock:
             self._reset_internal()
 
-    # ------------------------------------------------------------------ load
 
     def load_csv(self, raw_bytes: bytes, filename: str) -> Dict[str, Any]:
         """Parse, validate, and store uploaded CSV. Returns metadata."""
@@ -117,7 +111,6 @@ class LiveReplayState:
         except Exception as exc:
             raise ValueError(f"Cannot parse CSV: {exc}") from exc
 
-        # Resolve the engine's feature_order as required features
         try:
             required = get_engine(MODEL_ID).feature_order
         except Exception:
@@ -131,13 +124,10 @@ class LiveReplayState:
                 "/firewall/live-replay/template."
             )
 
-        # Resolve session grouping column (capture_id preferred, session_id fallback)
         if "capture_id" not in df.columns and "session_id" not in df.columns:
-            # Create a synthetic capture_id
             df["capture_id"] = "session_0"
 
         optional_present = [c for c in OPTIONAL_COLS if c in df.columns]
-        # Count sessions using the best available column
         session_col = "capture_id" if "capture_id" in df.columns else "session_id"
         detected_sessions = int(df[session_col].nunique())
 
@@ -167,7 +157,6 @@ class LiveReplayState:
             ),
         }
 
-    # ------------------------------------------------------------------ step
 
     def step(self, batch_size: int = 5) -> Dict[str, Any]:
         """Advance the replay pointer by batch_size rows and recompute state."""
@@ -178,7 +167,6 @@ class LiveReplayState:
             if self.finished:
                 return self._snapshot()
 
-            # Mark running on first step.
             if not self.running:
                 self.running    = True
                 self.started_at = _now()
@@ -193,7 +181,6 @@ class LiveReplayState:
                 self.updated_at = _now()
                 return self._snapshot()
 
-            # Append batch to processed rows.
             self._processed_rows = pd.concat(
                 [self._processed_rows, batch], ignore_index=True
             )
@@ -201,7 +188,6 @@ class LiveReplayState:
             self.total_batches_processed    += 1
             self.total_flows_processed      += len(batch)
 
-            # Recompute full decision state on all processed rows.
             self._recompute_sessions(batch_index=self.total_batches_processed)
 
             if self.replay_pointer >= self.total_rows:
@@ -211,7 +197,6 @@ class LiveReplayState:
             self.updated_at = _now()
             return self._snapshot()
 
-    # ------------------------------------------------------------------ score
 
     def _recompute_sessions(self, batch_index: int) -> None:
         """Score all processed rows with full_canonical__lgbm and update state.
@@ -221,10 +206,9 @@ class LiveReplayState:
         engine = get_engine(MODEL_ID)
         df     = self._processed_rows
 
-        # Score flows via the RuntimeModelEngine.
         scored, session_col, missing = engine.score_dataframe(df)
         if missing:
-            return  # Missing required features — skip silently
+            return
 
         prob_col = engine.probability_column if engine.probability_column in scored.columns else "prob_raw"
 
@@ -280,15 +264,12 @@ class LiveReplayState:
                     event[opt] = str(val) if not isinstance(val, (int, float)) else val
             new_events.append(event)
 
-        # Update state.
         self.active_sessions     = new_sessions
         self.total_sessions_seen = len(new_sessions)
         self.latest_counts       = counts
 
-        # Ring-buffer events (keep only the most recent MAX_EVENTS).
         self.recent_events = (self.recent_events + new_events)[-MAX_EVENTS:]
 
-    # ------------------------------------------------------------------ snapshot
 
     def _snapshot(self) -> Dict[str, Any]:
         """Build the full state dict. Called inside lock."""
@@ -335,7 +316,6 @@ class LiveReplayState:
             return self._snapshot()
 
 
-# ─── module-level singleton ───────────────────────────────────────────────────
 
 _replay_state = LiveReplayState()
 
@@ -344,7 +324,6 @@ def get_replay_state() -> LiveReplayState:
     return _replay_state
 
 
-# ─── helpers ─────────────────────────────────────────────────────────────────
 
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat()

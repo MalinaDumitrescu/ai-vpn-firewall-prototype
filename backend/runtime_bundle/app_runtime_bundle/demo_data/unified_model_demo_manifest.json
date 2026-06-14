@@ -1,0 +1,200 @@
+{
+  "schema_version": "1.0",
+  "created": "2026-05-30",
+  "csv_filename": "unified_model_demo_flows.csv",
+  "benchmark_csv_filename": "unified_model_benchmark_flows.csv",
+  "selected_model_id": "unified_relative_shape_v2__lgbm",
+  "feature_family": "unified_relative_shape_v2",
+  "feature_count": 12,
+  "features": [
+    "sz_cv",
+    "sz_iqr",
+    "sz_qratio",
+    "sz_median_to_mean",
+    "sz_p25_median_ratio",
+    "sz_p75_median_ratio",
+    "sz_iqr_norm_median",
+    "iat_cv",
+    "iat_iqr",
+    "direction_balance_bytes",
+    "direction_balance_packets",
+    "dispersion_symmetry"
+  ],
+  "split_used": "test",
+  "row_count": 588,
+  "capture_count": 10,
+  "label_distribution": {
+    "1": 396,
+    "0": 192
+  },
+  "dataset_distribution": {
+    "iscx": 445,
+    "usbvpn": 89,
+    "vnat": 54
+  },
+  "expected_action_distribution": {
+    "SIMULATED_BLOCK": 340,
+    "PASS": 191,
+    "FLAG_REVIEW": 57
+  },
+  "expected_confusion": {
+    "TP_SIMULATED_BLOCK": 338,
+    "FN_PASS_or_REVIEW": 58,
+    "TN_PASS": 187,
+    "FP_FLAGGED_or_BLOCK": 5,
+    "FP_FLAGGED_REVIEW": 3,
+    "TP_FLAGGED_REVIEW": 54
+  },
+  "thresholds": {
+    "review_threshold": 0.03666666666666667,
+    "block_threshold": 0.425,
+    "policy": "PASS/FLAG_REVIEW/SIMULATED_BLOCK"
+  },
+  "selected_captures": [
+    {
+      "capture_id": "non_streaming__chunk_0027",
+      "dataset": "usbvpn",
+      "label": 0,
+      "n_flows": 89,
+      "mean_score": 0.0002,
+      "decisions": {
+        "PASS": 89
+      }
+    },
+    {
+      "capture_id": "nonvpn_netflix3.pcap",
+      "dataset": "iscx",
+      "label": 0,
+      "n_flows": 26,
+      "mean_score": 0.0306,
+      "decisions": {
+        "PASS": 25,
+        "SIMULATED_BLOCK": 1
+      }
+    },
+    {
+      "capture_id": "nonvpn_sftp_up_2b.pcap",
+      "dataset": "iscx",
+      "label": 0,
+      "n_flows": 17,
+      "mean_score": 0.0537,
+      "decisions": {
+        "PASS": 16,
+        "SIMULATED_BLOCK": 1
+      }
+    },
+    {
+      "capture_id": "nonvpn_sftpdown1.pcap",
+      "dataset": "iscx",
+      "label": 0,
+      "n_flows": 6,
+      "mean_score": 0.0044,
+      "decisions": {
+        "PASS": 6
+      }
+    },
+    {
+      "capture_id": "nonvpn_skype-chat_capture11.pcap",
+      "dataset": "vnat",
+      "label": 0,
+      "n_flows": 25,
+      "mean_score": 0.0038,
+      "decisions": {
+        "PASS": 24,
+        "FLAG_REVIEW": 1
+      }
+    },
+    {
+      "capture_id": "nonvpn_skype-chat_capture12.pcap",
+      "dataset": "vnat",
+      "label": 0,
+      "n_flows": 29,
+      "mean_score": 0.0177,
+      "decisions": {
+        "PASS": 27,
+        "FLAG_REVIEW": 2
+      }
+    },
+    {
+      "capture_id": "vpn_vpn_facebook_audio2.pcap",
+      "dataset": "iscx",
+      "label": 1,
+      "n_flows": 185,
+      "mean_score": 0.6541,
+      "decisions": {
+        "SIMULATED_BLOCK": 134,
+        "FLAG_REVIEW": 48,
+        "PASS": 3
+      }
+    },
+    {
+      "capture_id": "vpn_vpn_ftps_b.pcap",
+      "dataset": "iscx",
+      "label": 1,
+      "n_flows": 59,
+      "mean_score": 0.9314,
+      "decisions": {
+        "SIMULATED_BLOCK": 58,
+        "FLAG_REVIEW": 1
+      }
+    },
+    {
+      "capture_id": "vpn_vpn_netflix_a.pcap",
+      "dataset": "iscx",
+      "label": 1,
+      "n_flows": 134,
+      "mean_score": 0.9284,
+      "decisions": {
+        "SIMULATED_BLOCK": 128,
+        "FLAG_REVIEW": 5,
+        "PASS": 1
+      }
+    },
+    {
+      "capture_id": "vpn_vpn_skype_chat1a.pcap",
+      "dataset": "iscx",
+      "label": 1,
+      "n_flows": 18,
+      "mean_score": 0.9082,
+      "decisions": {
+        "SIMULATED_BLOCK": 18
+      }
+    }
+  ],
+  "metadata_columns": [
+    "flow_id",
+    "capture_id",
+    "dataset",
+    "label",
+    "q_packet_count"
+  ],
+  "model_input_columns": [
+    "sz_cv",
+    "sz_iqr",
+    "sz_qratio",
+    "sz_median_to_mean",
+    "sz_p25_median_ratio",
+    "sz_p75_median_ratio",
+    "sz_iqr_norm_median",
+    "iat_cv",
+    "iat_iqr",
+    "direction_balance_bytes",
+    "direction_balance_packets",
+    "dispersion_symmetry"
+  ],
+  "output_columns": [
+    "vpn_score_raw",
+    "vpn_score",
+    "decision"
+  ],
+  "intended_use": "App demo/testing only. Simulation mode.",
+  "warnings": [
+    "SIMULATION ONLY: No packets are blocked or modified.",
+    "NOT PRODUCTION-READY: Research prototype for academic evaluation only.",
+    "All rows from test split only \u2014 no training data included.",
+    "Feature values extracted from real captured traffic (USBVPN/ISCX/VNAT datasets).",
+    "Do not use VPN label column as a model input \u2014 it is metadata only.",
+    "Compare with legacy full_canonical__lgbm before replacing app default.",
+    "Demo CSV is designed for offline testing; live traffic results may differ."
+  ]
+}

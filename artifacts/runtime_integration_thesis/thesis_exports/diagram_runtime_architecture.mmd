@@ -1,0 +1,62 @@
+flowchart LR
+    subgraph FE["Frontend pages"]
+        FE_DASH["Dashboard"]
+        FE_LIVE["Live VM Monitor (PCAP)"]
+        FE_REPLAY["CSV Replay"]
+        FE_MODELS["Models / ModelCards"]
+        FE_BENCH["Model Comparison"]
+    end
+
+    subgraph API["Backend API (FastAPI)"]
+        API_HEALTH["/health"]
+        API_MODELS["/models, /models/* /model-details/*"]
+        API_FW["/firewall/* (analyze-csv, demo, required-features)"]
+        API_REPLAY["/firewall/live-replay/{upload,step,reset,state,template}"]
+        API_INGEST["/firewall/live-ingest{,/reset,/state}"]
+        API_BENCH["/benchmark/* (legacy + compatible-csv)"]
+    end
+
+    subgraph REG["Runtime model registry"]
+        REG_JSON["registry.json"]
+        REG_ALLOW["runtime_inference_allowlist.json"]
+        REG_UI["ui_model_groups.json"]
+    end
+
+    subgraph BUNDLE["Active model bundle\nunified_relative_shape_v2__lgbm"]
+        BUNDLE_FO["feature_order.json (12 features)"]
+        BUNDLE_TH["thresholds.json (review=0.0367, block=0.425)"]
+        BUNDLE_PKL["model.pkl + calibrator.pkl"]
+        BUNDLE_CFG["runtime_loader_config.json"]
+    end
+
+    subgraph PATHS["Inference paths"]
+        PATH_CSV["CSV Replay path\n(LiveReplayState)"]
+        PATH_PCAP["PCAP Monitor path\n(LiveIngestState)"]
+    end
+
+    DEC["Decision layer\nRuntimeModelEngine\n+ policy_service.decide_action"]
+    OUT["Simulated outputs\nPASS / FLAG_REVIEW / SIMULATED_BLOCK\naction_mode='simulation'\nproduction_readiness=false"]
+
+    FE_DASH --> API_HEALTH
+    FE_MODELS --> API_MODELS
+    FE_BENCH --> API_BENCH
+    FE_REPLAY --> API_REPLAY
+    FE_LIVE --> API_INGEST
+
+    API_MODELS --> REG_JSON
+    API_MODELS --> REG_UI
+    API_FW --> REG_ALLOW
+    API_REPLAY --> PATH_CSV
+    API_INGEST --> PATH_PCAP
+
+    REG_ALLOW --> BUNDLE
+    PATH_CSV --> DEC
+    PATH_PCAP --> DEC
+    BUNDLE_FO --> DEC
+    BUNDLE_TH --> DEC
+    BUNDLE_PKL --> DEC
+    BUNDLE_CFG --> DEC
+
+    DEC --> OUT
+    OUT --> FE_REPLAY
+    OUT --> FE_LIVE

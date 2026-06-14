@@ -1,6 +1,6 @@
 """Benchmark service for the 4 audit-approved compatible models.
 
-Runs compatible models against demo_flows_full_canonical(2).csv.
+Runs compatible models against the simultaneous benchmark CSV.
 This is strictly read-only / benchmark-only and must NOT affect firewall decisions.
 
 Compatible models (raw-feature simultaneous benchmarking):
@@ -22,7 +22,6 @@ from typing import Any, Dict, List, Optional
 import numpy as np
 import pandas as pd
 
-from . import registry_loader
 from .registry_loader import EXECUTABLE_FIREWALL_MODEL_ID, get_model_entry
 from .runtime_model_inference import RuntimeModelEngine, _aggregate, get_engine
 
@@ -35,11 +34,6 @@ COMPATIBLE_BENCHMARK_MODEL_IDS: List[str] = [
     "balanced_bagging_3ds_reference",
     "balanced_bagging_baseline",
 ]
-
-# Legacy benchmark allowlist — same 4 raw-feature compatible models, kept under
-# a separate name because the unified model is now the executable firewall
-# and must NEVER be run on the legacy benchmark page.
-LEGACY_BENCHMARK_MODEL_IDS: List[str] = list(COMPATIBLE_BENCHMARK_MODEL_IDS)
 
 # These require session-derived prior-stage features and cannot run raw-feature benchmark.
 INCOMPATIBLE_MODEL_IDS: List[str] = [
@@ -157,11 +151,8 @@ def _get_block_threshold(engine: RuntimeModelEngine) -> float:
 
 # ── main benchmark runner ─────────────────────────────────────────────────────
 
-def run_benchmark(
-    df: pd.DataFrame,
-    model_ids: Optional[List[str]] = None,
-) -> Dict[str, Any]:
-    """Score the given (or default 4) compatible models against ``df``.
+def run_benchmark(df: pd.DataFrame) -> Dict[str, Any]:
+    """Score the 4 compatible models against `df` and return structured results.
 
     - Each model selects its own feature_order.
     - Extra columns in `df` are silently ignored.
@@ -174,9 +165,7 @@ def run_benchmark(
     models_skipped: List[str] = []
     per_model_results: List[Dict[str, Any]] = []
 
-    ids_to_run = list(model_ids) if model_ids else list(COMPATIBLE_BENCHMARK_MODEL_IDS)
-
-    for model_id in ids_to_run:
+    for model_id in COMPATIBLE_BENCHMARK_MODEL_IDS:
         is_firewall = model_id == EXECUTABLE_FIREWALL_MODEL_ID
         entry = get_model_entry(model_id) or {}
         role = entry.get("role", "benchmark_comparison" if not is_firewall else "recommended_firewall")
@@ -337,158 +326,3 @@ def run_benchmark(
             ),
         ],
     }
-
-
-# ── legacy benchmark wrappers ────────────────────────────────────────────────
-
-def run_legacy_benchmark(
-    df: pd.DataFrame,
-    selected_ids: Optional[List[str]] = None,
-) -> Dict[str, Any]:
-    """Run the legacy benchmark models against ``df``.
-
-    Hard guarantees:
-      - ``EXECUTABLE_FIREWALL_MODEL_ID`` is NEVER executed here, even if a
-        caller passes it in ``selected_ids``.
-      - Any ``selected_ids`` outside ``LEGACY_BENCHMARK_MODEL_IDS`` are
-        silently filtered out (the API layer raises HTTP 400 first).
-      - When ``selected_ids`` is None, all legacy models are run.
-    """
-    if selected_ids:
-        ids = [
-            mid for mid in selected_ids
-            if mid in LEGACY_BENCHMARK_MODEL_IDS
-            and mid != EXECUTABLE_FIREWALL_MODEL_ID
-        ]
-    else:
-        ids = [mid for mid in LEGACY_BENCHMARK_MODEL_IDS
-               if mid != EXECUTABLE_FIREWALL_MODEL_ID]
-
-    result = run_benchmark(df, model_ids=ids)
-    result["legacy_benchmark"] = True
-    result["legacy_model_ids"] = list(LEGACY_BENCHMARK_MODEL_IDS)
-    result["selected_model_ids"] = ids
-    result["warnings"] = list(result.get("warnings", [])) + [
-        "Legacy benchmark — comparison only. Active firewall model is excluded.",
-    ]
-    return result
-
-
-def _load_feature_order(model_id: str) -> List[str]:
-    """Load feature_order list for a model. Returns [] on failure (tolerant)."""
-    try:
-        return registry_loader.load_feature_order(model_id)
-    except Exception:
-        return []
-
-
-def get_legacy_benchmark_model_info() -> Dict[str, Any]:
-    """Return metadata for all legacy benchmark models (compatible + incompatible).
-
-    Used by GET /benchmark/legacy/models. Does NOT execute inference.
-
-    Each entry includes the fields the frontend ModelComparison page expects:
-      - selectable          (bool)  — checkbox enabled?
-      - feature_count       (int)   — number of required features
-      - feature_order       (list)  — required feature names (for union panel)
-      - disabled_reason     (str)   — shown when not selectable
-    """
-    compatible: List[Dict[str, Any]] = []
-    for mid in LEGACY_BENCHMARK_MODEL_IDS:
-        entry = get_model_entry(mid) or {}
-        feats = _load_feature_order(mid)
-        compatible.append({
-            "model_id": mid,
-            "role": entry.get(
-                "role",
-                "legacy_baseline"
-                if mid in ("full_canonical__lgbm", "robust9_firewall")
-                else "benchmark_comparison",
-            ),
-            "status": entry.get("status", "benchmark_comparison"),
-            "ui_badge": entry.get("ui_badge", ""),
-            "ui_warning": entry.get("ui_warning", ""),
-            "executable": False,
-            "comparison_only": True,
-            "benchmark_compatible": True,
-            "selectable": bool(feats),
-            "disabled_reason": (
-                "" if feats else
-                "Feature list could not be loaded from runtime_models/"
-                f"{mid}/feature_order.json"
-            ),
-            "feature_order": feats,
-            "feature_count": len(feats),
-            "n_features": entry.get("n_features", len(feats) or None),
-            "feature_family": entry.get("feature_family"),
-            "selected_aggregation": entry.get("selected_aggregation"),
-            "selected_probability_column": entry.get("selected_probability_column"),
-        })
-
-    incompatible: List[Dict[str, Any]] = []
-    for mid in INCOMPATIBLE_MODEL_IDS:
-        entry = get_model_entry(mid) or {}
-        feats = _load_feature_order(mid)
-        incompatible.append({
-            "model_id": mid,
-            "role": entry.get("role", "benchmark_comparison"),
-            "status": entry.get("status", "benchmark_comparison"),
-            "ui_badge": entry.get("ui_badge", ""),
-            "ui_warning": entry.get("ui_warning", ""),
-            "executable": False,
-            "comparison_only": True,
-            "benchmark_compatible": False,
-            "selectable": False,
-            "disabled_reason": (
-                "Requires session-derived probability features "
-                "(session_mean_prob, etc.) not present in the raw-feature "
-                "demo_flows_full_canonical(2).csv benchmark."
-            ),
-            "feature_order": feats,
-            "feature_count": len(feats),
-            "skipped_reason": (
-                "Requires session-derived probability features not present in "
-                "the raw-feature demo_flows_full_canonical(2).csv benchmark."
-            ),
-            "missing_features": INCOMPATIBLE_MISSING_FEATURES,
-        })
-
-    disabled_runtime: List[Dict[str, Any]] = []
-    entry = get_model_entry(EXECUTABLE_FIREWALL_MODEL_ID) or {}
-    feats = _load_feature_order(EXECUTABLE_FIREWALL_MODEL_ID)
-    disabled_runtime.append({
-        "model_id": EXECUTABLE_FIREWALL_MODEL_ID,
-        "role": entry.get("role", "recommended_firewall"),
-        "status": entry.get("status", "default_firewall"),
-        "ui_badge": entry.get("ui_badge", ""),
-        "ui_warning": entry.get("ui_warning", ""),
-        "executable": True,
-        "comparison_only": False,
-        "benchmark_compatible": False,
-        "selectable": False,
-        "disabled_reason": (
-            "Active runtime firewall model — excluded from the legacy "
-            "benchmark page. Use Live VM / Unified benchmark instead."
-        ),
-        "feature_order": feats,
-        "feature_count": len(feats),
-    })
-
-    return {
-        "legacy_benchmark": True,
-        "firewall_model": EXECUTABLE_FIREWALL_MODEL_ID,
-        "executable_firewall_model_excluded": True,
-        "compatible_models": compatible,
-        "incompatible_models": incompatible,
-        "disabled_runtime_models": disabled_runtime,
-        "optional_columns": ["session_id", "flow_id", "capture_id", "dataset", "label"],
-        "warnings": [
-            BENCHMARK_WARNING,
-            f"'{EXECUTABLE_FIREWALL_MODEL_ID}' is the active firewall model and is excluded from the legacy benchmark.",
-            (
-                "balanced_bagging_xgb_baseline and robust13_comparison are excluded "
-                "from raw-feature demo_flows_full_canonical(2).csv benchmarking."
-            ),
-        ],
-    }
-

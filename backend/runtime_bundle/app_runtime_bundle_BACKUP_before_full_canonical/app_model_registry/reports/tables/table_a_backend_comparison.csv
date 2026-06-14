@@ -1,7 +1,0 @@
-Configuration,Session AUC,Session PR-AUC,Block Recall,Block FPR,Block Precision,Flag Recall,Flag FPR,Block Threshold,Flag Threshold,N Sessions,Calibration,Aggregation,Feature Set
-XGBoost (3 bags),0.9941,0.9896,0.6471,0.0,1.0,1.0,0.1,0.981,0.6867,47,per-family raw,p90,full (7 features)
-LightGBM (3 bags),0.9902,0.9815,0.7059,0.0,1.0,1.0,0.0667,0.968,0.6776,47,per-family raw,p90,full (7 features)
-CatBoost (3 bags),0.9902,0.9836,0.5882,0.0,1.0,0.8235,0.0333,0.9591,0.6714,47,per-family raw,p90,full (7 features)
-Ensemble (raw),0.9922,0.9867,0.5882,0.0,1.0,1.0,0.0667,0.9694,0.6786,47,raw,p90,full (7 features)
-Ensemble (isotonic),0.9902,0.9775,0.7059,0.0,1.0,1.0,0.0667,0.9588,0.6711,47,isotonic,p90,full (7 features)
-Ensemble (platt),0.9922,0.9867,0.6471,0.0,1.0,1.0,0.0667,0.9522,0.6665,47,platt,p90,full (7 features)

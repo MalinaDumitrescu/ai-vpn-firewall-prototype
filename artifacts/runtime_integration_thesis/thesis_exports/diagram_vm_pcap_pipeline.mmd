@@ -1,0 +1,29 @@
+flowchart LR
+    subgraph VM["VirtualBox client VM"]
+        VM_TRAFFIC["Traffic generator\n(curl small/medium/large.bin\nthrough OpenVPN tun0)"]
+        VM_TCPDUMP["tcpdump -i any\n-w /tmp/capture.pcap\n(SAFETY: manual, not backend)"]
+        VM_PCAP["/tmp/capture.pcap"]
+    end
+
+    SCP["scp -P 2222\nhost <- VM"]
+    HOST_PCAP["captures/*.pcap on host"]
+
+    subgraph EXTRACT["tools/pcap_to_live_stream.py"]
+        EX_PARSE["scapy rdpcap + flow keys\npacket_size = ip_layer.len"]
+        EX_FEAT["12 unified_relative_shape_v2\nfeatures per flow"]
+        EX_VALID["validate_rows()\nrequired features + finite"]
+    end
+
+    subgraph BACKEND["Backend"]
+        EP["POST /firewall/live-ingest\n(LiveIngestRequest)"]
+        IN_VALID["LiveIngestState.ingest_batch\nfeature_order.json check"]
+        ENGINE["RuntimeModelEngine\nunified_relative_shape_v2__lgbm"]
+        AGG["session aggregation = mean\nthresholds review=0.0367 / block=0.425"]
+    end
+
+    OUT["Simulated decision per session\nPASS -> BENIGN_LIKE\nFLAG_REVIEW -> FLAGGED_FOR_REVIEW\nBLOCK -> VPN_LIKE_SIMULATED_BLOCK\n(action_mode='simulation', simulated=true)"]
+    FE["Frontend Live VM Monitor\n(polls /firewall/live-ingest/state)"]
+
+    VM_TRAFFIC --> VM_TCPDUMP --> VM_PCAP --> SCP --> HOST_PCAP
+    HOST_PCAP --> EX_PARSE --> EX_FEAT --> EX_VALID --> EP
+    EP --> IN_VALID --> ENGINE --> AGG --> OUT --> FE

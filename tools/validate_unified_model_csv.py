@@ -29,12 +29,10 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-# ─── path bootstrap: allow running from project root or tools/ ─────────────────
 
 _SCRIPT_DIR  = Path(__file__).resolve().parent
 _PROJECT_ROOT = _SCRIPT_DIR.parent
 
-# ─── model feature registry (mirrors pcap_to_live_stream.py) ─────────────────
 
 DEFAULT_MODEL_ID = "unified_relative_shape_v2__lgbm"
 
@@ -126,14 +124,12 @@ def validate_csv(
     errors: List[str] = []
     warnings: List[str] = []
 
-    # 1. Check required feature columns
     missing_feats = [f for f in feature_list if f not in df.columns]
     if missing_feats:
         errors.append(f"Missing {len(missing_feats)} required feature(s): {missing_feats}")
     else:
         print(f"  [OK] All {len(feature_list)} required features present.")
 
-    # 2. Check metadata columns (optional)
     present_meta = [c for c in OPTIONAL_META_COLS if c in df.columns]
     missing_meta = [c for c in ["capture_id", "session_id"] if c not in df.columns]
     if present_meta:
@@ -141,7 +137,6 @@ def validate_csv(
     if missing_meta:
         warnings.append(f"Optional session/grouping columns missing: {missing_meta} (not required for validation)")
 
-    # 3. Numeric check + NaN/Inf check on feature columns only
     if not missing_feats:
         nan_counts: Dict[str, int] = {}
         inf_counts: Dict[str, int] = {}
@@ -174,7 +169,6 @@ def validate_csv(
         else:
             print(f"  [OK] No Inf values in feature columns.")
 
-    # 4. Forbidden model input columns (should not be fed to model as features)
     forbidden = ["dataset", "label", "capture_id", "session_id", "flow_id", "source_file"]
     present_forbidden = [c for c in forbidden if c in df.columns]
     if present_forbidden:
@@ -182,12 +176,10 @@ def validate_csv(
             f"Forbidden model-input columns present (OK as metadata, do not feed to model): {present_forbidden}"
         )
 
-    # 5. Print warnings
     if warnings:
         for w in warnings:
             print(f"  [WARN] {w}")
 
-    # 6. Dry inference (optional)
     if dry_inference and not errors:
         print("\n  [*] Running dry inference via backend engine...")
         try:
@@ -205,7 +197,6 @@ def validate_csv(
         except Exception as exc:
             errors.append(f"Dry inference failed: {exc}")
 
-    # 7. Final verdict
     print()
     if errors:
         print(f"INVALID FOR {model_id}")

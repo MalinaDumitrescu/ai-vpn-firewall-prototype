@@ -121,7 +121,6 @@ def validate_csv(csv_path: Path, feature_order: List[str]) -> Tuple[bool, List[s
     if problem_cols:
         messages.append(f"Problem features : {problem_cols}")
 
-    # Dry-run: enforce feature order
     try:
         X = df.loc[:, feature_order].to_numpy(dtype=float)
         messages.append(f"Feature matrix   : shape={X.shape}")
@@ -130,7 +129,6 @@ def validate_csv(csv_path: Path, feature_order: List[str]) -> Tuple[bool, List[s
         messages.append(f"ERROR in feature matrix: {exc}")
         return False, messages
 
-    # Preview
     messages.append(f"\nFirst 3 rows (model features, rounded to 4 dp):")
     for i, row in df[feature_order].head(3).iterrows():
         messages.append(f"  row {i}: {dict(row.round(4))}")

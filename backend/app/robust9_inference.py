@@ -58,14 +58,12 @@ class Robust9Engine:
             "session_grouping_column", "capture_id"
         )
 
-        # Load model pickles by family.
         families = self.loader_config.get("model_files", {})
         self.models: Dict[str, List[Any]] = {}
         for family in ("xgb", "lgbm", "cat"):
             paths = families.get(family, [])
             self.models[family] = [joblib.load(BUNDLE_ROOT / p) for p in paths]
 
-        # Calibrators.
         cal = self.loader_config.get("calibrators", {})
         iso_path = cal.get("isotonic")
         platt_path = cal.get("platt")
@@ -80,13 +78,11 @@ class Robust9Engine:
                     cls._instance = cls()
         return cls._instance
 
-    # ------------------------------------------------------------------ scoring
 
     @staticmethod
     def _proba(model: Any, X: np.ndarray) -> np.ndarray:
         """Return P(class=1) from a sklearn-like classifier."""
         proba = model.predict_proba(X)
-        # Some wrappers return shape (n,) for binary; standardize.
         proba = np.asarray(proba)
         if proba.ndim == 1:
             return proba
@@ -110,12 +106,11 @@ class Robust9Engine:
         if col == "prob_iso" and self.isotonic is not None:
             return np.asarray(self.isotonic.transform(raw))
         if col == "prob_platt" and self.platt is not None:
-            # Platt is typically a LogisticRegression on raw scores.
             try:
                 return self.platt.predict_proba(raw.reshape(-1, 1))[:, 1]
             except Exception:
                 return np.asarray(self.platt.transform(raw))
-        return raw  # prob_raw or missing calibrator
+        return raw
 
     @staticmethod
     def _aggregate(scores: np.ndarray, method: str) -> float:
@@ -127,10 +122,8 @@ class Robust9Engine:
             return float(np.mean(scores))
         if method == "max":
             return float(np.max(scores))
-        # default
         return float(np.percentile(scores, 80))
 
-    # ------------------------------------------------------------------- public
 
     def score_dataframe(self, df: pd.DataFrame) -> Tuple[pd.DataFrame, str]:
         """Score every flow in ``df`` and attach a per-flow probability column.
@@ -149,7 +142,6 @@ class Robust9Engine:
         out["prob_raw"] = raw
         out[self.probability_column] = calibrated
 
-        # Pick a session column: configured -> session_id -> capture_id.
         session_col = self.session_grouping_column
         if session_col not in out.columns:
             for alt in ("session_id", "capture_id"):
@@ -157,7 +149,6 @@ class Robust9Engine:
                     session_col = alt
                     break
             else:
-                # No session column at all — treat each flow as its own session.
                 out["_session"] = np.arange(len(out)).astype(str)
                 session_col = "_session"
         return out, session_col

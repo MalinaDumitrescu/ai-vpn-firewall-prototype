@@ -1,0 +1,9 @@
+{
+  "extractor_version": "unified_v2.0",
+  "packet_size_mode": "ip_total_length_bytes",
+  "direction_convention": "1=upload 0=download",
+  "iat_unit": "seconds",
+  "eps": 1e-06,
+  "max_window_packets": 100,
+  "min_packets": 3
+}

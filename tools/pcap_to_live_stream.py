@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 pcap_to_live_stream.py
 ======================
@@ -58,7 +57,6 @@ from typing import Any, Dict, List, Optional, Tuple
 #      a safe ASCII replacement instead of crashing.
 # ---------------------------------------------------------------------------
 try:
-    # Python 3.7+: io.TextIOWrapper.reconfigure
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")  # type: ignore[union-attr]
     sys.stderr.reconfigure(encoding="utf-8", errors="replace")  # type: ignore[union-attr]
 except Exception:  # noqa: BLE001
@@ -73,7 +71,6 @@ def safe_print(text: str = "") -> None:
         enc = getattr(sys.stdout, "encoding", None) or "ascii"
         print(text.encode(enc, errors="replace").decode(enc, errors="replace"))
 
-# ─── dependency guard: scapy ─────────────────────────────────────────────────
 try:
     from scapy.all import rdpcap, IP, TCP, UDP  # type: ignore[import]
 except ImportError:
@@ -84,15 +81,13 @@ except ImportError:
     )
     sys.exit(1)
 
-# ─── dependency guard: requests (only needed for live streaming) ──────────────
 try:
-    import requests as _requests  # type: ignore[import]
+    import requests as _requests
     _HAS_REQUESTS = True
 except ImportError:
-    _requests = None  # type: ignore[assignment]
+    _requests = None
     _HAS_REQUESTS = False
 
-# ─── model / schema registry ─────────────────────────────────────────────────
 #
 # Default: unified_relative_shape_v2__lgbm (12 features, unified feature contract v2)
 # Legacy:  full_canonical__lgbm            (34 features)
@@ -103,7 +98,6 @@ except ImportError:
 
 DEFAULT_MODEL_ID = "unified_relative_shape_v2__lgbm"
 
-# ── unified_relative_shape_v2: 12 features ────────────────────────────────────
 UNIFIED_V2_FEATURES: List[str] = [
     "sz_cv",
     "sz_iqr",
@@ -119,7 +113,6 @@ UNIFIED_V2_FEATURES: List[str] = [
     "dispersion_symmetry",
 ]
 
-# ── full_canonical__lgbm: 34 features (legacy) ────────────────────────────────
 FULL_CANONICAL_FEATURES: List[str] = [
     "sz_coef_variation",
     "sz_p25_median_ratio",
@@ -157,7 +150,6 @@ FULL_CANONICAL_FEATURES: List[str] = [
     "iat_p75",
 ]
 
-# Resolve features by model_id
 FEATURES_BY_MODEL: Dict[str, List[str]] = {
     "unified_relative_shape_v2__lgbm": UNIFIED_V2_FEATURES,
     "full_canonical__lgbm": FULL_CANONICAL_FEATURES,
@@ -168,7 +160,6 @@ FEATURE_SCHEMA_BY_MODEL: Dict[str, str] = {
     "full_canonical__lgbm": "full_canonical_34",
 }
 
-# Metadata columns (pass-through; not model features)
 META_COLUMNS = [
     "session_id",
     "flow_id",
@@ -181,10 +172,8 @@ META_COLUMNS = [
 ]
 
 
-# Epsilon for division stability — matches feature_contract.json (eps=1e-6)
 _EPS = 1e-6
 
-# ─── bidirectional flow key helpers ──────────────────────────────────────────
 
 
 def _normalize_flow_key(
@@ -202,12 +191,10 @@ def _normalize_flow_key(
             ep_a, ep_b = ep_b, ep_a
         return (ep_a[0], ep_b[0], protocol, ep_a[1], ep_b[1])
     else:
-        # Non-TCP/UDP: normalize src/dst order only
         a, b = sorted([src_ip, dst_ip])
         return (a, b, protocol, None, None)
 
 
-# ─── pure-Python statistics helpers ──────────────────────────────────────────
 
 
 def _mean(lst: List[float]) -> float:
@@ -247,7 +234,6 @@ def _iats(times: List[float]) -> List[float]:
     return [s[i + 1] - s[i] for i in range(len(s) - 1)]
 
 
-# ─── feature computation ──────────────────────────────────────────────────────
 
 
 def _compute_full_canonical(
@@ -278,11 +264,9 @@ def _compute_full_canonical(
     Numeric stability: EPS = 1e-6 (matches feature_contract.json).
     """
     if not all_sizes:
-        # Return zeros for ALL possible feature names
         all_feat_names = list(dict.fromkeys(FULL_CANONICAL_FEATURES + UNIFIED_V2_FEATURES))
         return {k: 0.0 for k in all_feat_names}
 
-    # ── size statistics ───────────────────────────────────────────────────────
     sz_all_mean   = _mean(all_sizes)
     sz_all_std    = _std_pop(all_sizes)
     sz_all_p25    = _percentile(all_sizes, 25.0)
@@ -298,7 +282,6 @@ def _compute_full_canonical(
     sz_p75_median_ratio = sz_all_p75 / (sz_all_median + _EPS)
     sz_iqr_norm_median  = sz_iqr     / (sz_all_median + _EPS)
 
-    # ── directional size statistics ───────────────────────────────────────────
     mean_a = _mean(sizes_a) if sizes_a else 0.0
     mean_b = _mean(sizes_b) if sizes_b else 0.0
     std_a  = _std_pop(sizes_a) if sizes_a else 0.0
@@ -309,10 +292,8 @@ def _compute_full_canonical(
     sz_std_max  = max(std_a, std_b)
     sz_std_min  = min(std_a, std_b)
 
-    # Dispersion symmetry: 1.0 = equal dispersion both ways, ≈0 = maximally asymmetric
     dispersion_symmetry = 1.0 - abs(std_a - std_b) / (std_a + std_b + _EPS)
 
-    # Direction balance
     sum_a = sum(sizes_a) if sizes_a else 0.0
     sum_b = sum(sizes_b) if sizes_b else 0.0
     cnt_a = len(sizes_a)
@@ -320,7 +301,6 @@ def _compute_full_canonical(
     direction_balance_bytes   = (sum_a - sum_b) / (sum_a + sum_b + _EPS)
     direction_balance_packets = (cnt_a - cnt_b) / (cnt_a + cnt_b + _EPS)
 
-    # ── IAT statistics (all packets) ──────────────────────────────────────────
     all_iats_list = _iats(all_times)
 
     iat_all_mean   = _mean(all_iats_list)    if all_iats_list else 0.0
@@ -330,11 +310,10 @@ def _compute_full_canonical(
     iat_all_p75    = _percentile(all_iats_list, 75.0) if all_iats_list else 0.0
     iat_iqr        = iat_all_p75 - iat_all_p25
     iat_cv         = iat_all_std / (iat_all_mean + _EPS) if iat_all_mean > 0 else 0.0
-    iat_median     = iat_all_median   # alias per feature_order.json
-    iat_p25        = iat_all_p25      # alias
-    iat_p75        = iat_all_p75      # alias
+    iat_median     = iat_all_median
+    iat_p25        = iat_all_p25
+    iat_p75        = iat_all_p75
 
-    # ── directional IAT statistics ────────────────────────────────────────────
     iats_a_list = _iats(times_a)
     iats_b_list = _iats(times_b)
 
@@ -351,7 +330,6 @@ def _compute_full_canonical(
     return {
         k: round(v, 6)
         for k, v in {
-            # ── unified_relative_shape_v2 features (12) ──────────────────────
             "sz_cv":          sz_cv,
             "sz_iqr":         sz_iqr,
             "sz_qratio":      sz_qratio,
@@ -364,8 +342,7 @@ def _compute_full_canonical(
             "direction_balance_bytes":   direction_balance_bytes,
             "direction_balance_packets": direction_balance_packets,
             "dispersion_symmetry":       dispersion_symmetry,
-            # ── additional full_canonical features (22 extras = 34 total) ────
-            "sz_coef_variation":        sz_cv,   # alias for full_canonical
+            "sz_coef_variation":        sz_cv,
             "sz_all_mean":    sz_all_mean,
             "sz_all_std":     sz_all_std,
             "sz_all_median":  sz_all_median,
@@ -400,7 +377,6 @@ def _select_features_for_model(
     return {k: all_features[k] for k in feature_list if k in all_features}
 
 
-# ─── PCAP parsing ─────────────────────────────────────────────────────────────
 
 
 def parse_pcap(
@@ -439,7 +415,6 @@ def parse_pcap(
     pkt_count       = 0
     capture_start_time: Optional[float] = None
 
-    # flow_key → accumulator dict
     flows: Dict[Tuple, Dict[str, Any]] = {}
 
     for pkt in packets:
@@ -487,19 +462,15 @@ def parse_pcap(
             flows[key] = {
                 "first_ts":     ts,
                 "first_src_ip": src_ip,
-                # Size accumulators (IP total length)
                 "sizes_a":      [],
                 "sizes_b":      [],
                 "all_sizes":    [],
-                # Timestamp accumulators for IAT
                 "times_a":      [],
                 "times_b":      [],
                 "all_times":    [],
-                # Canonical identifiers from the key
                 "src_ip":       key[0],
                 "dst_ip":       key[1],
                 "protocol":     protocol,
-                # key[4] = port_b (higher port) or None for non-TCP/UDP
                 "dst_port":     key[4],
             }
 
@@ -507,7 +478,6 @@ def parse_pcap(
         flow["all_sizes"].append(pkt_len)
         flow["all_times"].append(ts)
 
-        # Assign packet to direction A (first-seen src) or B (reverse)
         if src_ip == flow["first_src_ip"]:
             flow["sizes_a"].append(pkt_len)
             flow["times_a"].append(ts)
@@ -518,7 +488,6 @@ def parse_pcap(
     if capture_start_time is None:
         capture_start_time = 0.0
 
-    # ── Build flow rows ────────────────────────────────────────────────────
     flow_rows: List[Dict[str, Any]] = []
     flows_skipped_short = 0
 
@@ -568,7 +537,6 @@ def parse_pcap(
     return flow_rows, stats
 
 
-# ─── schema validation ────────────────────────────────────────────────────────
 
 
 def validate_rows(
@@ -614,7 +582,6 @@ def validate_rows(
     return errors
 
 
-# ─── CSV save ────────────────────────────────────────────────────────────────
 
 
 def save_csv(
@@ -636,7 +603,6 @@ def save_csv(
     print(f"[*] Schema: {schema_name} ({len(feature_list)} model features + {len(META_COLUMNS)} metadata columns)")
 
 
-# ─── streaming ───────────────────────────────────────────────────────────────
 
 
 def stream_to_api(
@@ -737,7 +703,6 @@ def stream_to_api(
     return batches_sent, flows_sent
 
 
-# ─── summary printer ─────────────────────────────────────────────────────────
 
 
 def _print_final_summary(
@@ -775,7 +740,6 @@ def _print_final_summary(
     safe_print("---------------------------------------------------------\n")
 
 
-# ─── CLI argument parser ──────────────────────────────────────────────────────
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -883,7 +847,6 @@ def _build_parser() -> argparse.ArgumentParser:
     return p
 
 
-# ─── entry point ─────────────────────────────────────────────────────────────
 
 
 def main() -> None:
@@ -894,7 +857,6 @@ def main() -> None:
     feature_list = FEATURES_BY_MODEL.get(model_id, UNIFIED_V2_FEATURES)
     schema_name  = FEATURE_SCHEMA_BY_MODEL.get(model_id, model_id)
 
-    # ── validate PCAP path ──────────────────────────────────────────────────
     pcap_path = Path(args.pcap)
     if not pcap_path.exists():
         print(f"[ERROR] PCAP file not found: {pcap_path.resolve()}")
@@ -907,7 +869,6 @@ def main() -> None:
     print(f"[*] Feature schema : {schema_name} ({len(feature_list)} features)")
     print(f"[*] Packet size    : IP total length (ip_layer.len)")
 
-    # ── parse PCAP → flow features ─────────────────────────────────────────
     flow_rows, stats = parse_pcap(
         pcap_path=str(pcap_path),
         scenario=args.scenario,
@@ -916,7 +877,6 @@ def main() -> None:
         model_id=model_id,
     )
 
-    # ── extraction summary ─────────────────────────────────────────────────
     safe_print("\n-- Extraction Summary -----------------------------------")
     print(f"  packets read          : {stats['packets_read']}")
     print(f"  usable IP packets     : {stats['usable_ip']}")
@@ -925,7 +885,6 @@ def main() -> None:
     print(f"  flows extracted       : {stats['flows_extracted']}")
     print(f"  flows skipped (short) : {stats['flows_skipped_short']}")
 
-    # ── schema validation ──────────────────────────────────────────────────
     validation_errors: List[str] = []
     if flow_rows:
         validation_errors = validate_rows(flow_rows, model_id=model_id)
@@ -939,11 +898,9 @@ def main() -> None:
                 f"all {len(feature_list)} {schema_name} features present and numeric."
             )
 
-    # ── save CSV if requested ──────────────────────────────────────────────
     if args.out_csv and flow_rows:
         save_csv(flow_rows, args.out_csv, model_id=model_id)
 
-    # ── bail if no usable flows ─────────────────────────────────────────────
     if len(flow_rows) < 1:
         print(
             "\n[!] No valid flows extracted. "
@@ -951,7 +908,6 @@ def main() -> None:
         )
         sys.exit(0)
 
-    # ── bail if schema validation failed ──────────────────────────────────
     if validation_errors:
         print(
             f"\n[ERROR] Live PCAP features are not valid for {model_id}. "
@@ -961,14 +917,12 @@ def main() -> None:
                              model_id=model_id, validation_errors=validation_errors)
         sys.exit(1)
 
-    # ── dry-run: stop here ─────────────────────────────────────────────────
     if args.dry_run:
         print("\n[dry-run] Feature extraction complete. Skipping API POST.")
         _print_final_summary(stats, 0, 0, args.out_csv, dry_run=True,
                              model_id=model_id, validation_errors=validation_errors)
         return
 
-    # ── live streaming ─────────────────────────────────────────────────────
     batches_sent, flows_sent = stream_to_api(
         flow_rows=flow_rows,
         api_base=args.api,

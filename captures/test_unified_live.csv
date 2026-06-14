@@ -1,0 +1,5 @@
+session_id,flow_id,timestamp,src_ip,dst_ip,protocol,dst_port,scenario,sz_cv,sz_iqr,sz_qratio,sz_median_to_mean,sz_p25_median_ratio,sz_p75_median_ratio,sz_iqr_norm_median,iat_cv,iat_iqr,direction_balance_bytes,direction_balance_packets,dispersion_symmetry
+basic_benign__window_0000,flow_000000,2026-05-29T05:19:21.345025+00:00,10.0.2.15,10.0.2.2,TCP,54884,basic_benign,0.64575,78.0,2.95,0.741573,0.606061,1.787879,1.181818,0.815243,0.00089,0.550562,0.0,0.0
+basic_benign__window_0000,flow_000001,2026-05-29T05:19:24.618284+00:00,10.0.2.15,10.0.2.2,TCP,54886,basic_benign,1.733145,88.0,3.2,0.470362,0.526316,1.684211,1.157895,3.638559,0.00348,-0.0524,0.155556,0.991669
+basic_benign__window_0000,flow_000004,2026-05-29T05:19:25.227038+00:00,10.0.2.15,10.0.2.2,TCP,54887,basic_benign,1.656433,98.0,3.45,0.453127,0.526316,1.815789,1.289474,3.712777,0.00251,-0.026513,0.148936,0.990518
+basic_benign__window_0005,flow_000008,2026-05-29T05:19:47.658432+00:00,127.0.0.1,127.0.0.53,UDP,53,basic_benign,0.240609,38.0,1.5,0.938776,0.826087,1.23913,0.413043,0.961619,0.007212,-0.22449,0.0,0.0

@@ -1,0 +1,17 @@
+{
+  "model_id": "unified_relative_shape_v2__lgbm",
+  "model_file": "runtime_models/unified_relative_shape_v2__lgbm/model.pkl",
+  "calibrators": {
+    "isotonic": "runtime_models/unified_relative_shape_v2__lgbm/calibrator.pkl"
+  },
+  "probability_column": "prob_iso",
+  "session_aggregation": "mean",
+  "session_grouping_column": "capture_id",
+  "feature_family": "unified_relative_shape_v2",
+  "n_features": 12,
+  "production_readiness": false,
+  "action_mode": "simulation",
+  "executable": true,
+  "default": true
+}
+

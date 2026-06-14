@@ -1,0 +1,45 @@
+route,method,file,purpose,input_type,output_type,affects_real_packets,notes
+/health,GET,main.py,API liveness check,none,HealthResponse JSON,No,
+/models,GET,main.py + registry_loader.py,List all registered models,none,Dict of model entries,No,Reads registry.json
+/models/default,GET,main.py + registry_loader.py,Return executable firewall model metadata,none,Model metadata JSON,No,Always returns unified_relative_shape_v2__lgbm
+/models/ui-groups,GET,main.py + registry_loader.py,Return UI display groups,none,UI groups JSON,No,Reads ui_model_groups.json
+/models/main-comparison,GET,main.py,Return main demo comparison model list,none,List of model entries,No,
+/models/advanced-benchmarks,GET,main.py,Return advanced benchmark model list,none,List of model entries,No,
+/models/robustness-controls,GET,main.py,Return robustness negative-control model list,none,List of model entries,No,
+/models/hidden,GET,main.py,Return hidden/alias/unsupported model list,none,List of model entries,No,
+/models/{model_id},GET,main.py,Get metadata + model card for a model,model_id path,ModelDetailResponse JSON,No,
+/models/{model_id}/policy,GET,main.py,Get threshold + policy report for a model,model_id path,ModelPolicyResponse JSON,No,Reads thresholds.json policy_report.json
+/models/{model_id}/metrics,GET,main.py,Get session metrics + calibration info,model_id path,ModelMetricsResponse JSON,No,Reads session_metrics.json calibration_info.json
+/comparison/summary,GET,main.py + csv_service.py,Cross-model comparison table from CSV,none,List of comparison rows,No,Reads app_model_policy_comparison.csv
+/firewall/runtime-models,GET,main.py + registry_loader.py,All allowlisted models with thresholds,none,List of runtime model dicts,No,Reads runtime_inference_allowlist.json
+/firewall/runtime-required-features,GET,main.py,Required features per model + union set,none,Feature union dict,No,Reads feature_order.json per model
+/firewall/multimodel-demo,GET,main.py + runtime_model_inference.py,Run executable model on bundled demo CSV; others listed as comparison-only,none,FirewallResult JSON,No,Only unified_relative_shape_v2__lgbm runs inference
+/firewall/analyze-csv-multimodel,POST,main.py + runtime_model_inference.py,Run executable model on uploaded CSV,CSV upload,FirewallResult JSON,No,Non-executable IDs rejected with HTTP 400
+/firewall/demo,GET,main.py + runtime_model_inference.py,Run executable model on bundled demo CSV,none,FirewallResult JSON,No,
+/firewall/analyze-csv,POST,main.py + runtime_model_inference.py,Analyze uploaded CSV with executable model,CSV upload,FirewallResult JSON,No,
+/firewall/required-features,GET,main.py,Return required features for executable model,none,Feature list JSON,No,
+/firewall/live-replay/upload,POST,main.py + live_replay_service.py,Upload CSV for step-by-step live replay,CSV upload,Load metadata JSON,No,Validates unified_relative_shape_v2 features
+/firewall/live-replay/step,POST,main.py + live_replay_service.py,Advance replay pointer; score next batch,batch_size query,Replay state JSON,No,Runs inference on accumulated rows
+/firewall/live-replay/reset,POST,main.py + live_replay_service.py,Clear all replay state,none,Reset confirmation,No,
+/firewall/live-replay/state,GET,main.py + live_replay_service.py,Return replay state without advancing,none,Replay state JSON,No,
+/firewall/live-replay/template,GET,main.py + live_replay_service.py,Return CSV header template,none,Plain text CSV header,No,
+/firewall/live-ingest,POST,main.py + live_ingest_service.py,Accept PCAP-derived flow batch; run inference,LiveIngestRequest JSON,Ingest result JSON,No,Sent by tools/pcap_to_live_stream.py
+/firewall/live-ingest/reset,POST,main.py + live_ingest_service.py,Clear all live-ingest state,none,Reset confirmation,No,
+/firewall/live-ingest/state,GET,main.py + live_ingest_service.py,Return current live-ingest session state,none,Ingest state JSON,No,
+/benchmark/compatible-csv/info,GET,main.py + benchmark_service.py,Metadata about benchmark models,none,Benchmark info JSON,No,Read-only
+/benchmark/compatible-csv/bundled,GET,main.py + benchmark_service.py,Run bundled demo CSV against executable model,none,Benchmark result JSON,No,
+/benchmark/compatible-csv,POST,main.py + benchmark_service.py,Run uploaded CSV against executable model,CSV upload,Benchmark result JSON,No,
+/benchmark/legacy/models,GET,main.py + benchmark_service.py,Return legacy comparison model metadata,none,Legacy model info JSON,No,Does not run inference
+/benchmark/legacy/bundled,GET,main.py + benchmark_service.py,Run compatible legacy models on bundled CSV,selected_model_ids query,Legacy benchmark JSON,No,unified_relative_shape_v2__lgbm excluded
+/benchmark/compare,POST,main.py + benchmark_service.py,Run legacy models on uploaded CSV,CSV upload,Legacy benchmark JSON,No,unified_relative_shape_v2__lgbm excluded
+/model-details/frontend-content,GET,main.py,Serve frontend_page_content.json,none,JSON,No,
+/model-details/cards,GET,main.py,Serve model_cards_frontend.json,none,JSON,No,
+/model-details/features,GET,main.py,Serve model_feature_details.json,none,JSON,No,
+/model-details/metrics,GET,main.py,Serve model_metrics_summary.json,none,JSON,No,
+/model-details/benchmark-compatibility,GET,main.py,Serve benchmark_compatibility.json,none,JSON,No,
+/model-details/missing-report,GET,main.py,Serve missing_frontend_details.md,none,Plain text,No,
+/demo/allowed,GET,demo_runner.py,List allowed demo names + descriptions,none,Demo list JSON,No,Local thesis demo only
+/demo/run/{name},POST,demo_runner.py,Launch named PowerShell demo script,demo name + allow_concurrent,Job metadata JSON,No,Hard-coded allowlist; no arbitrary commands
+/demo/jobs,GET,demo_runner.py,List all demo job statuses,none,Job list JSON,No,
+/demo/jobs/{job_id},GET,demo_runner.py,Get status and log for a demo job,job_id path,Job detail JSON,No,
+/demo/jobs/{job_id}/cancel,POST,demo_runner.py,Cancel a running demo job,job_id path,Confirmation JSON,No,

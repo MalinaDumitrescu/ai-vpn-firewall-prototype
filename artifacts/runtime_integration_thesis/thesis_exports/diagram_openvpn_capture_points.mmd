@@ -1,0 +1,32 @@
+flowchart TB
+    APP["Application on client\n(curl / browser / HTTP test)"]
+    INNER["Inner tunnel traffic\n10.8.0.6 <-> 10.8.0.1 :8000\nHTTP, plaintext payload"]
+    OVPN_C["OpenVPN client process\n(encryption + UDP encapsulation)"]
+    OUTER["Outer encrypted transport\nclient_outer_ip <-> server_outer_ip :1194\nopaque UDP payload"]
+    NET["Physical / NAT network\n(VirtualBox NAT, host LAN)"]
+    SERVER["OpenVPN server\n10.8.0.1 + HTTP file server"]
+
+    subgraph TUN["Capture point A: tunnel interface (tun0)"]
+        CAP_TUN["tcpdump -i tun0"]
+        CAP_TUN_OUT["Sees decrypted inner HTTP\nLooks like plain HTTP -> likely PASS"]
+    end
+
+    subgraph PHY["Capture point B: outer / physical interface"]
+        CAP_PHY["tcpdump -i eth0 port 1194"]
+        CAP_PHY_OUT["Sees encrypted UDP transport\nMatches typical VPN-detection training"]
+    end
+
+    subgraph ANY["Capture point C: -i any (current demo)"]
+        CAP_ANY["tcpdump -i any (Linux SLL2)"]
+        CAP_ANY_OUT["Mixed: inner tun0 + outer NIC\n+ SSH NAT + DNS + ICMP\nVPN signal can be diluted"]
+    end
+
+    APP --> INNER --> OVPN_C --> OUTER --> NET --> SERVER
+    INNER -.captured by.-> CAP_TUN --> CAP_TUN_OUT
+    OUTER -.captured by.-> CAP_PHY --> CAP_PHY_OUT
+    INNER -.captured by.-> CAP_ANY
+    OUTER -.captured by.-> CAP_ANY
+    CAP_ANY --> CAP_ANY_OUT
+
+    NOTE["Interpretation rule:\na PASS verdict on capture point A\nis NOT evidence the model fails to detect OpenVPN.\nIt only proves the inner HTTP did not look VPN-like."]
+    CAP_TUN_OUT --- NOTE

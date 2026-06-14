@@ -1,0 +1,260 @@
+{
+  "schema_version": "1.0",
+  "created": "2026-05-30",
+  "experiment": "unified_feature_contract_v2",
+  "cards": {
+    "unified_relative_shape_v2__lgbm": {
+      "title": "Unified Relative Shape v2 \u2014 LightGBM",
+      "subtitle": "Current unified model (simulation firewall)",
+      "badges": [
+        "CURRENT MODEL",
+        "EXECUTABLE",
+        "UNIFIED FEATURE CONTRACT V2",
+        "SIMULATION ONLY",
+        "NOT PRODUCTION READY"
+      ],
+      "short_explanation": "Selected as the best methodologically clean model under unified_feature_contract_v2. Uses 12 relative/ratio features that are dataset-agnostic by design. Reduced domain fingerprinting from 1.0000 (legacy) to 0.9591. Highest deployment score (0.4691) among all 30 trained models.",
+      "why_selected": [
+        "12 pure ratio/relative features (e.g. sz_cv, sz_p25_median_ratio) resist dataset-level fingerprinting.",
+        "Domain AUC reduced from 1.0000 (full_canonical__lgbm) to 0.9591 \u2014 meaningful reduction.",
+        "LODO-min improved from 0.6164 (legacy) to 0.6366 (+0.0202).",
+        "Highest deployment score (0.4691) balancing LODO transfer, domain AUC penalty, FPR and ECE.",
+        "Compact model: 12 features, fast inference, no session-level aggregation.",
+        "Fully runtime-compatible: all features computable from live packet stream."
+      ],
+      "metrics": {
+        "test_auc": 0.9826,
+        "test_pr_auc": 0.8529,
+        "lodo_iscx_auc": 0.6366,
+        "lodo_vnat_auc": 0.956,
+        "lodo_mean_auc": 0.7963,
+        "lodo_min_auc": 0.6366,
+        "domain_auc": 0.9591,
+        "test_recall": 0.893,
+        "test_fpr": 0.0759,
+        "test_precision": 0.3737,
+        "test_ece": 0.2988,
+        "deployment_score": 0.4691,
+        "test_tp": 626,
+        "test_fp": 1049,
+        "test_tn": 12780,
+        "test_fn": 75
+      },
+      "thresholds": {
+        "review": 0.0367,
+        "block": 0.425,
+        "policy": "PASS / FLAG_REVIEW / SIMULATED_BLOCK"
+      },
+      "calibration": {
+        "method": "isotonic_regression",
+        "ece": 0.2988,
+        "warning": "High ECE (~0.30). Probability values reflect rank order well but should not be interpreted as calibrated probabilities in production."
+      },
+      "caveats": [
+        "ECE = 0.2988 \u2014 probability values are poorly calibrated. Rank-order is reliable but absolute scores are not.",
+        "FPR = 0.0759 \u2014 approximately 7.6% of benign flows are flagged at the REVIEW threshold.",
+        "Domain fingerprinting persists: domain AUC = 0.9591. A classifier can still identify the source dataset from features at above-random accuracy.",
+        "LODO-ISCX AUC = 0.637 \u2014 transfer to completely unseen ISCX-style captures is limited.",
+        "LODO for USBVPN not available: USBVPN test set is almost entirely benign (cannot compute AUC reliably).",
+        "Live PCAP validation: schema-confirmed only. Full end-to-end live PCAP test has not been run with real traffic.",
+        "action_mode = simulation. No packets are blocked."
+      ],
+      "live_extractor_compatible": true,
+      "live_pcap_status": "schema_confirmed_only",
+      "recommended_frontend_placement": [
+        "Dashboard",
+        "Live VM",
+        "Models Page",
+        "Robustness Page"
+      ]
+    },
+    "full_canonical__lgbm": {
+      "title": "Full Canonical \u2014 LightGBM (Legacy)",
+      "subtitle": "Legacy mixed-feature baseline",
+      "badges": [
+        "LEGACY MIXED-FEATURE BASELINE",
+        "COMPARISON ONLY",
+        "NOT CURRENT MODEL",
+        "DOMAIN AUC = 1.0"
+      ],
+      "short_explanation": "Former top model from the final_transfer experiment. Achieves excellent pooled AUC (0.9994) but suffers from complete dataset fingerprinting (domain AUC = 1.0000), meaning a classifier can perfectly distinguish the source dataset from features alone. Also affected by cross-dataset feature-definition mismatches in direction_balance and dispersion_symmetry features that were only discovered during the unified_feature_contract_v2 audit. Not the recommended model for thesis/publication.",
+      "why_not_selected": [
+        "domain_auc = 1.0000: complete dataset fingerprinting. Features encode the dataset identity.",
+        "Feature-definition mismatch: direction_balance_bytes, direction_balance_packets, dispersion_symmetry used different formulas across ISCX/VNAT/USBVPN.",
+        "LODO-min = 0.6164 \u2014 lower than unified_relative_shape_v2__lgbm (0.6366).",
+        "live_extractor_compatible = False: legacy feature extraction path uses inconsistent formulas."
+      ],
+      "metrics": {
+        "test_auc": 0.9994,
+        "test_pr_auc": 0.984,
+        "lodo_iscx_auc": 0.6164,
+        "lodo_vnat_auc": 0.6898,
+        "lodo_mean_auc": 0.6531,
+        "lodo_min_auc": 0.6164,
+        "domain_auc": 1.0,
+        "test_recall": 0.9444,
+        "test_fpr": 0.0025,
+        "test_precision": null,
+        "test_ece": 0.0026,
+        "deployment_score": 0.684,
+        "test_tp": 221,
+        "test_fp": 19,
+        "test_tn": 7699,
+        "test_fn": 13
+      },
+      "thresholds": {
+        "block": 0.5,
+        "policy": "PASS / SIMULATED_BLOCK"
+      },
+      "calibration": {
+        "method": "isotonic_regression",
+        "ece": 0.0026,
+        "warning": "Excellent ECE \u2014 but calibrated on a fingerprinted feature space. ECE validity is questionable for OOD data."
+      },
+      "caveats": [
+        "domain_auc = 1.0000: model may be exploiting dataset-level statistical artifacts.",
+        "Feature-definition inconsistency discovered post-hoc in unified_feature_contract_v2 audit.",
+        "Legacy aggregation is per-session (not per-flow). Different probability output format.",
+        "live_extractor_compatible = False: formulas differ from unified extractor.",
+        "This model is NOT the recommended thesis model."
+      ],
+      "live_extractor_compatible": false,
+      "live_pcap_status": "not_validated",
+      "recommended_frontend_placement": [
+        "Models Page (comparison section)",
+        "Robustness Page"
+      ]
+    },
+    "robust9_clean__lgbm": {
+      "title": "Robust9 Clean \u2014 LightGBM (Legacy)",
+      "subtitle": "Legacy compact 9-feature baseline",
+      "badges": [
+        "LEGACY COMPACT BASELINE",
+        "COMPARISON ONLY",
+        "9 FEATURES"
+      ],
+      "short_explanation": "Compact 9-feature model using only packet size statistics. Useful as a size-features-only baseline. Superseded by the unified_relative_shape_v2 and unified_size_shape models.",
+      "metrics": {
+        "test_auc": null,
+        "lodo_iscx_auc": null,
+        "domain_auc": null,
+        "note": "Full per-split metrics not re-evaluated in unified_feature_contract_v2 pipeline."
+      },
+      "caveats": [
+        "Compact model but uses raw size statistics (not ratio/relative features).",
+        "Not evaluated under unified feature contract.",
+        "Domain AUC unknown in unified pipeline.",
+        "Comparison/documentation only."
+      ],
+      "live_extractor_compatible": true,
+      "live_pcap_status": "not_validated",
+      "recommended_frontend_placement": [
+        "Models Page (legacy section)"
+      ]
+    },
+    "anti_fingerprint_hybrid__lgbm": {
+      "title": "Anti-Fingerprint Hybrid \u2014 LightGBM (Legacy)",
+      "subtitle": "Pre-unification anti-fingerprint attempt",
+      "badges": [
+        "LEGACY ANTI-FINGERPRINT ATTEMPT",
+        "COMPARISON ONLY",
+        "SUPERSEDED"
+      ],
+      "short_explanation": "An earlier attempt to reduce domain fingerprinting by selecting features with low domain importance. Despite 12 carefully selected features, domain AUC remained near 1.0 (0.9999). LODO-min = 0.443. The unified_relative_shape_v2 approach is strictly better.",
+      "metrics": {
+        "test_auc": 0.9883,
+        "lodo_iscx_auc": 0.4427,
+        "lodo_vnat_auc": 0.521,
+        "lodo_mean_auc": 0.4819,
+        "lodo_min_auc": 0.4427,
+        "domain_auc": 0.9999,
+        "test_recall": 0.517,
+        "test_fpr": 0.0023,
+        "test_ece": 0.0072,
+        "deployment_score": 0.4298
+      },
+      "caveats": [
+        "domain_auc = 0.9999 despite anti-fingerprint feature selection.",
+        "Pre-unification: feature formulas inconsistent with unified extractor.",
+        "LODO-min = 0.443, much lower than unified_relative_shape_v2 (0.637).",
+        "Superseded. Comparison only."
+      ],
+      "live_extractor_compatible": false,
+      "live_pcap_status": "not_validated",
+      "recommended_frontend_placement": [
+        "Models Page (legacy section)",
+        "Robustness Page"
+      ]
+    },
+    "lodo__iscx_held_out__lgbm": {
+      "title": "LODO \u2014 ISCX Held-Out (Negative Control)",
+      "subtitle": "Leave-one-dataset-out negative control",
+      "badges": [
+        "NEGATIVE CONTROL",
+        "REPORT ONLY",
+        "NOT DEPLOYABLE",
+        "LODO ISCX AUC = 0.637"
+      ],
+      "short_explanation": "Trained on USBVPN+VNAT, evaluated on ISCX. Demonstrates what happens when a completely unseen dataset is encountered. AUC = 0.637 (near-random for VPN detection on ISCX). Not a deployable model. Report/robustness analysis only.",
+      "caveats": [
+        "Intentionally underpowered: trained without ISCX to test generalization.",
+        "AUC = 0.637 on ISCX \u2014 this is the honest cross-domain transfer performance.",
+        "Not deployable. Not selectable in benchmarks."
+      ],
+      "live_extractor_compatible": false,
+      "live_pcap_status": "not_applicable",
+      "recommended_frontend_placement": [
+        "Robustness Page (LODO section)"
+      ]
+    },
+    "lodo__vnat_held_out__lgbm": {
+      "title": "LODO \u2014 VNAT Held-Out (Negative Control)",
+      "subtitle": "Leave-one-dataset-out negative control",
+      "badges": [
+        "NEGATIVE CONTROL",
+        "REPORT ONLY",
+        "NOT DEPLOYABLE",
+        "LODO VNAT AUC = 0.956"
+      ],
+      "short_explanation": "Trained on USBVPN+ISCX, evaluated on VNAT. AUC = 0.956 \u2014 VNAT-style captures transfer well from ISCX/USBVPN. Not deployable. Report/robustness analysis only.",
+      "caveats": [
+        "VNAT transfer works better than ISCX transfer.",
+        "Not deployable. Robustness report only."
+      ],
+      "live_extractor_compatible": false,
+      "live_pcap_status": "not_applicable",
+      "recommended_frontend_placement": [
+        "Robustness Page (LODO section)"
+      ]
+    },
+    "diverse_bagging_robust9": {
+      "title": "Diverse Bagging Robust9 (Legacy Ensemble)",
+      "subtitle": "Legacy 9-member XGB/LGBM/CatBoost bagging ensemble",
+      "badges": [
+        "LEGACY ENSEMBLE",
+        "REPORT ONLY",
+        "NOT STANDARD SCHEMA"
+      ],
+      "short_explanation": "A 9-model diverse bagging ensemble (3\u00d7XGB + 3\u00d7LGBM + 3\u00d7CatBoost) from the ensemble experiment. Overall test AUC = 0.9903. Does not use the standard feature_order.json schema. Not selectable in unified benchmark comparisons. Reference only.",
+      "metrics": {
+        "test_auc_overall": 0.9903,
+        "test_auc_iscx": 0.9085,
+        "test_auc_vnat": 0.9996,
+        "test_auc_usbvpn": 0.9991,
+        "test_recall": 0.903,
+        "test_fpr": 0.0094
+      },
+      "caveats": [
+        "Non-standard artifact format: no feature_order.json.",
+        "Per-session aggregation, not per-flow.",
+        "Not selectable in unified feature benchmark.",
+        "Report-only reference."
+      ],
+      "live_extractor_compatible": false,
+      "live_pcap_status": "not_applicable",
+      "recommended_frontend_placement": [
+        "Models Page (legacy section)"
+      ]
+    }
+  }
+}

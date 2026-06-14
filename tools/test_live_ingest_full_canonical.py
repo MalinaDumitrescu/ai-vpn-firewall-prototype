@@ -15,7 +15,6 @@ import json
 import sys
 from pathlib import Path
 
-# Allow running from repo root or tools/ dir
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT / "backend"))
 
@@ -30,7 +29,6 @@ except ImportError:
     sys.exit("pandas not installed. Run: pip install pandas")
 
 
-# ─── defaults ──────────────────────────────────────────────────────────────
 
 DEFAULT_HOST = "http://127.0.0.1:8765"
 DEFAULT_CSV  = REPO_ROOT / "captures" / "vm_basic_benign_features.csv"
@@ -38,7 +36,6 @@ INGEST_URL   = "{host}/firewall/live-ingest"
 STATE_URL    = "{host}/firewall/live-ingest/state"
 RESET_URL    = "{host}/firewall/live-ingest/reset"
 
-# Full canonical 34 features (must be present in CSV)
 REQUIRED_FEATURES = [
     "sz_coef_variation", "sz_p25_median_ratio", "sz_p75_median_ratio",
     "sz_iqr_norm_median", "dispersion_symmetry",
@@ -66,7 +63,6 @@ def run_test(host: str, csv_path: Path, n_rows: int) -> int:
     print(f"  Rows    : {'all' if n_rows == 0 else n_rows}")
     print(f"{'='*60}\n")
 
-    # ── 1. Check health ────────────────────────────────────────────────
     try:
         r = requests.get(f"{host}/health", timeout=5)
         r.raise_for_status()
@@ -75,7 +71,6 @@ def run_test(host: str, csv_path: Path, n_rows: int) -> int:
         print(f"[FAIL] Backend not reachable at {host}: {exc}")
         return 1
 
-    # ── 2. Load CSV ────────────────────────────────────────────────────
     if not csv_path.exists():
         print(f"[FAIL] CSV not found: {csv_path}")
         return 1
@@ -83,26 +78,22 @@ def run_test(host: str, csv_path: Path, n_rows: int) -> int:
     df = pd.read_csv(csv_path)
     print(f"[OK] Loaded CSV: {len(df)} rows × {len(df.columns)} columns")
 
-    # Validate required features
     missing = [f for f in REQUIRED_FEATURES if f not in df.columns]
     if missing:
         print(f"[FAIL] CSV is missing {len(missing)} required features: {missing}")
         return 1
     print(f"[OK] All 34 full_canonical features present in CSV")
 
-    # Subset rows
     if n_rows > 0:
         df = df.head(n_rows)
     print(f"[INFO] Using {len(df)} rows for POST")
 
-    # Convert to list of dicts, cast to Python native types for JSON safety
     flows = []
     for _, row in df.iterrows():
         flow = {}
         for col in df.columns:
             val = row[col]
             try:
-                # numpy scalar → Python native
                 val = val.item()
             except AttributeError:
                 pass
@@ -111,11 +102,9 @@ def run_test(host: str, csv_path: Path, n_rows: int) -> int:
 
     print(f"[INFO] First row keys (first 8): {list(flows[0].keys())[:8]}")
 
-    # ── 3. Reset state ─────────────────────────────────────────────────
     r = requests.post(RESET_URL.format(host=host), timeout=10)
     print(f"[INFO] Reset response: {r.status_code} {r.json().get('message','')}")
 
-    # ── 4. POST batch ──────────────────────────────────────────────────
     payload = {
         "source": "test_live_ingest_full_canonical",
         "batch_id": "test_batch_0001",
@@ -155,7 +144,6 @@ def run_test(host: str, csv_path: Path, n_rows: int) -> int:
     ]:
         print(f"  {key}: {resp.get(key)}")
 
-    # ── 5. Assertions ──────────────────────────────────────────────────
     failures = []
 
     if resp.get("model_id") != "full_canonical__lgbm":
@@ -173,7 +161,6 @@ def run_test(host: str, csv_path: Path, n_rows: int) -> int:
     if resp.get("total_sessions", 0) < 1:
         failures.append(f"total_sessions expected >= 1, got {resp.get('total_sessions')}")
 
-    # ── 6. Sessions detail ─────────────────────────────────────────────
     sessions = resp.get("active_sessions", [])
     if sessions:
         print(f"\n--- Active sessions ({len(sessions)}) ---")
@@ -188,14 +175,12 @@ def run_test(host: str, csv_path: Path, n_rows: int) -> int:
     else:
         failures.append("active_sessions is empty — sessions should have been created")
 
-    # ── 7. State endpoint ──────────────────────────────────────────────
     r2 = requests.get(STATE_URL.format(host=host), timeout=10)
     state = r2.json()
     print(f"\n--- /live-ingest/state ---")
     for key in ["total_flows", "total_sessions", "model_id", "feature_schema"]:
         print(f"  {key}: {state.get(key)}")
 
-    # ── 8. Result ──────────────────────────────────────────────────────
     print()
     if failures:
         print(f"[FAIL] {len(failures)} assertion(s) failed:")

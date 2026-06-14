@@ -3,7 +3,6 @@ from __future__ import annotations
 
 from typing import Any, Dict, Tuple
 
-# Sentinel value used by some policies to disable real blocking.
 STRICT_ACTION_DISABLED = "DISABLED_DO_NOT_BLOCK"
 
 
@@ -27,7 +26,6 @@ def decide_action(
     strict = thresholds.get("strict", {}) or {}
     balanced = thresholds.get("balanced", {}) or {}
 
-    # Flat-format fallback (full_canonical__lgbm open_set_three_tier)
     if not strict and not balanced:
         block_thr = thresholds.get("block_threshold")
         review_thr = thresholds.get("review_threshold")
@@ -57,7 +55,6 @@ def decide_action(
     else:
         action = pass_label
 
-    # Hard safety: never emit BLOCK if strict action was disabled.
     if strict_disabled and action == "BLOCK":
         action = review_label
 

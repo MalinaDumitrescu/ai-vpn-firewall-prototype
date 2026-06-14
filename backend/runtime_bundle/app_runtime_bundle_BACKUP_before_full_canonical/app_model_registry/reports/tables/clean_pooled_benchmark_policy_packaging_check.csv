@@ -1,3 +1,0 @@
-prob_col,aggregation,n_val_sessions,n_test_sessions,strict_threshold,strict_recall,strict_fpr,strict_TP,strict_FP,strict_TN,strict_FN,balanced_threshold,balanced_recall,balanced_fpr,balanced_TP,balanced_FP,balanced_TN,balanced_FN,session_auc_test,per_dataset_auc_test,n_block,n_flag_review,review_load,error
-prob_raw,p80,16,91,0.10278490276532272,1.0,0.125,67,3,21,0,0.9508673713594167,0.7313432835820896,0.0,49,0,24,18,0.9987562189054726,"{""iscx"": 1.0, ""usbvpn"": null, ""vnat"": 1.0}",70,0,0.0,
-prob_raw,wt5,16,91,0.6084398441364754,0.9552238805970149,0.125,64,3,21,3,0.9861678332199986,0.16417910447761194,0.0,11,0,24,56,0.9894278606965174,"{""iscx"": 1.0, ""usbvpn"": null, ""vnat"": 0.9949494949494949}",67,0,0.0,

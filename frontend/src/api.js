@@ -87,38 +87,6 @@ export const api = {
     request(`/demo/run/${encodeURIComponent(name)}?allow_concurrent=${allowConcurrent}`, {
       method: 'POST',
     }),
-  // ---- legacy benchmark comparison (Model Comparison page) ----
-  legacyBenchmarkModels: () => request('/benchmark/legacy/models'),
-  legacyBenchmarkBundled: (selectedModelIds) => {
-    const qs = selectedModelIds ? `?selected_model_ids=${encodeURIComponent(selectedModelIds)}` : '';
-    return request(`/benchmark/legacy/bundled${qs}`);
-  },
-  legacyBenchmarkUploadCsv: (file, selectedModelIds) => {
-    const fd = new FormData();
-    fd.append('file', file);
-    const qs = selectedModelIds ? `?selected_model_ids=${encodeURIComponent(selectedModelIds)}` : '';
-    return request(`/benchmark/compare${qs}`, { method: 'POST', body: fd });
-  },
-
-  // ---- frontend model details metadata package ----
-  modelDetailsFrontendContent: () => request('/model-details/frontend-content'),
-  modelDetailsCards:          () => request('/model-details/cards'),
-  modelDetailsFeatures:       () => request('/model-details/features'),
-  modelDetailsMetrics:        () => request('/model-details/metrics'),
-  modelDetailsBenchmarkCompat:() => request('/model-details/benchmark-compatibility'),
-  modelDetailsMissingReport:  async () => {
-    const url = `${API_BASE}/model-details/missing-report`;
-    const res = await fetch(url, { headers: { Accept: 'text/plain' } });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return res.text();
-  },
-  // ---- unified benchmark (active model only, unified feature contract v2) ----
-  unifiedBenchmarkBundled: () => request('/firewall/multimodel-demo'),
-  unifiedBenchmarkUploadCsv: (file) => {
-    const fd = new FormData();
-    fd.append('file', file);
-    return request('/firewall/analyze-csv-multimodel', { method: 'POST', body: fd });
-  },
 };
 
 

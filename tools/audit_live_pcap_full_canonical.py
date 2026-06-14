@@ -30,9 +30,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-# ---------------------------------------------------------------------------
-# Windows-safe console output
-# ---------------------------------------------------------------------------
+
 try:
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")  # type: ignore[union-attr]
     sys.stderr.reconfigure(encoding="utf-8", errors="replace")  # type: ignore[union-attr]
@@ -45,7 +43,6 @@ except ImportError:
     print("[ERROR] Missing dependency: pandas. Install: pip install pandas")
     sys.exit(1)
 
-# ─── paths ───────────────────────────────────────────────────────────────────
 
 _THIS_FILE   = Path(__file__).resolve()
 PROJECT_ROOT = _THIS_FILE.parent.parent
@@ -54,11 +51,9 @@ BUNDLE_ROOT  = PROJECT_ROOT / "backend" / "runtime_bundle" / "app_runtime_bundle
 FEATURE_ORDER_PATH = BUNDLE_ROOT / "runtime_models" / "full_canonical__lgbm" / "feature_order.json"
 REPORT_DIR   = PROJECT_ROOT / "artifacts" / "runtime_schema_audit"
 
-# Known metadata / pass-through columns (not model features)
 META_COLS = {"session_id", "flow_id", "capture_id", "dataset", "label",
              "timestamp", "src_ip", "dst_ip", "protocol", "dst_port", "scenario"}
 
-# Live-generated PCAP feature CSV candidates (in preferred priority order)
 CANDIDATE_CSVS = [
     "vm_basic_benign_features.csv",
     "vm_vpnlike_features.csv",
@@ -93,7 +88,6 @@ def _find_latest_live_csv(explicit: Optional[str]) -> Path:
             sys.exit(1)
         return p
 
-    # Prefer most-recently modified among known candidates
     found = []
     for name in CANDIDATE_CSVS:
         p = CAPTURES_DIR / name
@@ -101,7 +95,6 @@ def _find_latest_live_csv(explicit: Optional[str]) -> Path:
             found.append(p)
 
     if not found:
-        # Fall back to newest *_features.csv in captures/
         found = sorted(CAPTURES_DIR.glob("*_features.csv"),
                        key=lambda f: f.stat().st_mtime, reverse=True)
 
@@ -110,7 +103,6 @@ def _find_latest_live_csv(explicit: Optional[str]) -> Path:
         print("       Run one of the VM PCAP demos first, or pass --csv explicitly.")
         sys.exit(1)
 
-    # Pick the most recently modified
     best = max(found, key=lambda f: f.stat().st_mtime)
     return best
 
@@ -175,7 +167,6 @@ def run_audit(csv_path: Path, feature_order: List[str]) -> Dict[str, Any]:
 
     is_robust9_only = _check_robust9_only(columns)
 
-    # Feature stats
     feat_stats: Dict[str, Any] = {}
     for feat in feature_order:
         feat_stats[feat] = _numeric_stats(df, feat)
@@ -183,10 +174,8 @@ def run_audit(csv_path: Path, feature_order: List[str]) -> Dict[str, Any]:
     total_nan = sum(v["nan_count"] for v in feat_stats.values() if v.get("present"))
     total_inf = sum(v["inf_count"] for v in feat_stats.values() if v.get("present"))
 
-    # Dry inference
     dry_ok, dry_msg = _dry_inference(df, feature_order)
 
-    # Verdict
     if is_robust9_only and missing:
         verdict = "D — Live PCAP pipeline still uses robust9/legacy assumptions. Fix required."
         verdict_code = "D"
@@ -378,7 +367,6 @@ def main() -> None:
 
     result = run_audit(csv_path, feature_order)
 
-    # ── Print summary ──────────────────────────────────────────────────────
     print()
     print("=" * 65)
     print("  AUDIT SUMMARY")
@@ -405,7 +393,6 @@ def main() -> None:
     report_path = Path(args.report)
     _write_report(result, report_path)
 
-    # Exit non-zero if verdict is C or D
     if result["verdict_code"] in ("C", "D"):
         sys.exit(1)
 
