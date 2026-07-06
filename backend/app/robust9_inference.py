@@ -49,7 +49,23 @@ class Robust9Engine:
 
     def __init__(self) -> None:
         self.loader_config: Dict[str, Any] = _read_json(LOADER_CONFIG_PATH)
-        self.feature_order: List[str] = _read_json(FEATURE_ORDER_PATH)["feature_order"]
+        # Use fallback logic for feature_order like registry_loader does
+        data = _read_json(FEATURE_ORDER_PATH) or {}
+        self.feature_order: List[str] = (
+            data.get("feature_order")
+            or data.get("features")
+            or data.get("feature_names")
+            or data.get("required_features")
+            or data.get("required_columns")
+            or data.get("selected_features")
+            or []
+        )
+        if not self.feature_order:
+            raise ValueError(
+                f"Model configuration error: feature_order.json for robust9_firewall must contain one of: "
+                f"feature_order, features, feature_names, required_features, required_columns, selected_features. "
+                f"File path: {FEATURE_ORDER_PATH}. Available keys: {list(data.keys())}."
+            )
         self.thresholds: Dict[str, Any] = _read_json(THRESHOLDS_PATH)
 
         self.probability_column: str = self.loader_config.get("probability_column", "prob_iso")

@@ -1,0 +1,326 @@
+{
+  "schema_version": "1.0",
+  "created": "2026-05-30",
+  "pages": {
+    "Dashboard": {
+      "active_model_summary": {
+        "model_id": "unified_relative_shape_v2__lgbm",
+        "display_name": "Unified Relative Shape v2 \u2014 LightGBM",
+        "role": "Recommended simulation firewall",
+        "test_auc": 0.9826,
+        "lodo_min_auc": 0.6366,
+        "domain_auc": 0.9591,
+        "deployment_score": 0.4691,
+        "n_features": 12,
+        "feature_family": "unified_relative_shape_v2",
+        "extractor_version": "unified_v2.0"
+      },
+      "compact_metrics": [
+        {
+          "label": "Test AUC",
+          "value": "0.9826",
+          "badge": "good"
+        },
+        {
+          "label": "LODO-min AUC",
+          "value": "0.6366",
+          "badge": "moderate"
+        },
+        {
+          "label": "Domain AUC",
+          "value": "0.9591 \u2193 from 1.0",
+          "badge": "improved"
+        },
+        {
+          "label": "Recall",
+          "value": "0.893",
+          "badge": "good"
+        },
+        {
+          "label": "FPR",
+          "value": "0.076",
+          "badge": "moderate"
+        },
+        {
+          "label": "ECE",
+          "value": "0.299",
+          "badge": "warn"
+        },
+        {
+          "label": "Deploy Score",
+          "value": "0.469 (best)",
+          "badge": "best"
+        }
+      ],
+      "warning_banner": {
+        "text": "SIMULATION ONLY \u2014 No packets are blocked. Research prototype. Not production-ready.",
+        "level": "warning",
+        "persistent": true
+      },
+      "limitation_notes": [
+        "ECE \u2248 0.30: raw probability values are not well-calibrated. Use thresholds, not raw scores.",
+        "LODO-ISCX = 0.637: unseen ISCX-style traffic generalizes only moderately.",
+        "Domain fingerprinting persists: domain AUC = 0.9591.",
+        "Live PCAP validation pending: schema confirmed, full traffic test not done."
+      ],
+      "recommended_cards": [
+        "Active Model Metrics",
+        "LODO Transfer Summary",
+        "Domain Fingerprinting Summary",
+        "Simulation Warning Banner",
+        "Threshold Policy Panel"
+      ]
+    },
+    "ModelsPage": {
+      "sections": [
+        {
+          "section_id": "active_model",
+          "title": "Active Simulation Firewall Model",
+          "models": [
+            "unified_relative_shape_v2__lgbm"
+          ],
+          "default_expanded": true
+        },
+        {
+          "section_id": "unified_comparison",
+          "title": "Unified Feature Contract v2 \u2014 Comparison Models",
+          "models": [
+            "unified_full__lgbm",
+            "unified_size_shape__lgbm",
+            "unified_directionless__lgbm",
+            "unified_timing_shape__lgbm",
+            "unified_safe_hybrid__lgbm"
+          ],
+          "default_expanded": false,
+          "note": "All trained under unified_feature_contract_v2. Selectable in benchmark."
+        },
+        {
+          "section_id": "legacy_comparison",
+          "title": "Legacy Models (Comparison / Documentation)",
+          "models": [
+            "full_canonical__lgbm",
+            "robust9_clean__lgbm",
+            "anti_fingerprint_hybrid__lgbm"
+          ],
+          "default_expanded": false,
+          "note": "Legacy models from final_transfer experiment. Not current. Domain AUC = 1.0 for full_canonical."
+        },
+        {
+          "section_id": "lodo_controls",
+          "title": "LODO Negative Controls (Report Only)",
+          "models": [
+            "lodo__iscx_held_out__lgbm",
+            "lodo__vnat_held_out__lgbm"
+          ],
+          "default_expanded": false,
+          "note": "Not deployable. Used to demonstrate cross-domain failure modes."
+        }
+      ],
+      "card_badges": {
+        "unified_relative_shape_v2__lgbm": [
+          "CURRENT MODEL",
+          "EXECUTABLE",
+          "UNIFIED v2",
+          "SIMULATION ONLY"
+        ],
+        "full_canonical__lgbm": [
+          "LEGACY",
+          "COMPARISON ONLY",
+          "DOMAIN AUC = 1.0"
+        ],
+        "robust9_clean__lgbm": [
+          "LEGACY",
+          "COMPACT 9-FEATURE"
+        ],
+        "lodo__iscx_held_out__lgbm": [
+          "NEGATIVE CONTROL",
+          "REPORT ONLY"
+        ],
+        "lodo__vnat_held_out__lgbm": [
+          "NEGATIVE CONTROL",
+          "REPORT ONLY"
+        ]
+      },
+      "expanded_detail_fields": [
+        "feature_list",
+        "thresholds",
+        "lodo_table",
+        "domain_auc",
+        "calibration_method",
+        "caveats",
+        "live_extractor_compatible"
+      ]
+    },
+    "ModelComparisonPage": {
+      "selectable_models": [
+        "unified_relative_shape_v2__lgbm",
+        "unified_full__lgbm",
+        "unified_size_shape__lgbm",
+        "unified_directionless__lgbm",
+        "unified_timing_shape__lgbm",
+        "unified_safe_hybrid__lgbm",
+        "full_canonical__lgbm",
+        "robust9_clean__lgbm"
+      ],
+      "disabled_models": [
+        {
+          "model_id": "balanced_bagging_xgb_baseline",
+          "reason": "Session-derived probability features required. Not in benchmark CSV."
+        },
+        {
+          "model_id": "diverse_bagging_robust9",
+          "reason": "Non-standard artifact format. Cannot load via standard feature_order.json."
+        },
+        {
+          "model_id": "lodo__iscx_held_out__lgbm",
+          "reason": "Negative control. Report-only."
+        },
+        {
+          "model_id": "lodo__vnat_held_out__lgbm",
+          "reason": "Negative control. Report-only."
+        }
+      ],
+      "required_feature_panel": {
+        "show_feature_list_on_model_select": true,
+        "show_formula_on_hover": true,
+        "highlight_unified_vs_legacy_diff": true,
+        "warn_on_formula_mismatch": true
+      },
+      "benchmark_warning_text": "Unified models (unified_*) use the unified_feature_contract_v2 CSV schema. Legacy models (full_canonical__lgbm, robust9_clean__lgbm) use the legacy benchmark CSV. Cross-schema comparison is not valid unless both models share the same input CSV.",
+      "table_column_recommendations": [
+        "model_id",
+        "feature_family",
+        "n_features",
+        "test_auc",
+        "lodo_min_auc",
+        "lodo_mean_auc",
+        "domain_auc",
+        "test_fpr",
+        "test_recall",
+        "test_ece",
+        "deployment_score",
+        "recommendation"
+      ]
+    },
+    "RobustnessPage": {
+      "final_research_outcome": {
+        "headline": "Unified feature contract reduced dataset fingerprinting but did not eliminate it.",
+        "detail": "After fixing cross-dataset formula mismatches and selecting ratio/relative features, domain AUC dropped from 1.0000 (legacy) to 0.9591 (unified_relative_shape_v2__lgbm). This is a meaningful improvement, but a classifier can still identify the source dataset above chance. Further reduction may require domain-adversarial training (DANN) or more aggressive feature ablation."
+      },
+      "domain_fingerprinting_story": [
+        "Legacy full_canonical__lgbm: domain_auc = 1.0000 \u2014 perfect fingerprinting.",
+        "Phase 1 diagnostic (all unified features): domain_auc = 0.9903.",
+        "Best unified model (relative_shape_v2): domain_auc = 0.9591.",
+        "Best low-fingerprint (size_shape): domain_auc = 0.9479.",
+        "Fingerprinting reduced but NOT eliminated.",
+        "Top fingerprinting culprits: sz_mean_max, iat_all_p75, sz_all_p75 (high domain importance in anti-fingerprint scoring)."
+      ],
+      "lodo_negative_control_interpretation": {
+        "LODO_ISCX": "AUC = 0.637 \u2014 model trained without ISCX performs near-randomly on ISCX. This is the honest cross-domain failure mode.",
+        "LODO_VNAT": "AUC = 0.956 \u2014 VNAT generalizes well from ISCX+USBVPN training.",
+        "interpretation": "ISCX is the hardest held-out dataset. The model partially learns ISCX-specific patterns during full training (3-dataset), which explains the pooled AUC vs LODO gap."
+      },
+      "live_validation_caveat": "Live PCAP validation is schema-confirmed only. The unified extractor (unified_v2.0) has been verified to produce the correct 12 features from raw packet arrays. However, no end-to-end test with real live network traffic captured on the VM has been run. Before deploying to production, a live PCAP validation session must be completed.",
+      "deployment_checklist": [
+        {
+          "item": "Unified feature contract defined",
+          "status": "DONE"
+        },
+        {
+          "item": "Cross-dataset formula mismatches fixed",
+          "status": "DONE"
+        },
+        {
+          "item": "30 models trained and evaluated",
+          "status": "DONE"
+        },
+        {
+          "item": "LODO evaluation completed",
+          "status": "DONE"
+        },
+        {
+          "item": "Domain fingerprinting measured",
+          "status": "DONE"
+        },
+        {
+          "item": "Anti-fingerprint feature selection",
+          "status": "DONE"
+        },
+        {
+          "item": "Model comparison report generated",
+          "status": "DONE"
+        },
+        {
+          "item": "Runtime export candidate created",
+          "status": "DONE"
+        },
+        {
+          "item": "Demo CSV created and validated",
+          "status": "DONE"
+        },
+        {
+          "item": "Smoke test passed",
+          "status": "DONE"
+        },
+        {
+          "item": "Live PCAP validation on VM",
+          "status": "PENDING"
+        },
+        {
+          "item": "Production-ready threshold tuning",
+          "status": "PENDING"
+        },
+        {
+          "item": "App runtime bundle replacement",
+          "status": "PENDING \u2014 awaiting live validation"
+        }
+      ],
+      "what_is_not_solved": [
+        "Domain fingerprinting: domain AUC = 0.9591 \u2014 still above 0.5 (random).",
+        "LODO-ISCX = 0.637: cross-domain transfer to ISCX-style traffic is limited.",
+        "ECE = 0.299: probability calibration is poor. Raw scores unreliable as probabilities.",
+        "USBVPN LODO: not computable (nearly all benign labels in USBVPN test set).",
+        "Live traffic validation: schema confirmed only. End-to-end live test pending.",
+        "GroupDRO / DANN: alternative training strategies not yet fully explored in unified pipeline."
+      ]
+    },
+    "LiveVMPage": {
+      "active_runtime_model": "unified_relative_shape_v2__lgbm",
+      "expected_feature_schema": {
+        "features": [
+          "sz_cv",
+          "sz_iqr",
+          "sz_qratio",
+          "sz_median_to_mean",
+          "sz_p25_median_ratio",
+          "sz_p75_median_ratio",
+          "sz_iqr_norm_median",
+          "iat_cv",
+          "iat_iqr",
+          "direction_balance_bytes",
+          "direction_balance_packets",
+          "dispersion_symmetry"
+        ],
+        "feature_count": 12,
+        "extractor_version": "unified_v2.0",
+        "packet_size_convention": "IP total length (ip.len), bytes",
+        "iat_unit": "seconds",
+        "direction_convention": "1 = client_to_server, 0 = server_to_client",
+        "min_packets": 3,
+        "max_window_packets": 100
+      },
+      "extractor_compatibility_status": "schema_confirmed_only",
+      "extractor_compatibility_notes": "The unified extractor (src/features/unified_extractor.py) produces the correct 12 features from raw packet arrays. However, live PCAP \u2192 feature extraction \u2192 model inference has not been validated end-to-end on real traffic. The extractor requires IP total length for packet sizes.",
+      "simulation_only_warning": "SIMULATION ONLY: All block/pass decisions shown in the UI are simulated. No firewall rules are applied. No packets are dropped, blocked, or modified.",
+      "pcap_validation_status": {
+        "status": "PENDING",
+        "description": "No live PCAP validation has been run. Demo CSV validated against model. Live traffic test required before production."
+      },
+      "thresholds": {
+        "review": 0.0367,
+        "block": 0.425,
+        "policy": "PASS/FLAG_REVIEW/SIMULATED_BLOCK"
+      }
+    }
+  }
+}

@@ -25,8 +25,8 @@ print("is_executable:", engine.is_executable)
 print("is_default_firewall:", engine.is_default_firewall)
 print()
 print("=== Demo CSV inference ===")
-from app.csv_service import load_demo_flows_unified
-df = load_demo_flows_unified()
+from app.csv_service import load_demo_flows
+df = load_demo_flows()
 print("Demo CSV shape:", df.shape)
 result = engine.run(df)
 print("action_mode:", result["action_mode"])

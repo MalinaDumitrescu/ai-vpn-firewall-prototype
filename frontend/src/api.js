@@ -22,6 +22,36 @@ async function request(path, options = {}) {
   return res.json();
 }
 
+async function modelDetailsFrontendContent() {
+  return request("/models/frontend-content");
+}
+
+async function modelDetailsCards() {
+  return request("/models/frontend-cards");
+}
+
+async function modelDetailsFeatures() {
+  return request("/models/details/features");
+}
+
+async function legacyBenchmarkModels() {
+  return request("/models/legacy-benchmarks");
+}
+
+async function modelDetailsBenchmarkCompat() {
+  return request("/models/frontend-benchmark-compat");
+}
+
+async function unifiedBenchmarkBundled() {
+  return request("/benchmark/compatible-csv/bundled");
+}
+
+async function unifiedBenchmarkUploadCsv(file) {
+  const fd = new FormData();
+  fd.append('file', file);
+  return request("/benchmark/compatible-csv", { method: 'POST', body: fd });
+}
+
 export const api = {
   health: () => request('/health'),
   models: () => request('/models'),
@@ -34,7 +64,13 @@ export const api = {
   mainComparison: () => request('/models/main-comparison'),
   advancedBenchmarks: () => request('/models/advanced-benchmarks'),
   robustnessControls: () => request('/models/robustness-controls'),
-  hiddenModels: () => request('/models/hidden'),
+   // ---- model details ----
+  modelDetailsFrontendContent,
+  modelDetailsCards,
+  modelDetailsFeatures,
+  modelDetailsBenchmarkCompat,
+  
+  // ---- hidden models and advanced ----
   runtimeModels: () => request('/firewall/runtime-models'),
   runtimeRequiredFeatures: () => request('/firewall/runtime-required-features'),
   multimodelDemo: () => request('/firewall/multimodel-demo'),
@@ -77,6 +113,22 @@ export const api = {
     return request('/benchmark/compatible-csv', { method: 'POST', body: fd });
   },
 
+  unifiedBenchmarkBundled,
+  unifiedBenchmarkUploadCsv,
+
+  // ---- legacy benchmark model selection ----
+  legacyBenchmarkModels: () => request('/models/legacy-benchmarks'),
+  legacyBenchmarkBundled: (selectedIds) => {
+    const params = selectedIds ? `?selected_model_ids=${encodeURIComponent(selectedIds)}` : '';
+    return request(`/benchmark/compatible-csv/bundled${params}`);
+  },
+  legacyBenchmarkUploadCsv: (file, selectedIds) => {
+    const fd = new FormData();
+    fd.append('file', file);
+    const params = selectedIds ? `?selected_model_ids=${encodeURIComponent(selectedIds)}` : '';
+    return request(`/benchmark/compatible-csv${params}`, { method: 'POST', body: fd });
+  },
+
   // ---- demo runner (local thesis demo only) ----
   demoAllowed: () => request('/demo/allowed'),
   demoJobs:    () => request('/demo/jobs'),
@@ -88,8 +140,3 @@ export const api = {
       method: 'POST',
     }),
 };
-
-
-
-
-

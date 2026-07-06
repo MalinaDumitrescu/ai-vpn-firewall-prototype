@@ -1,4 +1,0 @@
-Aggregation,Block Threshold,Flag Threshold,Val Block Recall,Test Block Recall,Test Block FPR,Test Block Precision,Test Flag Recall,Test Flag FPR,Test Session AUC,Test Session PR-AUC,Block TP,Block FP,Block FN,Block TN
-p90,0.9588,0.6711,0.8824,0.7059,0.0,1.0,1.0,0.0667,0.9902,0.9775,12,0,5,30
-weighted_top5_mean,0.8794,0.6156,0.8824,0.7059,0.0333,0.9231,1.0,0.1333,0.9686,0.9518,12,1,5,29
-mean,0.8472,0.593,0.8235,0.6471,0.0,1.0,0.9412,0.0,0.998,0.9967,11,0,6,30

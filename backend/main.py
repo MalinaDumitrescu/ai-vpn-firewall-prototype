@@ -161,6 +161,75 @@ def get_hidden_models() -> List[Dict[str, Any]]:
     return registry_loader.get_models_in_group("hidden_alias_or_unsupported")
 
 
+@app.get("/models/legacy-benchmarks")
+def get_legacy_benchmark_models() -> List[Dict[str, Any]]:
+    """Return models that are both legacy and benchmark compatible."""
+    legacy_benchmark_models = []
+    all_models = registry_loader.list_models()
+    
+    # Include selectable compatible models
+    for model_id in registry_loader.LEGACY_MODEL_IDS:
+        if model_id in all_models and model_id in COMPATIBLE_BENCHMARK_MODEL_IDS:
+            entry = all_models[model_id]
+            legacy_benchmark_models.append({"model_id": model_id, "selectable": True, **entry})
+            
+    # Include read-only incompatible models requested by frontend
+    for model_id in [
+        registry_loader.EXECUTABLE_FIREWALL_MODEL_ID,
+        "balanced_bagging_xgb_baseline",
+        "robust13_comparison"
+    ]:
+        if model_id in all_models:
+            entry = all_models[model_id]
+            # If it's the executable model, mark it as such
+            is_executable = (model_id == registry_loader.EXECUTABLE_FIREWALL_MODEL_ID)
+            legacy_benchmark_models.append({
+                "model_id": model_id, 
+                "selectable": False, 
+                "executable": is_executable,
+                "disabled_reason": "Active runtime model · READ-ONLY" if is_executable else "Benchmark incompatible · READ-ONLY",
+                **entry
+            })
+            
+    return legacy_benchmark_models
+
+
+@app.get("/models/frontend-cards")
+def get_frontend_model_cards() -> Dict[str, Any]:
+    """Return the content of model_cards_frontend.json."""
+    data = registry_loader.load_frontend_json("model_cards_frontend.json")
+    if data is None:
+        raise HTTPException(status_code=404, detail="Model cards not found")
+    return data
+
+
+@app.get("/models/frontend-benchmark-compat")
+def get_frontend_benchmark_compat() -> Dict[str, Any]:
+    """Return the content of benchmark_compatibility.json."""
+    data = registry_loader.load_frontend_json("benchmark_compatibility.json")
+    if data is None:
+        raise HTTPException(status_code=404, detail="Benchmark compatibility info not found")
+    return data
+
+
+@app.get("/models/frontend-content")
+def get_frontend_content() -> Dict[str, Any]:
+    """Return the content of frontend_page_content.json for Dashboard, LiveVM, ModelCards, Robustness pages."""
+    data = registry_loader.load_frontend_json("frontend_page_content.json")
+    if data is None:
+        raise HTTPException(status_code=404, detail="Frontend page content not found")
+    return data
+
+
+@app.get("/models/details/features")
+def get_model_feature_details() -> Dict[str, Any]:
+    """Return the content of model_feature_details.json with feature metadata and formulas."""
+    data = registry_loader.load_frontend_json("model_feature_details.json")
+    if data is None:
+        raise HTTPException(status_code=404, detail="Model feature details not found")
+    return data
+
+
 @app.get("/models/{model_id}", response_model=ModelDetailResponse)
 def get_model(model_id: str) -> ModelDetailResponse:
     entry = registry_loader.get_model_entry(model_id)
@@ -628,6 +697,12 @@ def firewall_live_ingest_state() -> Dict[str, Any]:
     return get_ingest_state().get_state()
 
 
+@app.get("/firewall/live-ingest/template")
+def firewall_live_ingest_template() -> str:
+    """Return a CSV header template for a compatible live ingest upload."""
+    return TEMPLATE_HEADER + "\n"
+
+
 # ======================================================================= benchmark
 
 @app.get("/benchmark/compatible-csv/info")
@@ -712,16 +787,3 @@ async def benchmark_upload_csv(file: UploadFile = File(...)) -> Dict[str, Any]:
 
     result["source"] = f"uploaded:{file.filename or 'uploaded.csv'}"
     return result
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -25,6 +25,7 @@ from .registry_loader import (
     get_allowlisted_model_ids,
     get_model_entry,
     load_inference_allowlist,
+    load_feature_order, # Import load_feature_order
 )
 
 _OPTIONAL_PASS_COLS = {"session_id", "flow_id", "dataset", "label"}
@@ -74,7 +75,7 @@ class RuntimeModelEngine:
 
         self.model_id = model_id
         self.loader_config: Dict[str, Any] = _read_json(model_dir / "runtime_loader_config.json")
-        self.feature_order: List[str] = _read_json(model_dir / "feature_order.json")["feature_order"]
+        self.feature_order: List[str] = load_feature_order(model_id) # Use load_feature_order
         self.thresholds: Dict[str, Any] = _read_json(model_dir / "thresholds.json")
 
         self.probability_column: str = self.loader_config.get("probability_column", "prob_raw")
@@ -345,4 +346,3 @@ def get_engine(model_id: str) -> RuntimeModelEngine:
 
 def get_all_engines() -> Dict[str, RuntimeModelEngine]:
     return _engine_registry.get_all()
-

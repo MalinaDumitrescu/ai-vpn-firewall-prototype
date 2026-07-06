@@ -106,11 +106,11 @@ function ModelSelectCard({ model, checked, onChange }) {
 
 // ─── required features panel ──────────────────────────────────────────────────
 
-function RequiredFeaturesPanel({ modelInfo, selectedIds }) {
+function RequiredFeaturesPanel({ selectedIds, models }) {
   const [open, setOpen] = useState(false);
-  if (!modelInfo) return null;
+  if (!models || models.length === 0) return null;
 
-  const selectedModels = (modelInfo.compatible_models || []).filter(m => selectedIds.has(m.model_id));
+  const selectedModels = models.filter(m => selectedIds.has(m.model_id));
   const union = new Set();
   selectedModels.forEach(m => (m.feature_order || []).forEach(f => union.add(f)));
   const unionArr = Array.from(union).sort();
@@ -133,7 +133,7 @@ function RequiredFeaturesPanel({ modelInfo, selectedIds }) {
           {' '}({unionArr.length} columns in union)
         </span>
         <span className="badge neutral small-badge" style={{ fontSize: 11 }}>
-          {(modelInfo.optional_columns || []).join(' · ')} optional
+          optional columns: label, flow_id, session_id, capture_id
         </span>
       </button>
 
@@ -167,7 +167,7 @@ function RequiredFeaturesPanel({ modelInfo, selectedIds }) {
                   Optional pass-through columns
                 </div>
                 <div className="mm-feature-chips">
-                  {(modelInfo.optional_columns || []).map(f =>
+                  {['label', 'flow_id', 'session_id', 'capture_id'].map(f =>
                     <span key={f} className="mm-feature-chip optional">{f}</span>
                   )}
                 </div>
@@ -647,6 +647,9 @@ export default function ModelComparison() {
   // Checkbox selection — default all 4 compatible models
   const [selected, setSelected] = useState(new Set());
 
+  // Models extracted from backend response
+  const [models, setModels] = useState([]);
+
   // Benchmark run state
   const [benchResult,  setBenchResult]  = useState(null);
   const [benchRunning, setBenchRunning] = useState(false);
@@ -667,8 +670,14 @@ export default function ModelComparison() {
         ]);
         setModelInfo(info);
         setCompatData(compat);
-        // Default: all 4 compatible models selected
-        setSelected(new Set((info.compatible_models || []).map(m => m.model_id)));
+
+        // Extract model array using aliases
+        const modelList = info.models || info.items || info.legacy_models || info.benchmark_models || info.compatible_models || (Array.isArray(info) ? info : []);
+        setModels(modelList);
+
+        // Default: all selectable models selected
+        const selectableIds = modelList.filter(m => m.selectable).map(m => m.model_id);
+        setSelected(new Set(selectableIds));
       } catch (e) {
         setLoadError(e.message);
       } finally {
@@ -720,9 +729,9 @@ export default function ModelComparison() {
     }
   }
 
-  const compatModels         = modelInfo?.compatible_models       || [];
-  const incompatModels       = modelInfo?.incompatible_models     || [];
-  const disabledRuntimeModels= modelInfo?.disabled_runtime_models || [];
+  const compatModels         = models.filter(m => m.selectable);
+  const incompatModels       = models.filter(m => !m.selectable && !m.executable);
+  const disabledRuntimeModels= models.filter(m => m.executable && !m.selectable);
   const nSelected            = selected.size;
 
   // Schema mismatch detection: check if selected legacy models mix unified/legacy schemas
@@ -887,7 +896,7 @@ export default function ModelComparison() {
 
               {/* ══ REQUIRED FEATURES ════════════════════════════════════════════ */}
               <div className="section">
-                <RequiredFeaturesPanel modelInfo={modelInfo} selectedIds={selected} />
+                <RequiredFeaturesPanel selectedIds={selected} models={models} />
               </div>
 
               {/* ══ BUNDLED BENCHMARK ════════════════════════════════════════════ */}

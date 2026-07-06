@@ -51,6 +51,7 @@ def load_feature_order(model_id: str) -> List[str]:
         features       → unified_relative_shape_v2 family
         feature_names  → legacy export
         required_features / required_columns / selected_features → misc
+        input_columns / model_features → additional aliases
 
     Raises a descriptive ValueError if the file exists but no recognized key
     is present, and FileNotFoundError if the artifact is missing entirely.
@@ -69,14 +70,20 @@ def load_feature_order(model_id: str) -> List[str]:
         "required_features",
         "required_columns",
         "selected_features",
+        "input_columns",
+        "model_features",
     ):
         val = data.get(key)
         if val:
             return list(val)
+
+    # Diagnostic error if no key is found
+    available_keys = list(data.keys())
     raise ValueError(
         f"Model configuration error: missing feature_order for '{model_id}'. "
-        f"feature_order.json must contain one of: feature_order, features, "
-        f"feature_names, required_features, required_columns, selected_features."
+        f"feature_order.json at {path} must contain one of: feature_order, features, "
+        f"feature_names, required_features, required_columns, selected_features, "
+        f"input_columns, model_features. Found keys: {available_keys}"
     )
 
 
@@ -247,4 +254,25 @@ def get_allowlisted_model_ids() -> list:
 
 def get_runtime_model_dir(model_id: str) -> Path:
     return RUNTIME_MODELS_DIR / model_id
+
+
+def load_frontend_json(filename: str) -> Optional[Dict[str, Any]]:
+    """Load a frontend JSON file from the runtime bundle or fallback locations."""
+    # PRIMARY: runtime_bundle/app_runtime_bundle/app_model_registry/frontend_model_details/
+    # FALLBACK 1: app_model_registry/frontend_model_details/
+    # FALLBACK 2: backend/app_model_registry/frontend_model_details/
+    # FALLBACK 3: runtime_bundle/app_runtime_bundle/frontend_model_details/ (original location)
+
+    candidates = [
+        BUNDLE_ROOT / "app_model_registry" / "frontend_model_details" / filename,
+        Path("app_model_registry") / "frontend_model_details" / filename,
+        Path("backend") / "app_model_registry" / "frontend_model_details" / filename,
+        BUNDLE_ROOT / "frontend_model_details" / filename,
+    ]
+
+    for path in candidates:
+        if path.exists():
+            return _read_json(path)
+
+    return None
 
